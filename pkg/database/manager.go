@@ -3,11 +3,14 @@ package database
 import (
 	"fmt"
 	"log"
+	"net"
 	"sync"
 	"time"
 
+	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/rafialfauzan/layrd/pkg/config"
 
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -24,7 +27,7 @@ func NewDBManager() *DBManager {
 	}
 }
 
-// Connect initializes a connection to a PostgreSQL database and sets up connection pooling
+// Connect initializes a configured database connection and sets up connection pooling.
 func (m *DBManager) Connect(dbCfg config.DatabaseConfig, isDebug bool) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
@@ -40,7 +43,12 @@ func (m *DBManager) Connect(dbCfg config.DatabaseConfig, isDebug bool) (*gorm.DB
 		Logger: logger.Default.LogMode(logLevel),
 	}
 
-	db, err := gorm.Open(postgres.Open(dsn), gormCfg)
+	dialector, err := databaseDialector(dbCfg, dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := gorm.Open(dialector, gormCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database [%s]: %w", dbCfg.Name, err)
 	}
@@ -69,10 +77,32 @@ func (m *DBManager) Connect(dbCfg config.DatabaseConfig, isDebug bool) (*gorm.DB
 	m.dbs[dbCfg.Name] = db
 	m.mu.Unlock()
 
-	log.Printf("[DBManager] Connected to database [%s] (%s@%s:%s/%s)\n",
-		dbCfg.Name, dbCfg.User, dbCfg.Host, dbCfg.Port, dbCfg.DBName)
+	log.Printf("[DBManager] Connected to database [%s] using driver [%s]\n", dbCfg.Name, dbCfg.Driver)
 
 	return db, nil
+}
+
+func databaseDialector(dbCfg config.DatabaseConfig, postgresDSN string) (gorm.Dialector, error) {
+	switch dbCfg.Driver {
+	case "", "postgres":
+		return postgres.Open(postgresDSN), nil
+	case "mysql":
+		dsnConfig := mysqldriver.NewConfig()
+		dsnConfig.User = dbCfg.User
+		dsnConfig.Passwd = dbCfg.Password
+		dsnConfig.Net = "tcp"
+		dsnConfig.Addr = net.JoinHostPort(dbCfg.Host, dbCfg.Port)
+		dsnConfig.DBName = dbCfg.DBName
+		dsnConfig.Params = map[string]string{"charset": "utf8mb4"}
+		dsnConfig.ParseTime = true
+		return mysql.Open(dsnConfig.FormatDSN()), nil
+	default:
+		return nil, fmt.Errorf(
+			"unsupported database driver [%s] for database [%s]; supported drivers are postgres and mysql",
+			dbCfg.Driver,
+			dbCfg.Name,
+		)
+	}
 }
 
 // Get returns the gorm.DB instance for a specific database name

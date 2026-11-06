@@ -11,6 +11,7 @@ import (
 
 type DatabaseConfig struct {
 	Name            string
+	Driver          string
 	Host            string
 	Port            string
 	User            string
@@ -60,12 +61,14 @@ func LoadConfig() (*Config, error) {
 	}
 
 	// 1. Primary/Default Database
+	defaultDriver := strings.ToLower(strings.TrimSpace(getEnv("DB_DRIVER", "postgres")))
 	cfg.Databases["default"] = DatabaseConfig{
 		Name:            "default",
+		Driver:          defaultDriver,
 		Host:            getEnv("DB_HOST", "127.0.0.1"),
-		Port:            getEnv("DB_PORT", "5432"),
-		User:            getEnv("DB_USER", "postgres"),
-		Password:        getEnv("DB_PASSWORD", "postgres"),
+		Port:            getEnv("DB_PORT", defaultDatabasePort(defaultDriver)),
+		User:            getEnv("DB_USER", defaultDatabaseUser(defaultDriver)),
+		Password:        getEnv("DB_PASSWORD", defaultDatabasePassword(defaultDriver)),
 		DBName:          getEnv("DB_NAME", "barong_main"),
 		SSLMode:         getEnv("DB_SSLMODE", "disable"),
 		MaxOpenConns:    getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
@@ -75,12 +78,22 @@ func LoadConfig() (*Config, error) {
 
 	// 2. Secondary DB (Optional User DB)
 	if userDBName := os.Getenv("DB_USER_NAME"); userDBName != "" {
+		userDriver := strings.ToLower(strings.TrimSpace(getEnv("DB_USER_DRIVER", defaultDriver)))
+		userDefaultPort := defaultDatabasePort(userDriver)
+		userDefaultName := defaultDatabaseUser(userDriver)
+		userDefaultPassword := defaultDatabasePassword(userDriver)
+		if userDriver == defaultDriver {
+			userDefaultPort = cfg.Databases["default"].Port
+			userDefaultName = cfg.Databases["default"].User
+			userDefaultPassword = cfg.Databases["default"].Password
+		}
 		cfg.Databases["user"] = DatabaseConfig{
 			Name:            "user",
+			Driver:          userDriver,
 			Host:            getEnv("DB_USER_HOST", cfg.Databases["default"].Host),
-			Port:            getEnv("DB_USER_PORT", cfg.Databases["default"].Port),
-			User:            getEnv("DB_USER_USER", cfg.Databases["default"].User),
-			Password:        getEnv("DB_USER_PASSWORD", cfg.Databases["default"].Password),
+			Port:            getEnv("DB_USER_PORT", userDefaultPort),
+			User:            getEnv("DB_USER_USER", userDefaultName),
+			Password:        getEnv("DB_USER_PASSWORD", userDefaultPassword),
 			DBName:          userDBName,
 			SSLMode:         getEnv("DB_USER_SSLMODE", "disable"),
 			MaxOpenConns:    getEnvAsInt("DB_USER_MAX_OPEN_CONNS", 25),
@@ -90,6 +103,27 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func defaultDatabasePort(driver string) string {
+	if driver == "mysql" {
+		return "3306"
+	}
+	return "5432"
+}
+
+func defaultDatabaseUser(driver string) string {
+	if driver == "mysql" {
+		return "root"
+	}
+	return "postgres"
+}
+
+func defaultDatabasePassword(driver string) string {
+	if driver == "mysql" {
+		return ""
+	}
+	return "postgres"
 }
 
 func getEnv(key, defaultVal string) string {

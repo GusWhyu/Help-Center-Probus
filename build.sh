@@ -11,9 +11,9 @@ BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 LDFLAGS="-s -w \
-  -X main.Version=$VERSION \
-  -X main.BuildTime=$BUILD_TIME \
-  -X main.GitCommit=$GIT_COMMIT"
+  -X github.com/rafialfauzan/layrd/internal/buildinfo.Version=$VERSION \
+  -X github.com/rafialfauzan/layrd/internal/buildinfo.BuildTime=$BUILD_TIME \
+  -X github.com/rafialfauzan/layrd/internal/buildinfo.GitCommit=$GIT_COMMIT"
 
 echo "Building Layrd $VERSION ($GIT_COMMIT)..."
 

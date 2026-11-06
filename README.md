@@ -4,9 +4,9 @@
 
 ---
 
-## 📦 Go Module
+## 📦 Go Framework
 ```bash
-go get github.com/rafialfauzan/layrd
+git clone github.com/rafialfauzan/layrd
 ```
 
 ---
@@ -37,6 +37,20 @@ barong-framework/
 ├── cmd/
 │   └── server/
 │       └── main.go                  # Entry point aplikasi
+├── internal/
+│   ├── bootstrap/                   # Inisialisasi aplikasi dan wiring
+│   │   ├── bootstrap.go             # Orkestrasi bootstrap dan server
+│   │   ├── dependencies.go          # Registrasi dependency/module
+│   │   ├── routes.go                # Registrasi route aplikasi
+│   │   └── storage.go               # Setup static file storage
+│   ├── buildinfo/                   # Metadata versi yang diisi saat build
+│   └── modules/                     # Domain modules aplikasi
+│       └── user/                    # Modul User (model, repo, service, handler, routes)
+│           ├── model.go
+│           ├── repository.go        # Embed BaseRepository[User]
+│           ├── service.go
+│           ├── handler.go
+│           └── module.go
 ├── pkg/
 │   ├── config/
 │   │   └── config.go                # Loader konfigurasi lingkungan (.env / OS env)
@@ -61,16 +75,6 @@ barong-framework/
 │   └── websocket/
 │       ├── hub.go                   # Thread-safe multi-room WebSocket hub
 │       └── client.go                # Client connection pump & ping/pong
-├── internal/
-│   ├── assets/                      # Aset statis (logo, stempel, font)
-│   ├── modules/                     # Domain modules aplikasi
-│   │   └── user/                    # Modul User (model, repo, service, handler, routes)
-│   │       ├── model.go
-│   │       ├── repository.go        # Embed BaseRepository[User]
-│   │       ├── service.go
-│   │       ├── handler.go
-│   │       └── module.go
-│   └── templates/                   # Template HTML untuk email / invoice
 ├── storage/
 │   └── uploads/                     # Tempat file fisik upload pengguna (avatars, dll)
 ├── .env.example                     # Template konfigurasi environment variables
@@ -116,7 +120,7 @@ func NewRepository(db *gorm.DB) Repository {
 ```
 *Anda otomatis mendapatkan `FindByID`, `FindAll` (pagination), `Create`, `Update`, dan `Delete` tanpa coding tambahan.*
 
-### 3. Daftarkan Modul di `cmd/server/main.go`
+### 3. Daftarkan Modul di `internal/bootstrap/dependencies.go`
 ```go
 app.RegisterModule(product.NewModule(app))
 ```
@@ -124,6 +128,24 @@ app.RegisterModule(product.NewModule(app))
 ---
 
 ## 🗄️ Mengakses Multi-Database
+
+Layrd mendukung PostgreSQL (`DB_DRIVER=postgres`, default) dan MySQL (`DB_DRIVER=mysql`).
+Driver dapat dipilih terpisah untuk database utama dan database sekunder melalui
+`DB_USER_DRIVER`. Port default mengikuti driver: `5432` untuk PostgreSQL dan `3306`
+untuk MySQL.
+
+Contoh konfigurasi database utama MySQL di `.env`:
+```dotenv
+DB_DRIVER=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your-password
+DB_NAME=layrd_main
+```
+
+Database sekunder mewarisi driver utama secara default; atur `DB_USER_DRIVER`
+untuk memilih driver yang berbeda.
 
 Jika aplikasi Anda menggunakan lebih dari 1 database (misal `default` dan `user_db`):
 ```go
