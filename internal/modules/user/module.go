@@ -2,13 +2,16 @@ package user
 
 import (
 	"github.com/rafialfauzan/layrd/pkg/core"
+	"github.com/rafialfauzan/layrd/pkg/middleware"
+	"github.com/rafialfauzan/layrd/pkg/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Module struct {
-	handler *Handler
-	repo    Repository
+	handler      *Handler
+	repo         Repository
+	tokenService *utils.TokenService
 }
 
 func NewModule(app *core.App) *Module {
@@ -18,8 +21,9 @@ func NewModule(app *core.App) *Module {
 	handler := NewHandler(service, app.Config)
 
 	return &Module{
-		handler: handler,
-		repo:    repo,
+		handler:      handler,
+		repo:         repo,
+		tokenService: app.TokenService,
 	}
 }
 
@@ -29,6 +33,7 @@ func (m *Module) Name() string {
 
 func (m *Module) RegisterRoutes(rg *gin.RouterGroup) {
 	users := rg.Group("/users")
+	users.Use(middleware.JWTAuth(m.tokenService))
 	{
 		users.GET("", m.handler.GetUsers)
 		users.GET("/:id", m.handler.GetUserByID)
@@ -39,7 +44,7 @@ func (m *Module) RegisterRoutes(rg *gin.RouterGroup) {
 	}
 }
 
-// AutoMigrate runs schema migration on the primary database
+// AutoMigrate migrates the user schema when explicitly invoked by the migration command.
 func (m *Module) AutoMigrate(app *core.App) error {
 	return app.DBManager.Default().AutoMigrate(&User{})
 }

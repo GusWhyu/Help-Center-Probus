@@ -1,6 +1,6 @@
 # Layrd Framework (Go Universal Backend Chassis)
 
-> **Layrd** (/ˈleɪ.əd/) adalah framework backend modular dan berperforma tinggi berbasis **Golang**, dirancang khusus untuk membangun REST API enterprise dengan arsitektur berlapis (*layered architecture*), bersih, terisolasi, dan mudah diperluas (*pluggable*).
+> **Layrd** (/ˈleɪ.əd/) adalah starter framework backend modular berbasis **Golang** untuk membangun REST API dengan arsitektur berlapis dan module yang dapat diperluas. Evaluasi performa dan kesiapan production bergantung pada aplikasi yang dibangun di atasnya.
 
 ---
 
@@ -23,7 +23,7 @@ git clone github.com/rafialfauzan/layrd
    Sistem WebSocket berbasis *Room/Channel* bawaan yang siap pakai untuk aplikasi kasir/KDS (Kitchen Display System), status pesanan meja, atau notifikasi push.
 5. **Standardized Response Envelope (`response.Response`)**  
    Format respon JSON konsisten untuk seluruh endpoint (`Success`, `Paginated`, `Error`, `BadRequest`, `Unauthorized`, `NotFound`, `InternalError`).
-6. **Built-in Enterprise Middlewares**  
+6. **Built-in Middlewares**
    Termasuk CORS dinamis, JWT Authentication & RBAC role checker, IP/Token Token-Bucket Rate Limiter, Panic Recovery dengan stack tracing aman, dan Unique `X-Request-ID`.
 7. **Graceful Shutdown**  
    Mencegah hilangnya koneksi saat server restart atau deploy dengan menangani sinyal OS `SIGINT` / `SIGTERM` secara tertib.
@@ -35,8 +35,10 @@ git clone github.com/rafialfauzan/layrd
 ```
 barong-framework/
 ├── cmd/
-│   └── server/
-│       └── main.go                  # Entry point aplikasi
+│   ├── server/
+│   │   └── main.go                  # Entry point aplikasi
+│   └── migrate/
+│       └── main.go                  # Perintah migrasi schema eksplisit
 ├── internal/
 │   ├── bootstrap/                   # Inisialisasi aplikasi dan wiring
 │   │   ├── bootstrap.go             # Orkestrasi bootstrap dan server
@@ -122,8 +124,25 @@ func NewRepository(db *gorm.DB) Repository {
 
 ### 3. Daftarkan Modul di `internal/bootstrap/dependencies.go`
 ```go
-app.RegisterModule(product.NewModule(app))
+return app.RegisterModule(product.NewModule(app))
 ```
+
+### Keamanan dan migrasi
+
+Semua endpoint pada module user membutuhkan `Authorization: Bearer <JWT>`.
+Layrd belum menyediakan endpoint login/token; token harus diterbitkan oleh mekanisme
+autentikasi aplikasi. Role dan status aktif user tidak dapat diubah lewat request
+module user, dan user baru selalu mendapat role `user`.
+Semua token valid saat ini memiliki akses yang sama ke operasi CRUD user; tambahkan
+otorisasi berbasis kepemilikan atau role sebelum aplikasi multi-user digunakan.
+
+Schema tidak dimigrasikan otomatis saat server start. Setelah mengatur koneksi
+database dan membuat database kosong, jalankan migrasi secara eksplisit:
+```bash
+go run ./cmd/migrate
+```
+Perintah ini menjalankan migrator module yang terdaftar. Tinjau perubahan schema
+dan gunakan mekanisme backup/roll-forward yang sesuai sebelum menjalankannya di production.
 
 ---
 
@@ -146,6 +165,9 @@ DB_NAME=layrd_main
 
 Database sekunder mewarisi driver utama secara default; atur `DB_USER_DRIVER`
 untuk memilih driver yang berbeda.
+
+Di environment production, `JWT_SECRET` harus ditentukan eksplisit dan memiliki
+panjang minimal 32 karakter.
 
 Jika aplikasi Anda menggunakan lebih dari 1 database (misal `default` dan `user_db`):
 ```go

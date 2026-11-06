@@ -20,16 +20,13 @@ type User struct {
 }
 
 type CreateUserRequest struct {
-	Username string `json:"username" binding:"required,min=3"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
-	Role     string `json:"role"`
+	Username string `json:"username" binding:"required,min=3,max=100"`
+	Email    string `json:"email" binding:"required,email,max=150"`
+	Password string `json:"password" binding:"required,min=8,max=72"`
 }
 
 type UpdateUserRequest struct {
-	Username *string `json:"username"`
-	Email    *string `json:"email"`
-	Role     *string `json:"role"`
-	Avatar   *string `json:"avatar"`
-	IsActive *bool   `json:"is_active"`
+	Username *string `json:"username" binding:"omitempty,min=3,max=100"`
+	Email    *string `json:"email" binding:"omitempty,email,max=150"`
+	Avatar   *string `json:"avatar" binding:"omitempty,max=255"`
 }

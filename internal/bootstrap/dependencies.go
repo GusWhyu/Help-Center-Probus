@@ -5,6 +5,6 @@ import (
 	"github.com/rafialfauzan/layrd/pkg/core"
 )
 
-func registerDependencies(app *core.App) {
-	app.RegisterModule(user.NewModule(app))
+func registerDependencies(app *core.App) error {
+	return app.RegisterModule(user.NewModule(app))
 }

@@ -82,6 +82,10 @@ func NotFound(c *gin.Context, message string) {
 	Error(c, http.StatusNotFound, message, nil)
 }
 
+func Conflict(c *gin.Context, message string) {
+	Error(c, http.StatusConflict, message, nil)
+}
+
 func InternalError(c *gin.Context, message string, errDetail any) {
 	Error(c, http.StatusInternalServerError, message, errDetail)
 }

@@ -35,3 +35,17 @@ func TestLoadConfigDatabaseDrivers(t *testing.T) {
 		t.Errorf("unexpected PostgreSQL defaults: driver=%q port=%q user=%q", secondary.Driver, secondary.Port, secondary.User)
 	}
 }
+
+func TestLoadConfigRequiresStrongJWTSecretInProduction(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("JWT_SECRET", "short-secret")
+
+	if _, err := LoadConfig(); err == nil {
+		t.Fatal("LoadConfig() error = nil, want production JWT secret validation error")
+	}
+
+	t.Setenv("JWT_SECRET", "production-secret-with-at-least-32-characters")
+	if _, err := LoadConfig(); err != nil {
+		t.Fatalf("LoadConfig() with strong secret error = %v", err)
+	}
+}

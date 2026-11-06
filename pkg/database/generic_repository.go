@@ -9,6 +9,7 @@ import (
 
 var (
 	ErrRecordNotFound = errors.New("record not found")
+	ErrInvalidPage    = errors.New("page must be positive and limit must not be negative")
 )
 
 type BaseRepository[T any] interface {
@@ -50,6 +51,19 @@ func (r *baseRepository[T]) FindByID(ctx context.Context, id any) (*T, error) {
 }
 
 func (r *baseRepository[T]) FindAll(ctx context.Context, page, limit int, conditions map[string]any, order string) ([]T, int64, error) {
+	if page < 1 || limit < 0 {
+		return nil, 0, ErrInvalidPage
+	}
+
+	offset := 0
+	if limit > 0 {
+		maxInt := int(^uint(0) >> 1)
+		if page-1 > maxInt/limit {
+			return nil, 0, ErrInvalidPage
+		}
+		offset = (page - 1) * limit
+	}
+
 	var entities []T
 	var total int64
 
@@ -69,10 +83,6 @@ func (r *baseRepository[T]) FindAll(ctx context.Context, page, limit int, condit
 
 	// Pagination
 	if limit > 0 {
-		offset := 0
-		if page > 1 {
-			offset = (page - 1) * limit
-		}
 		query = query.Offset(offset).Limit(limit)
 	}
 

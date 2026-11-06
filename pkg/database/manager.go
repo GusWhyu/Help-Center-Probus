@@ -40,7 +40,8 @@ func (m *DBManager) Connect(dbCfg config.DatabaseConfig, isDebug bool) (*gorm.DB
 	}
 
 	gormCfg := &gorm.Config{
-		Logger: logger.Default.LogMode(logLevel),
+		Logger:         logger.Default.LogMode(logLevel),
+		TranslateError: true,
 	}
 
 	dialector, err := databaseDialector(dbCfg, dsn)
@@ -70,6 +71,9 @@ func (m *DBManager) Connect(dbCfg config.DatabaseConfig, isDebug bool) (*gorm.DB
 	}
 
 	if err := sqlDB.Ping(); err != nil {
+		if closeErr := sqlDB.Close(); closeErr != nil {
+			log.Printf("[DBManager] Failed to close database [%s] after ping failure: %v", dbCfg.Name, closeErr)
+		}
 		return nil, fmt.Errorf("failed to ping database [%s]: %w", dbCfg.Name, err)
 	}
 

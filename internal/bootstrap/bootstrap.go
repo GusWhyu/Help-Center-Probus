@@ -23,6 +23,12 @@ func initializeApp() (*core.App, error) {
 	}
 
 	app := core.NewApp(cfg)
+	initialized := false
+	defer func() {
+		if !initialized {
+			app.DBManager.CloseAll()
+		}
+	}()
 
 	registerRoutes(app)
 
@@ -34,7 +40,33 @@ func initializeApp() (*core.App, error) {
 		return nil, err
 	}
 
-	registerDependencies(app)
+	if err := registerDependencies(app); err != nil {
+		return nil, fmt.Errorf("register dependencies: %w", err)
+	}
 
+	initialized = true
 	return app, nil
+}
+
+func Migrate() error {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("load configuration: %w", err)
+	}
+
+	app := core.NewApp(cfg)
+	if err := app.InitDatabases(); err != nil {
+		app.DBManager.CloseAll()
+		return fmt.Errorf("initialize databases: %w", err)
+	}
+	defer app.DBManager.CloseAll()
+
+	if err := registerDependencies(app); err != nil {
+		return fmt.Errorf("register dependencies: %w", err)
+	}
+	if err := app.MigrateModules(); err != nil {
+		return fmt.Errorf("run migrations: %w", err)
+	}
+
+	return nil
 }

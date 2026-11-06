@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -58,6 +59,10 @@ func LoadConfig() (*Config, error) {
 		StoragePath:        getEnv("STORAGE_PATH", "./storage/uploads"),
 		StorageURL:         getEnv("STORAGE_URL", "/storage"),
 		Databases:          make(map[string]DatabaseConfig),
+	}
+	if strings.EqualFold(cfg.AppEnv, "production") &&
+		(len(cfg.JWTSecret) < 32 || cfg.JWTSecret == "default-insecure-secret-key-32-chars") {
+		return nil, fmt.Errorf("JWT_SECRET must be explicitly configured with at least 32 characters in production")
 	}
 
 	// 1. Primary/Default Database

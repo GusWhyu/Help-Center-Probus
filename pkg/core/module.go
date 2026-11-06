@@ -16,7 +16,7 @@ type Initializer interface {
 	Init(app *App) error
 }
 
-// Migrator is an optional interface modules can implement to run automatic database schema migrations
+// Migrator is an optional interface modules can implement for explicit schema migrations.
 type Migrator interface {
 	AutoMigrate(app *App) error
 }

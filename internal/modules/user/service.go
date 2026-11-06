@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/rafialfauzan/layrd/pkg/database"
 	"github.com/rafialfauzan/layrd/pkg/utils"
 )
 
@@ -36,9 +37,20 @@ func (s *service) GetUserByID(ctx context.Context, id uint) (*User, error) {
 }
 
 func (s *service) CreateUser(ctx context.Context, req *CreateUserRequest) (*User, error) {
-	existing, _ := s.repo.FindByEmail(ctx, req.Email)
-	if existing != nil {
-		return nil, errors.New("email already registered")
+	_, err := s.repo.FindByEmail(ctx, req.Email)
+	switch {
+	case err == nil:
+		return nil, ErrUserAlreadyExists
+	case !errors.Is(err, database.ErrRecordNotFound):
+		return nil, err
+	}
+
+	_, err = s.repo.FindByUsername(ctx, req.Username)
+	switch {
+	case err == nil:
+		return nil, ErrUserAlreadyExists
+	case !errors.Is(err, database.ErrRecordNotFound):
+		return nil, err
 	}
 
 	hashedPassword, err := utils.HashPassword(req.Password)
@@ -46,16 +58,11 @@ func (s *service) CreateUser(ctx context.Context, req *CreateUserRequest) (*User
 		return nil, err
 	}
 
-	role := req.Role
-	if role == "" {
-		role = "user"
-	}
-
 	user := &User{
 		Username: req.Username,
 		Email:    req.Email,
 		Password: hashedPassword,
-		Role:     role,
+		Role:     "user",
 		IsActive: true,
 	}
 
@@ -78,14 +85,8 @@ func (s *service) UpdateUser(ctx context.Context, id uint, req *UpdateUserReques
 	if req.Email != nil {
 		user.Email = *req.Email
 	}
-	if req.Role != nil {
-		user.Role = *req.Role
-	}
 	if req.Avatar != nil {
 		user.Avatar = *req.Avatar
-	}
-	if req.IsActive != nil {
-		user.IsActive = *req.IsActive
 	}
 
 	if err := s.repo.Update(ctx, user); err != nil {

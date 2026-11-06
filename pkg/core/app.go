@@ -85,28 +85,35 @@ func (a *App) InitDatabases() error {
 }
 
 // RegisterModule registers one or more pluggable functional modules
-func (a *App) RegisterModule(modules ...Module) {
+func (a *App) RegisterModule(modules ...Module) error {
 	for _, mod := range modules {
+		if mod == nil {
+			return fmt.Errorf("cannot register a nil module")
+		}
+
 		log.Printf("[Framework] Registering module: %s\n", mod.Name())
 
-		// Execute module pre-flight initializer if implemented
 		if initMod, ok := mod.(Initializer); ok {
 			if err := initMod.Init(a); err != nil {
-				log.Fatalf("[Framework] Module [%s] initialization failed: %v", mod.Name(), err)
+				return fmt.Errorf("initialize module [%s]: %w", mod.Name(), err)
 			}
 		}
 
-		// Execute auto-migration if implemented
-		if migMod, ok := mod.(Migrator); ok {
-			if err := migMod.AutoMigrate(a); err != nil {
-				log.Fatalf("[Framework] Module [%s] migration failed: %v", mod.Name(), err)
-			}
-		}
-
-		// Mount module routes under the base API group
 		mod.RegisterRoutes(a.APIGroup)
 		a.modules = append(a.modules, mod)
 	}
+	return nil
+}
+
+func (a *App) MigrateModules() error {
+	for _, mod := range a.modules {
+		if migMod, ok := mod.(Migrator); ok {
+			if err := migMod.AutoMigrate(a); err != nil {
+				return fmt.Errorf("migrate module [%s]: %w", mod.Name(), err)
+			}
+		}
+	}
+	return nil
 }
 
 // SetupWebSocketRoute enables real-time WebSocket connection endpoint
@@ -123,6 +130,8 @@ func (a *App) SetupWebSocketRoute(path string) {
 
 // Run starts the HTTP server with graceful shutdown handling
 func (a *App) Run() error {
+	defer a.DBManager.CloseAll()
+
 	addr := fmt.Sprintf(":%s", a.Config.AppPort)
 
 	a.httpServer = &http.Server{
@@ -149,6 +158,7 @@ func (a *App) Run() error {
 	// Listen for OS interrupt signals
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(shutdown)
 
 	select {
 	case err := <-serverErrors:
@@ -167,8 +177,6 @@ func (a *App) Run() error {
 			return fmt.Errorf("could not stop server gracefully: %w", err)
 		}
 
-		// Close database pools
-		a.DBManager.CloseAll()
 		log.Println("[Framework] Graceful shutdown completed cleanly.")
 	}
 
