@@ -118,52 +118,41 @@ onMounted(() => {
   loadArticles()
 })
 
-// Metadata for the 9 Probus system categories
-const default9SystemMeta = {
-  1: { label: 'Probus Hotel PMS', code: 'PHIS' },
-  2: { label: 'PRESTO Resto POS', code: 'PRESTO' },
-  3: { label: 'PPOS Point of Sales', code: 'PPOS' },
-  4: { label: 'Probus Self Order', code: 'SELF ORDER' },
-  5: { label: 'PR-PO Online Logistik', code: 'PR-PO ONLINE' },
-  6: { label: 'Order Taker Mobile', code: 'ORDER TAKER' },
-  7: { label: 'Vrestropical POS', code: 'VRESTROPICAL' },
-  8: { label: 'PPE 2.0 Management', code: 'PPE' },
-  9: { label: 'Barong POS Cloud', code: 'BARONG POS' },
-}
+// Exact database categories from `kategori` table
+const default9Categories = [
+  { value: 1, label: 'PHIS' },
+  { value: 2, label: 'PRESTO' },
+  { value: 3, label: 'PPOS' },
+  { value: 4, label: 'SELF ORDER' },
+  { value: 5, label: 'PR-PO ONLINE' },
+  { value: 6, label: 'ORDER TAKER' },
+  { value: 7, label: 'VRESTROPICAL' },
+  { value: 8, label: 'PPE' },
+  { value: 9, label: 'BARONG POS' },
+]
 
-// Order of the 9 systems
-const preferredOrder = [2, 1, 8, 3, 4, 5, 6, 7, 9]
-
-// All 9 system categories + Semua Sistem (Total 10 options)
+// All 9 system categories directly from database `kategori` table + Semua Sistem
 const systemOptions = computed(() => {
   const result = []
 
   if (categories.value && categories.value.length > 0) {
-    const sorted = [...categories.value].sort((a, b) => {
-      const idxA = preferredOrder.indexOf(a.id)
-      const idxB = preferredOrder.indexOf(b.id)
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB
-      return a.id - b.id
-    })
+    // Sort strictly by id ASC (1 to 9) to match database table `kategori`
+    const sorted = [...categories.value].sort((a, b) => a.id - b.id)
 
     sorted.forEach(c => {
-      const meta = default9SystemMeta[c.id]
       result.push({
         value: c.id,
         code: c.name,
-        label: meta ? meta.label : (c.name || `Sistem ${c.id}`),
+        label: c.name, // Exact database name: PHIS, PRESTO, PPOS, SELF ORDER, etc.
       })
     })
   } else {
-    preferredOrder.forEach(id => {
-      const meta = default9SystemMeta[id]
-      if (meta) {
-        result.push({
-          value: id,
-          code: meta.code,
-          label: meta.label,
-        })
-      }
+    default9Categories.forEach(c => {
+      result.push({
+        value: c.value,
+        code: c.label,
+        label: c.label,
+      })
     })
   }
 
@@ -182,7 +171,7 @@ function selectSystem(systemVal) {
   selectedModuleFilter.value = 'all'
 }
 
-// 10 Real Modules for the selected system
+// 10 Real Modules for the selected system directly from `menu_systems`
 const availableModules = computed(() => {
   let menus = []
   if (selectedSystemFilter.value === 'all') {
@@ -214,7 +203,10 @@ const availableModules = computed(() => {
     ]
   }
 
-  return menus.map(m => {
+  // Sort menus strictly by order (1 to 10)
+  const sortedMenus = [...menus].sort((a, b) => (a.order || 0) - (b.order || 0))
+
+  return sortedMenus.map(m => {
     // Calculate count of articles for this module under currently selected system
     const count = articles.value.filter(a => {
       const matchSys = selectedSystemFilter.value === 'all' || a.kategoriId === Number(selectedSystemFilter.value)
@@ -222,17 +214,10 @@ const availableModules = computed(() => {
       return matchSys && matchMenu
     }).length
 
-    let displayName = m.name
-    if (m.name.toLowerCase() === 'tools') {
-      displayName = 'Hardware & Printer (Tools)'
-    } else if (m.name.toLowerCase() === 'transaksi') {
-      displayName = 'Order Taker & Transaksi'
-    }
-
     return {
       id: m.id,
       name: m.name,
-      displayName,
+      displayName: m.name, // Exact database name: Setup Master, Transaksi, Tools, etc.
       order: m.order,
       count,
     }
@@ -382,13 +367,8 @@ function goBackHome() {
 
         <!-- 1. PILIH SISTEM ROW (9 Kategori Produk Probus + Semua Sistem) -->
         <div class="mt-7 text-left">
-          <div class="flex items-center justify-between mb-2.5">
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              PILIH SISTEM (9 Kategori Produk Probus)
-            </div>
-            <div class="text-xs text-slate-400 font-medium">
-              9 Kategori Sistem
-            </div>
+          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">
+            PILIH SISTEM
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <button
