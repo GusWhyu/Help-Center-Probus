@@ -26,7 +26,8 @@ import WhatsAppSupportDropdown from '../components/WhatsAppSupportDropdown.vue'
 
 const router = useRouter()
 const searchQuery = ref('')
-const selectedSystemFilter = ref('all')
+const selectedSystemFilter = ref(2) // Default to PRESTO Resto POS (ID: 2)
+const selectedModuleFilter = ref('all') // Default to 'all' (Semua Modul)
 const isLoading = ref(false)
 
 const systemNameMap = {
@@ -51,8 +52,23 @@ function cleanSummary(text) {
   return text.replace(/&nbsp;/g, ' ').replace(/<[^>]*>?/gm, '').trim()
 }
 
+// Categories and menus from database
+const categories = ref([])
+
 // Articles list from database
 const articles = ref([])
+
+// Load categories with their menu systems
+async function loadCategories() {
+  try {
+    const res = await apiClient.get('/categories')
+    if (res.data && res.data.data && Array.isArray(res.data.data)) {
+      categories.value = res.data.data
+    }
+  } catch (err) {
+    console.error('Failed to load categories:', err)
+  }
+}
 
 // Load articles from database (only published & public articles)
 async function loadArticles() {
@@ -63,30 +79,32 @@ async function loadArticles() {
       articles.value = res.data.data
         .filter(item => item.status === 'published' && item.visibility === 'publik')
         .map(item => {
-        const primaryMenu = item.menu_systems && item.menu_systems.length > 0 ? item.menu_systems[0] : null
-        const katId = primaryMenu ? primaryMenu.kategori_id : 2
-        const sysCode = systemNameMap[katId] || 'PRESTO'
-        const menuName = primaryMenu ? primaryMenu.name : 'Umum'
+          const primaryMenu = item.menu_systems && item.menu_systems.length > 0 ? item.menu_systems[0] : null
+          const katId = primaryMenu ? primaryMenu.kategori_id : 2
+          const sysCode = systemNameMap[katId] || 'PRESTO'
+          const menuName = primaryMenu ? primaryMenu.name : 'Umum'
+          const menuId = primaryMenu ? primaryMenu.id : null
 
-        // Estimate read time
-        const words = (item.content || '').split(/\s+/).length
-        const minutes = Math.max(2, Math.min(10, Math.ceil(words / 150)))
+          // Estimate read time
+          const words = (item.content || '').split(/\s+/).length
+          const minutes = Math.max(2, Math.min(10, Math.ceil(words / 150)))
 
-        return {
-          id: item.id,
-          title: item.title,
-          system: sysCode,
-          kategoriId: katId,
-          categoryName: menuName,
-          menuName: menuName,
-          status: item.status,
-          visibility: item.visibility,
-          readTime: `${minutes} menit baca`,
-          summary: cleanSummary(item.summary) || 'Panduan pemecahan kendala teknis dan operasional sistem Probus.',
-          content: formatArticleContent(item.content),
-          raw: item,
-        }
-      })
+          return {
+            id: item.id,
+            title: item.title,
+            system: sysCode,
+            kategoriId: katId,
+            categoryName: menuName,
+            menuName: menuName,
+            menuSystemId: menuId,
+            status: item.status,
+            visibility: item.visibility,
+            readTime: `${minutes} menit baca`,
+            summary: cleanSummary(item.summary) || 'Panduan pemecahan kendala teknis dan operasional sistem Probus.',
+            content: formatArticleContent(item.content),
+            raw: item,
+          }
+        })
     }
   } catch (err) {
     console.error('Failed to load articles from database:', err)
@@ -96,31 +114,110 @@ async function loadArticles() {
 }
 
 onMounted(() => {
+  loadCategories()
   loadArticles()
 })
 
-// Filter options
+// System Filter Options (matching UI layout)
 const systemOptions = [
+  { value: 2, label: 'PRESTO Resto POS' },
+  { value: 1, label: 'Probus Hotel PMS' },
+  { value: 8, label: 'PPE 2.0 Management' },
+  { value: 5, label: 'Back Office & Akuntansi' },
   { value: 'all', label: 'Semua Sistem' },
-  { value: 'PRESTO', label: 'PRESTO Resto POS' },
-  { value: 'PHIS', label: 'Probus Hotel PMS' },
-  { value: 'PPOS', label: 'PPOS Point of Sales' },
-  { value: 'PPE', label: 'PPE 2.0 Management' },
 ]
 
-// Filtered articles
+function selectSystem(systemVal) {
+  selectedSystemFilter.value = systemVal
+  selectedModuleFilter.value = 'all'
+}
+
+// 10 Real Modules for the selected system
+const availableModules = computed(() => {
+  let menus = []
+  if (selectedSystemFilter.value === 'all') {
+    // If all systems selected, use PRESTO menus as baseline
+    const presto = categories.value.find(c => c.id === 2 || c.name === 'PRESTO')
+    if (presto && presto.menus && presto.menus.length > 0) {
+      menus = presto.menus
+    }
+  } else {
+    const cat = categories.value.find(c => c.id === Number(selectedSystemFilter.value) || c.name === selectedSystemFilter.value)
+    if (cat && cat.menus && cat.menus.length > 0) {
+      menus = cat.menus
+    }
+  }
+
+  // Fallback to standard 10 modules if not yet loaded from DB
+  if (!menus || menus.length === 0) {
+    menus = [
+      { id: 34, order: 1, name: 'Setup Master' },
+      { id: 35, order: 2, name: 'Transaksi' },
+      { id: 36, order: 3, name: 'Outlet Activity' },
+      { id: 37, order: 4, name: 'Cost Control' },
+      { id: 38, order: 5, name: 'Purcashing AP' },
+      { id: 39, order: 6, name: 'AR' },
+      { id: 41, order: 7, name: 'General Cashier' },
+      { id: 42, order: 8, name: 'Accounting System' },
+      { id: 43, order: 9, name: 'Report' },
+      { id: 40, order: 10, name: 'Tools' },
+    ]
+  }
+
+  return menus.map(m => {
+    // Calculate count of articles for this module under currently selected system
+    const count = articles.value.filter(a => {
+      const matchSys = selectedSystemFilter.value === 'all' || a.kategoriId === Number(selectedSystemFilter.value)
+      const matchMenu = a.menuSystemId === m.id || (a.menuName && a.menuName.toLowerCase() === m.name.toLowerCase())
+      return matchSys && matchMenu
+    }).length
+
+    let displayName = m.name
+    if (m.name.toLowerCase() === 'tools') {
+      displayName = 'Hardware & Printer (Tools)'
+    } else if (m.name.toLowerCase() === 'transaksi') {
+      displayName = 'Order Taker & Transaksi'
+    }
+
+    return {
+      id: m.id,
+      name: m.name,
+      displayName,
+      order: m.order,
+      count,
+    }
+  })
+})
+
+// Total count of articles for current selected system
+const totalArticlesCount = computed(() => {
+  return articles.value.filter(a => {
+    return selectedSystemFilter.value === 'all' || a.kategoriId === Number(selectedSystemFilter.value)
+  }).length
+})
+
+// Filtered articles list
 const filteredArticles = computed(() => {
   return articles.value.filter(art => {
+    // 1. System Filter
     const matchSystem = selectedSystemFilter.value === 'all' ||
-      art.system === selectedSystemFilter.value ||
-      art.kategoriId === Number(selectedSystemFilter.value)
+      art.kategoriId === Number(selectedSystemFilter.value) ||
+      art.system === selectedSystemFilter.value
+
+    // 2. Module Filter
+    const matchModule = selectedModuleFilter.value === 'all' ||
+      art.menuSystemId === selectedModuleFilter.value ||
+      (art.menuName && art.menuName.toLowerCase() === String(selectedModuleFilter.value).toLowerCase())
+
+    // 3. Search Query
     const q = searchQuery.value.trim().toLowerCase()
     const matchQuery = !q ||
       (art.title && art.title.toLowerCase().includes(q)) ||
       (art.summary && art.summary.toLowerCase().includes(q)) ||
       (art.categoryName && art.categoryName.toLowerCase().includes(q)) ||
       (art.system && art.system.toLowerCase().includes(q))
-    return matchSystem && matchQuery
+
+    return matchSystem && matchModule && matchQuery
   })
 })
 
@@ -201,9 +298,9 @@ function goBackHome() {
     </nav>
 
     <!-- 3. Hero Section (Bank Solusi) -->
-    <section class="pt-14 pb-12 px-6 sm:px-12 lg:px-20 xl:px-28 text-center bg-gradient-to-b from-white via-amber-50/20 to-transparent">
-      <div class="max-w-4xl mx-auto">
-        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-50 text-amber-800 text-xs font-semibold border border-amber-200/60 mb-3.5 shadow-2xs">
+    <section class="pt-12 pb-10 px-6 sm:px-12 lg:px-20 xl:px-28 text-center bg-gradient-to-b from-white via-amber-50/20 to-transparent">
+      <div class="max-w-5xl mx-auto">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-50 text-amber-800 text-xs font-semibold border border-amber-200/60 mb-3 shadow-2xs">
           <AlertCircle class="w-3.5 h-3.5" />
           <span>Knowledge Base & Troubleshooting</span>
         </div>
@@ -211,12 +308,12 @@ function goBackHome() {
         <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
           Bank Solusi Kendala & Troubleshooting
         </h1>
-        <p class="mt-3 text-slate-500 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
+        <p class="mt-2.5 text-slate-500 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
           Temukan solusi cepat untuk masalah printer kasir, cash drawer, jaringan LAN, dan error operasional sistem Probus.
         </p>
 
-        <!-- Search Bar -->
-        <div class="mt-7 max-w-3xl mx-auto relative shadow-2xs">
+        <!-- Search Omnibox -->
+        <div class="mt-6 max-w-3xl mx-auto relative shadow-2xs">
           <Search class="absolute left-4 w-4 h-4 text-slate-400 pointer-events-none top-4" />
           <input
             v-model="searchQuery"
@@ -233,20 +330,80 @@ function goBackHome() {
           </button>
         </div>
 
-        <!-- Filter Pills by System -->
-        <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
+        <!-- 1. PILIH SISTEM ROW -->
+        <div class="mt-7 text-left">
+          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">
+            PILIH SISTEM
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              v-for="opt in systemOptions"
+              :key="opt.value"
+              @click="selectSystem(opt.value)"
+              :class="[
+                'px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer',
+                selectedSystemFilter === opt.value
+                  ? 'bg-slate-950 text-white shadow-xs'
+                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-950 shadow-2xs'
+              ]"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. MODUL BAR (10 Modul Sistem dari Database) -->
+        <div class="mt-3.5 p-3 sm:p-3.5 bg-slate-50/90 border border-slate-200/90 rounded-2xl flex flex-wrap items-center gap-2 text-left shadow-2xs">
+          <span class="text-xs font-black text-slate-500 uppercase tracking-wider px-2 shrink-0">
+            MODUL:
+          </span>
+
+          <!-- Individual Module Pills (10 Modul) -->
           <button
-            v-for="opt in systemOptions"
-            :key="opt.value"
-            @click="selectedSystemFilter = opt.value"
+            v-for="mod in availableModules"
+            :key="mod.id"
+            @click="selectedModuleFilter = mod.id"
             :class="[
-              'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-              selectedSystemFilter === opt.value
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+              'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5',
+              selectedModuleFilter === mod.id
+                ? 'bg-sky-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200/90 hover:bg-slate-100 hover:text-slate-900 shadow-2xs'
             ]"
           >
-            {{ opt.label }}
+            <span>{{ mod.displayName }}</span>
+            <span
+              :class="[
+                'text-[10px] px-1.5 py-0.2 rounded-full font-bold',
+                selectedModuleFilter === mod.id
+                  ? 'bg-sky-700/70 text-white'
+                  : (mod.count > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-400')
+              ]"
+            >
+              {{ mod.count }}
+            </span>
+          </button>
+
+          <!-- Semua Modul Pill -->
+          <button
+            @click="selectedModuleFilter = 'all'"
+            :class="[
+              'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5',
+              selectedModuleFilter === 'all'
+                ? 'bg-sky-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200/90 hover:bg-slate-100 hover:text-slate-900 shadow-2xs'
+            ]"
+          >
+            <span>Semua Modul</span>
+            <span
+              :class="[
+                'text-[10px] px-1.5 py-0.2 rounded-full font-bold',
+                selectedModuleFilter === 'all'
+                  ? 'bg-sky-700/70 text-white'
+                  : 'bg-slate-100 text-slate-500'
+              ]"
+            >
+              {{ totalArticlesCount }}
+            </span>
           </button>
         </div>
       </div>
@@ -310,16 +467,25 @@ function goBackHome() {
       <!-- Empty State -->
       <div v-if="!isLoading && filteredArticles.length === 0" class="text-center py-16 bg-white rounded-2xl border border-slate-200">
         <AlertCircle class="w-12 h-12 text-slate-300 mx-auto mb-3" />
-        <h3 class="text-base font-bold text-slate-800">Tidak ada artikel yang sesuai</h3>
+        <h3 class="text-base font-bold text-slate-800">Tidak ada artikel solusi yang sesuai</h3>
         <p class="text-xs sm:text-sm text-slate-500 mt-1 max-w-md mx-auto">
-          Coba ganti kata kunci pencarian atau hubungi teknisi implementator melalui WhatsApp.
+          Belum ada artikel yang dipublikasikan untuk modul atau filter ini. Hubungi tim implementator Probus untuk bantuan langsung.
         </p>
-        <button
-          @click="searchQuery = ''; selectedSystemFilter = 'all'"
-          class="mt-4 px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors"
-        >
-          Reset Filter Pencarian
-        </button>
+        <div class="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+          <button
+            @click="selectedModuleFilter = 'all'; searchQuery = ''"
+            class="px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            Tampilkan Semua Modul
+          </button>
+          <a
+            href="https://wa.me/6281910875514"
+            target="_blank"
+            class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors inline-flex items-center gap-1.5"
+          >
+            <span>Hubungi WhatsApp Support</span>
+          </a>
+        </div>
       </div>
     </main>
 
