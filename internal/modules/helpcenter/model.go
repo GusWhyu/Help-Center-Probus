@@ -29,6 +29,7 @@ type MenuSystem struct {
 	CreatedAt   *time.Time   `json:"created_at,omitempty"`
 	UpdatedAt   *time.Time   `json:"updated_at,omitempty"`
 	Children    []MenuSystem `gorm:"foreignKey:ParentID" json:"children,omitempty"`
+	ManualBooks []ManualBook `gorm:"many2many:menu_has_manual_books;joinForeignKey:MenuSystemID;joinReferences:ManualBookID" json:"manual_books,omitempty"`
 }
 
 func (MenuSystem) TableName() string {

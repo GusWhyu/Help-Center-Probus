@@ -18,7 +18,7 @@ type Repository interface {
 	FindCategoryByID(ctx context.Context, id uint) (*Kategori, error)
 	FindArticles(ctx context.Context, page, limit int, kategoriID, menuID uint, search string) ([]Article, int64, error)
 	FindArticleByID(ctx context.Context, id uint) (*Article, error)
-	FindManualBooks(ctx context.Context, menuID uint, search string) ([]ManualBook, error)
+	FindManualBooks(ctx context.Context, kategoriID, menuID uint, search string) ([]ManualBook, error)
 	FindManualBookByID(ctx context.Context, id uint) (*ManualBook, error)
 	SearchAll(ctx context.Context, query string, limit int) ([]SearchResultItem, error)
 }
@@ -55,6 +55,9 @@ func (r *repository) FindCategoryByID(ctx context.Context, id uint) (*Kategori, 
 			return db.Order("`order` ASC, id ASC")
 		}).
 		Preload("Menus", "parent_id IS NULL", func(db *gorm.DB) *gorm.DB {
+			return db.Order("`order` ASC, id ASC")
+		}).
+		Preload("Menus.ManualBooks", "status = ?", "published", func(db *gorm.DB) *gorm.DB {
 			return db.Order("`order` ASC, id ASC")
 		}).
 		First(&cat, id).Error
@@ -123,13 +126,17 @@ func (r *repository) FindArticleByID(ctx context.Context, id uint) (*Article, er
 	return &article, nil
 }
 
-func (r *repository) FindManualBooks(ctx context.Context, menuID uint, search string) ([]ManualBook, error) {
+func (r *repository) FindManualBooks(ctx context.Context, kategoriID, menuID uint, search string) ([]ManualBook, error) {
 	query := r.db.WithContext(ctx).Model(&ManualBook{}).
 		Where("status = ?", "published")
 
 	if menuID > 0 {
 		query = query.Joins("JOIN menu_has_manual_books ON menu_has_manual_books.manual_book_id = manual_books.id").
 			Where("menu_has_manual_books.menu_system_id = ?", menuID)
+	} else if kategoriID > 0 {
+		query = query.Joins("JOIN menu_has_manual_books ON menu_has_manual_books.manual_book_id = manual_books.id").
+			Joins("JOIN menu_systems ON menu_systems.id = menu_has_manual_books.menu_system_id").
+			Where("menu_systems.kategori_id = ?", kategoriID)
 	}
 
 	if search != "" {

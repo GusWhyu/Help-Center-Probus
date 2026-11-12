@@ -38,7 +38,7 @@ func (m *mockHelpCenterRepo) FindArticleByID(ctx context.Context, id uint) (*Art
 	return nil, ErrNotFound
 }
 
-func (m *mockHelpCenterRepo) FindManualBooks(ctx context.Context, menuID uint, search string) ([]ManualBook, error) {
+func (m *mockHelpCenterRepo) FindManualBooks(ctx context.Context, kategoriID, menuID uint, search string) ([]ManualBook, error) {
 	return m.manuals, nil
 }
 
@@ -88,7 +88,7 @@ func TestHelpCenterService(t *testing.T) {
 	}
 
 	// 3. Manuals
-	mans, err := service.GetManualBooks(ctx, 0, "")
+	mans, err := service.GetManualBooks(ctx, 0, 0, "")
 	if err != nil || len(mans) != 1 {
 		t.Fatalf("expected 1 manual, got %v, err=%v", len(mans), err)
 	}

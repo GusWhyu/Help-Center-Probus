@@ -24,517 +24,172 @@ import {
   BarChart3,
   TrendingUp,
   Sliders,
-  ExternalLink
+  ExternalLink,
+  MessageSquare,
+  HelpCircle,
+  FileText
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
 
-// Selected System ID (default: 2 for PRESTO)
+// Selected System ID (defaults to 2 for PRESTO)
 const selectedSystemId = ref(Number(route.params.systemId) || 2)
 
-// Selected Module ID (default: 2 for Transaksi / Order Taker)
-const selectedModuleId = ref(Number(route.params.moduleId) || 2)
+// Selected Module Order / ID (defaults to 2 for Transaksi / Order Taker)
+const selectedModuleOrder = ref(Number(route.params.moduleId) || 2)
 
-// Systems list for the "PILIH SISTEM" pill switcher
-const availableSystems = [
+// Active selected manual book inside the active module (if multiple exist)
+const activeManualIndex = ref(0)
+
+const isLoading = ref(false)
+const availableSystems = ref([
   { id: 2, name: 'PRESTO', title: 'PRESTO Resto POS (10 Modul)', shortName: 'PRESTO Resto POS' },
   { id: 1, name: 'PHIS', title: 'Probus Hotel PMS (10 Modul)', shortName: 'Probus Hotel PMS' },
   { id: 8, name: 'PPE', title: 'PPE 2.0 Management (10 Modul)', shortName: 'PPE 2.0 Management' },
   { id: 3, name: 'PPOS', title: 'PPOS Point of Sales (10 Modul)', shortName: 'PPOS Point of Sales' },
-  { id: 5, name: 'PR-PO ONLINE', title: 'Back Office & Akuntansi (10 Modul)', shortName: 'Back Office & Akuntansi' },
-]
+  { id: 4, name: 'SELF ORDER', title: 'Probus Self Order (10 Modul)', shortName: 'Probus Self Order' },
+  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO Online & Purchasing (10 Modul)', shortName: 'PR-PO Online' },
+  { id: 6, name: 'ORDER TAKER', title: 'Order Taker Mobile (10 Modul)', shortName: 'Order Taker Mobile' },
+  { id: 7, name: 'VRESTROPICAL', title: 'Vrestropical POS (10 Modul)', shortName: 'Vrestropical POS' },
+  { id: 9, name: 'BARONG POS', title: 'Barong POS Cloud (8 Modul)', shortName: 'Barong POS Cloud' },
+])
 
 const currentSystem = computed(() => {
-  return availableSystems.find(s => s.id === selectedSystemId.value) || availableSystems[0]
+  return availableSystems.value.find(s => s.id === selectedSystemId.value) || availableSystems.value[0]
 })
 
-// 10 Real Modules of PRESTO matching dbprobuscs `menu_systems`
-const presto10ModulesData = [
-  {
+// Default 10 PRESTO modules metadata (fallback & icon mapping)
+const defaultModuleMeta = {
+  1: { code: '01', defaultTitle: '01. Setup Master', icon: Settings, lead: 'Konfigurasi master meja, denah resto, kategori menu, harga jual, dan tarif pajak/service.' },
+  2: { code: '02', defaultTitle: '02. Order Taker & Transaksi Meja', icon: UtensilsCrossed, lead: 'Panduan kasir & pramusaji untuk membuka meja, input menu, catatan dapur, dan kirim order.' },
+  3: { code: '03', defaultTitle: '03. Outlet Activity', icon: Store, lead: 'Monitoring operasional outlet: void pesanan, cancel item, move table, dan join bill.' },
+  4: { code: '04', defaultTitle: '04. Cost Control', icon: PieChart, lead: 'Pengendalian HPP resep makanan, pemakaian bahan per porsi, dan waste management.' },
+  5: { code: '05', defaultTitle: '05. Purcashing AP', icon: ShoppingBag, lead: 'Purchase Order (PO), penerimaan barang gudang (receiving), dan buku hutang supplier.' },
+  6: { code: '06', defaultTitle: '06. AR (Account Receivable)', icon: Receipt, lead: 'Manajemen piutang tamu korporat, city ledger, faktur invoice, dan pelunasan piutang.' },
+  7: { code: '07', defaultTitle: '07. General Cashier', icon: Wallet, lead: 'Sentralisasi setoran kasir outlet harian (drop cash), kas kecil petty cash, dan rekonsiliasi.' },
+  8: { code: '08', defaultTitle: '08. Accounting System', icon: BarChart3, lead: 'Jurnal otomatis penjualan, buku besar, neraca saldo, dan laporan laba rugi restoran.' },
+  9: { code: '09', defaultTitle: '09. Report', icon: TrendingUp, lead: 'Laporan analitik eksekutif: rekap penjualan kasir, ranking menu terlaris, dan pajak PB1.' },
+  10: { code: '10', defaultTitle: '10. Tools', icon: Sliders, lead: 'Konfigurasi printer thermal LAN/USB, auto cash drawer, diagnostik perangkat keras.' },
+}
+
+// Current Modules list for the selected system
+const modulesList = ref([])
+
+// All published manual books for the current system from database
+const systemManualBooks = ref([])
+
+// Fetch categories, system menus, and published manual books
+async function loadSystemData() {
+  isLoading.value = true
+  try {
+    // 1. Fetch Categories
+    const catRes = await apiClient.get('/categories')
+    if (catRes.data && catRes.data.data && Array.isArray(catRes.data.data)) {
+      availableSystems.value = catRes.data.data.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        title: `${cat.name} (${cat.total_menus || 10} Modul)`,
+        shortName: cat.name === 'PRESTO' ? 'PRESTO Resto POS' : (cat.name === 'PHIS' ? 'Probus Hotel PMS' : `${cat.name} System`),
+      }))
+    }
+
+    // 2. Fetch specific Category details to get its `menu_systems`
+    const detailRes = await apiClient.get(`/categories/${selectedSystemId.value}`)
+    let menusFromDb = []
+    if (detailRes.data && detailRes.data.data && detailRes.data.data.menus) {
+      menusFromDb = detailRes.data.data.menus
+    }
+
+    // 3. Fetch published manual books for this category from database (menu_has_manual_books)
+    const manualRes = await apiClient.get('/manual-books', {
+      params: { kategori_id: selectedSystemId.value }
+    })
+    systemManualBooks.value = (manualRes.data && manualRes.data.data) ? manualRes.data.data : []
+
+    // 4. Build module list combining database `menu_systems` and preloaded `manual_books`
+    if (menusFromDb.length > 0) {
+      modulesList.value = menusFromDb.map((menu, idx) => {
+        const orderNum = menu.order || (idx + 1)
+        const meta = defaultModuleMeta[orderNum] || {
+          code: String(orderNum).padStart(2, '0'),
+          defaultTitle: `${String(orderNum).padStart(2, '0')}. ${menu.name}`,
+          icon: BookOpen,
+          lead: menu.description || 'Panduan operasional dan tata cara penggunaan fitur modul.',
+        }
+
+        // Find manual books linked to this menu_system_id
+        const linkedManuals = systemManualBooks.value.filter(mb => {
+          if (!mb.menu_systems || !Array.isArray(mb.menu_systems)) return false
+          return mb.menu_systems.some(ms => ms.id === menu.id)
+        })
+
+        return {
+          id: menu.id,
+          order: orderNum,
+          code: meta.code,
+          name: menu.name,
+          title: `${meta.code}. ${menu.name}`,
+          desc: menu.description || meta.lead,
+          icon: meta.icon,
+          manualBooks: linkedManuals,
+          hasManualBook: linkedManuals.length > 0,
+        }
+      })
+    } else {
+      // Fallback to default 10 PRESTO modules if database returns empty
+      modulesList.value = Object.keys(defaultModuleMeta).map(key => {
+        const num = Number(key)
+        const meta = defaultModuleMeta[num]
+        return {
+          id: num,
+          order: num,
+          code: meta.code,
+          name: meta.defaultTitle.replace(/^\d+\.\s*/, ''),
+          title: meta.defaultTitle,
+          desc: meta.lead,
+          icon: meta.icon,
+          manualBooks: [],
+          hasManualBook: false,
+        }
+      })
+    }
+
+    // Ensure active module is valid
+    const exists = modulesList.value.some(m => m.order === selectedModuleOrder.value || m.id === selectedModuleOrder.value)
+    if (!exists && modulesList.value.length > 0) {
+      selectedModuleOrder.value = modulesList.value[0].order || 1
+    }
+  } catch (err) {
+    console.error('Failed to load system manual book data:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Current active module
+const currentModule = computed(() => {
+  return modulesList.value.find(m => m.order === selectedModuleOrder.value || m.id === selectedModuleOrder.value) || modulesList.value[0] || {
     id: 1,
     order: 1,
     code: '01',
     title: '01. Setup Master',
-    subtitle: 'Panduan Modul',
-    icon: Settings,
-    lead: 'Panduan konfigurasi data master awal restoran: master meja, kategori menu, item makanan & minuman, harga jual, serta penentuan pajak dan service charge.',
-    intro: 'Panduan langkah demi langkah bagi tim manajerial atau admin kasir untuk mengelola data master pada sistem PRESTO Resto POS.',
-    sections: [
-      {
-        heading: '1. Pengaturan Data Meja & Denah Restoran',
-        desc: 'Buka menu Setup Master > Data Meja. Tentukan area (Indoor, Outdoor, Bar) dan kapasitas kursi per meja sebelum membuka sesi kasir.',
-        diagram: {
-          filename: 'setup_denah_meja.png (480 × 160 px)',
-          items: [
-            '[1] Form Tambah Meja: Nomor Meja & Area',
-            '[2] Tombol Simpan Konfigurasi Denah Meja →',
-          ],
-        },
-      },
-      {
-        heading: '2. Input Kategori & Master Menu Makanan / Minuman',
-        desc: 'Tambahkan kategori menu utama (Appetizer, Main Course, Beverage), tentukan harga dasar, serta printer tujuan pesanan (Dapur Panas, Bar Minuman).',
-        diagram: {
-          filename: 'master_menu_item.png (480 × 180 px)',
-          items: [
-            '[1] Nama Item: Nasi Goreng Spesial — Kategori: Main Course',
-            '[2] Harga: Rp 35.000 | Tax: 10% | Service: 5%',
-            '[3] Target Cetak Pesanan: Printer Kitchen Dapur 01',
-          ],
-        },
-      },
-      {
-        heading: '3. Aturan & Kebijakan Tarif Pajak / Service',
-        desc: 'Berikut adalah acuan parameter tarif yang diterapkan otomatis pada saat pencetakan bill transaksi tamu:',
-        table: {
-          headers: ['No', 'Komponen Biaya', 'Keterangan Petunjuk Penggunaan'],
-          rows: [
-            ['1', 'PB1 / Pajak Resto (10%)', 'Dihitung otomatis dari total konsumsi makanan & minuman sebelum diskon.'],
-            ['2', 'Service Charge (5%)', 'Biaya layanan operasional restoran, dihitung dari subtotal pemesanan.'],
-            ['3', 'Diskon Promosi / Member', 'Dipotong sebelum pengenaan pajak sesuai kebijakan manajemen.'],
-          ],
-        },
-      },
-    ],
-  },
-  {
-    id: 2,
-    order: 2,
-    code: '02',
-    title: '02. Order Taker & Transaksi Meja',
-    subtitle: 'Sedang Dibaca • Aktif',
-    icon: UtensilsCrossed,
-    lead: 'Panduan langkah demi langkah bagi kasir & pramusaji untuk membuka meja tamu, menginput pesanan menu beserta catatan dapur (notes), hingga memindahkan atau menggabungkan meja aktif.',
-    intro: 'Panduan langkah demi langkah bagi kasir dan pramusaji untuk mengoperasikan modul Order Taker & Transaksi Meja pada sistem PRESTO Resto POS.',
-    sections: [
-      {
-        heading: '1. Membuka Meja Baru (Open Table) & Mengisi Jumlah Tamu',
-        desc: 'Pilih nomor meja yang berstatus Kosong (warna hijau) pada denah restoran, lalu tekan tombol "Buka Meja" untuk mulai mencatat pesanan tamu:',
-        diagram: {
-          filename: 'denah_meja_resto.png (480 × 160 px)',
-          items: [
-            '[1] Meja 04 • Status: Kosong (Hijau)',
-            '[2] Tombol Buka Meja 04 (Input Pesanan) →',
-          ],
-        },
-      },
-      {
-        heading: '2. Memilih Menu Pesanan, Catatan Dapur & Kirim Order',
-        desc: 'Pilih kategori makanan atau minuman, tentukan jumlah porsi, lalu gunakan kolom Catatan Dapur (Notes) untuk instruksi khusus sebelum mengirim pesanan ke koki:',
-        diagram: {
-          filename: 'input_pesanan_menu.png (480 × 180 px)',
-          items: [
-            '[1] Nasi Goreng Spesial (x2) — Rp 70.000',
-            '[2] Catatan Dapur: 1 Tidak Pedas, 1 Less Oil',
-            '[3] Tombol Kirim ke Dapur (Send Order)',
-          ],
-        },
-      },
-      {
-        heading: '3. Keterangan Status Meja & Panduan Pindah Meja (Move Table)',
-        desc: 'Berikut adalah acuan status warna meja pada denah restoran dan tata cara pindah meja jika tamu berpindah tempat duduk:',
-        table: {
-          headers: ['No', 'Status / Aksi', 'Keterangan Petunjuk Penggunaan'],
-          rows: [
-            ['1', '🟢 Meja Kosong (Hijau)', 'Meja belum terisi tamu, siap dibuka untuk transaksi tamu baru.'],
-            ['2', '🔴 Meja Terisi (Merah)', 'Meja aktif sedang makan dan pesanan telah terkirim ke dapur.'],
-            ['3', '🔄 Pindah Meja (Move Table)', 'Buka meja aktif, klik Pindah / Gabung Meja di sudut kanan atas, lalu pilih nomor meja tujuan.'],
-          ],
-        },
-      },
-    ],
-  },
-  {
-    id: 3,
-    order: 3,
-    code: '03',
-    title: '03. Outlet Activity',
-    subtitle: 'Panduan Modul',
-    icon: Store,
-    lead: 'Monitoring aktivitas operasional harian outlet: void pesanan, pembatalan item, pemindahan meja (move table), dan penggabungan tagihan (join bill).',
-    intro: 'Panduan pengawasan aktivitas operasional outlet bagi supervisor dan head waiter PRESTO Resto POS.',
-    sections: [
-      {
-        heading: '1. Otorisasi Void Item / Pembatalan Pesanan',
-        desc: 'Item yang sudah terkirim ke dapur hanya dapat dibatalkan melalui persetujuan Supervisor dengan PIN otorisasi.',
-        diagram: {
-          filename: 'void_item_approval.png (480 × 160 px)',
-          items: [
-            '[1] Pilih Item Pesanan yang Dibatalkan',
-            '[2] Masukkan Alasan Pembatalan (Salah Input / Tamu Cancel)',
-            '[3] Input Supervisor PIN Otorisasi',
-          ],
-        },
-      },
-      {
-        heading: '2. Penggabungan Bill (Join Bill) Antar Meja',
-        desc: 'Jika tamu dua meja ingin membayar dalam satu tagihan bersama, gunakan fitur Join Bill pada meja utama.',
-        diagram: {
-          filename: 'join_table_bill.png (480 × 160 px)',
-          items: [
-            '[1] Meja Asal: Meja 02 + Meja Gabungan: Meja 03',
-            '[2] Subtotal Gabungan Dihitung Otomatis',
-            '[3] Konfirmasi Cetak Bill Gabungan',
-          ],
-        },
-      },
-      {
-        heading: '3. Rekap Aktivitas Operasional Meja',
-        desc: 'Tabel acuan penanganan khusus operasional meja di outlet resto:',
-        table: {
-          headers: ['No', 'Tipe Aktivitas', 'Keterangan Petunjuk Penggunaan'],
-          rows: [
-            ['1', 'Void Before Send', 'Membatalkan item sebelum tombol Kirim Dapur ditekan (tidak perlu PIN).'],
-            ['2', 'Void After Send', 'Item sudah tercetak di dapur; wajib memasukkan PIN supervisor & alasan.'],
-            ['3', 'Split Bill Item', 'Memecah pesanan menjadi beberapa tagihan terpisah per tamu.'],
-          ],
-        },
-      },
-    ],
-  },
-  {
-    id: 4,
-    order: 4,
-    code: '04',
-    title: '04. Cost Control',
-    subtitle: 'Panduan Modul',
-    icon: PieChart,
-    lead: 'Pengendalian biaya bahan baku resep (HPP/COGS), pemakaian bahan per porsi, dan pemantauan selisih stok bahan dapur (waste management).',
-    intro: 'Panduan tata cara input resep menu dan analisis biaya bahan baku pada modul Cost Control.',
-    sections: [
-      {
-        heading: '1. Penyusunan Resep (Recipe / Bill of Materials)',
-        desc: 'Tautkan setiap menu penjualan dengan bahan baku gudang untuk memotong stok bahan secara otomatis setiap porsi terjual.',
-        diagram: {
-          filename: 'recipe_cogs_setup.png (480 × 160 px)',
-          items: [
-            '[1] Menu: Nasi Goreng Spesial',
-            '[2] Komposisi: Beras (150 gr), Telur (1 btr), Daging Ayam (50 gr)',
-            '[3] Kalkulasi HPP Otomatis: Rp 14.200 per porsi',
-          ],
-        },
-      },
-      {
-        heading: '2. Pencatatan Pembuangan Bahan (Spoilage & Waste)',
-        desc: 'Catat bahan makanan yang rusak atau kedaluwarsa agar kartu stok bahan di dapur tetap akurat.',
-        diagram: {
-          filename: 'waste_logging_form.png (480 × 160 px)',
-          items: [
-            '[1] Form Spoilage / Waste Gudang Dapur',
-            '[2] Pilih Alasan: Kedaluwarsa, Rusak Penyimpanan, Uji Rasa',
-          ],
-        },
-      },
-      {
-        heading: '3. Standar Rasio Biaya Makanan (Food Cost Ratio)',
-        desc: 'Panduan indikator kesehatan food cost restoran:',
-        table: {
-          headers: ['No', 'Kategori Menu', 'Target Standar Food Cost'],
-          rows: [
-            ['1', 'Makanan Utama (Food)', '28% - 35% dari harga jual menu.'],
-            ['2', 'Minuman (Beverage)', '15% - 22% dari harga jual menu.'],
-            ['3', 'Pastry & Dessert', '20% - 28% dari harga jual menu.'],
-          ],
-        },
-      },
-    ],
-  },
-  {
-    id: 5,
-    order: 5,
-    code: '05',
-    title: '05. Purcashing AP',
-    subtitle: 'Panduan Modul',
-    icon: ShoppingBag,
-    lead: 'Alur pengadaan barang: pembuatan Purchase Order (PO), penerimaan barang gudang (receiving), verifikasi faktur supplier, dan buku hutang usaha.',
-    intro: 'Panduan proses pengadaan bahan baku dari supplier hingga pencatatan hutang dagang pada PRESTO Resto POS.',
-    sections: [
-      {
-        heading: '1. Pembuatan Pesanan Pembelian (Purchase Order - PO)',
-        desc: 'Pilih supplier terdaftar, masukkan daftar bahan baku yang dibutuhkan outlet, dan tetapkan tanggal perkiraan pengiriman.',
-        diagram: {
-          filename: 'po_creation_slip.png (480 × 160 px)',
-          items: [
-            '[1] Supplier: PT Pangan Segar Nusantara',
-            '[2] Daftar Barang: Daging Sapi 20 kg, Minyak Goreng 50 L',
-            '[3] Cetak Dokumen PO & Kirim ke Supplier',
-          ],
-        },
-      },
-      {
-        heading: '2. Penerimaan Barang di Gudang (Receiving Log)',
-        desc: 'Cek fisik barang yang datang sesuai Surat Jalan supplier, sesuaikan jumlah aktual yang diterima sebelum menyimpan ke stok gudang.',
-        diagram: {
-          filename: 'receiving_item_checklist.png (480 × 160 px)',
-          items: [
-            '[1] Cek Berat / Jumlah Fisik vs Faktur',
-            '[2] Validasi Tanggal Expired Bahan Masuk',
-          ],
-        },
-      },
-      {
-        heading: '3. Verifikasi Status Tagihan Hutang (AP Aging)',
-        desc: 'Pantau jatuh tempo faktur supplier untuk memastikan pembayaran tepat waktu:',
-        table: {
-          headers: ['No', 'Status Tempo', 'Tindakan Bagian Pembelian / Keuangan'],
-          rows: [
-            ['1', '0 - 15 Hari', 'Faktur baru, verifikasi kelengkapan nota dan surat jalan.'],
-            ['2', '16 - 30 Hari', 'Jadwalkan batch pembayaran mingguan via General Cashier.'],
-            ['3', '> 30 Hari (Overdue)', 'Prioritas pembayaran segera untuk menghindari penghentian suplai.'],
-          ],
-        },
-      },
-    ],
-  },
-  {
-    id: 6,
-    order: 6,
-    code: '06',
-    title: '06. AR (Account Receivable)',
-    subtitle: 'Panduan Modul',
-    icon: Receipt,
-    lead: 'Manajemen piutang pelanggan korporat: penagihan faktur banquet, city ledger, voucher makan corporate, dan pencatatan penerimaan pelunasan piutang.',
-    intro: 'Tata cara pencatatan transaksi kredit dan penagihan piutang tamu pada modul AR.',
-    sections: [
-      {
-        heading: '1. Transaksi City Ledger / Tagihan Korporat',
-        desc: 'Saat transaksi kasir dipilih metode bayar City Ledger, tagihan otomatis dialihkan ke buku besar AR atas nama instansi terkait.',
-        diagram: {
-          filename: 'city_ledger_posting.png (480 × 160 px)',
-          items: [
-            '[1] Kasir Memilih Payment Method: City Ledger',
-            '[2] Pilih Akun Perusahaan: PT Bank Mega Perkasa',
-            '[3] Validasi Voucher / Surat Jaminan Tamu',
-          ],
-        },
-      },
-      {
-        heading: '2. Pencetakan Invoice Penagihan Resmi',
-        desc: 'Kumpulkan seluruh bill konsumsi selama periode acara corporate, lalu cetak Faktur Gabungan (Official Invoice) lengkap dengan lampiran.',
-        diagram: {
-          filename: 'invoice_ar_statement.png (480 × 160 px)',
-          items: [
-            '[1] Generate Billing Statement Periode Acara',
-            '[2] Tombol Cetak Invoice Resmi Penagihan →',
-          ],
-        },
-      },
-      {
-        heading: '3. Penutupan Piutang & Penerimaan Transfer',
-        desc: 'Tabel acuan status penagihan piutang pelanggan:',
-        table: {
-          headers: ['No', 'Status Piutang', 'Petunjuk Operasional'],
-          rows: [
-            ['1', 'Unbilled', 'Transaksi kasir sudah selesai, invoice belum dikirim ke klien.'],
-            ['2', 'Billed / Sent', 'Faktur resmi sudah diterima klien, menunggu jatuh tempo pembayaran.'],
-            ['3', 'Settled / Paid', 'Dana telah masuk ke rekening bank, lakukan posting pelunasan AR.'],
-          ],
-        },
-      },
-    ],
-  },
-  {
-    id: 7,
-    order: 7,
-    code: '07',
-    title: '07. General Cashier',
-    subtitle: 'Panduan Modul',
-    icon: Wallet,
-    lead: 'Sentralisasi kasir utama: penerimaan setoran kasir harian, pengelolaan kas kecil (petty cash), pembayaran operasional outlet, dan rekonsiliasi bank.',
-    intro: 'Panduan pengelolaan kas harian, setoran brankas, dan pencairan petty cash pada General Cashier.',
-    sections: [
-      {
-        heading: '1. Penerimaan Uang Setoran Kasir Harian (Drop Cash)',
-        desc: 'Verifikasi amplop setoran uang tunai dari kasir outlet yang telah ditutup shift, cocokkan dengan laporan Z-Report sistem.',
-        diagram: {
-          filename: 'drop_cash_verification.png (480 × 160 px)',
-          items: [
-            '[1] Terima Amplop Kasir Shift 1 & Shift 2',
-            '[2] Input Nominal Uang Fisik vs Z-Report POS',
-            '[3] Simpan ke Brankas Utama (Safe Deposit)',
-          ],
-        },
-      },
-      {
-        heading: '2. Pengeluaran Kas Kecil Operasional (Petty Cash)',
-        desc: 'Keluarkan dana kas kecil hanya untuk kebutuhan darurat outlet yang disertai bukti struk pengeluaran valid.',
-        diagram: {
-          filename: 'petty_cash_voucher.png (480 × 160 px)',
-          items: [
-            '[1] Form Voucher Kas Kecil (Biaya Gas Elpiji, Es Kristal Darurat)',
-            '[2] Tanda Tangan Penerima & Approval Manager',
-          ],
-        },
-      },
-      {
-        heading: '3. Rekonsiliasi Kas Harian',
-        desc: 'Panduan batas toleransi selisih kas fisik:',
-        table: {
-          headers: ['No', 'Kondisi Kas', 'Prosedur Wajib'],
-          rows: [
-            ['1', 'Balance (Tepat)', 'Posting setoran ke rekening bank penampung.'],
-            ['2', 'Shortage (Kurang)', 'Wajib dibuat berita acara selisih kas oleh kasir yang bertugas.'],
-            ['3', 'Overage (Lebih)', 'Catat sebagai pendapatan lain-lain, telusuri kemungkinan salah kembalian.'],
-          ],
-        },
-      },
-    ],
-  },
-  {
-    id: 8,
-    order: 8,
-    code: '08',
-    title: '08. Accounting System',
-    subtitle: 'Panduan Modul',
-    icon: BarChart3,
-    lead: 'Buku besar dan pembukuan otomatis: jurnal umum, neraca saldo, laporan laba rugi (P&L), dan neraca lajur keuangan restoran.',
-    intro: 'Panduan akuntansi menyeluruh yang terintegrasi otomatis dari modul penjualan, persediaan, dan kas.',
-    sections: [
-      {
-        heading: '1. Pemetaan Akun COA (Chart of Accounts)',
-        desc: 'Seluruh penjualan menu kasir otomatis memicu jurnal debet Kas/Bank/Piutang dan kredit Pendapatan Restoran serta Hutang Pajak.',
-        diagram: {
-          filename: 'auto_journal_sales.png (480 × 160 px)',
-          items: [
-            '[1] Jurnal Otomatis Penjualan Resto Hari Ini',
-            '[2] Dr. Kas Kasir (Rp 5.250.000) | Cr. Penjualan Makanan (Rp 4.500.000)',
-            '[3] Cr. Hutang Pajak PB1 (Rp 500.000) | Cr. Service Charge (Rp 250.000)',
-          ],
-        },
-      },
-      {
-        heading: '2. Tutup Buku Akhir Bulan (Period Closing)',
-        desc: 'Lakukan posting jurnal depresiasi aset dan penyesuaian persediaan akhir sebelum mengunci periode buku.',
-        diagram: {
-          filename: 'month_end_closing.png (480 × 160 px)',
-          items: [
-            '[1] Validasi Seluruh Jurnal Transaksi Posted',
-            '[2] Kunci Periode Akuntansi Bulan Berjalan',
-          ],
-        },
-      },
-      {
-        heading: '3. Laporan Keuangan Inti',
-        desc: 'Dokumen finansial yang dihasilkan otomatis oleh modul Accounting:',
-        table: {
-          headers: ['No', 'Jenis Laporan', 'Keterangan Analisis'],
-          rows: [
-            ['1', 'Laba Rugi (Income Statement)', 'Menampilkan pendapatan bersih, HPP, beban operasional, dan laba bersih.'],
-            ['2', 'Neraca (Balance Sheet)', 'Posisi aset, liabilitas hutang supplier, dan ekuitas modal pemilik.'],
-            ['3', 'Arus Kas (Cash Flow)', 'Mutasi penerimaan dan pengeluaran kas operasional dan investasi.'],
-          ],
-        },
-      },
-    ],
-  },
-  {
-    id: 9,
-    order: 9,
-    code: '09',
-    title: '09. Report',
-    subtitle: 'Panduan Modul',
-    icon: TrendingUp,
-    lead: 'Pusat laporan analitik eksekutif: rekap penjualan kasir, item menu terlaris (top sales), analisis jam sibuk (hourly sales), dan laporan pajak daerah.',
-    intro: 'Panduan penarikan data laporan penjualan, performa menu, dan rekapitulasi pajak pada PRESTO Resto POS.',
-    sections: [
-      {
-        heading: '1. Laporan Penjualan Harian per Kasir (Daily Cashier Report)',
-        desc: 'Tarik laporan ringkasan per kasir untuk memverifikasi metode pembayaran (Tunai, Kartu EDC, QRIS, Transfer) dan diskon yang diberikan.',
-        diagram: {
-          filename: 'daily_sales_summary.png (480 × 160 px)',
-          items: [
-            '[1] Filter: Tanggal Hari Ini | Outlet: Resto Utama',
-            '[2] Ringkasan Penjualan Bersih: Rp 12.450.000 (142 Transaksi)',
-            '[3] Export ke PDF / Excel untuk Laporan Owner',
-          ],
-        },
-      },
-      {
-        heading: '2. Analisis Menu Terlaris (Menu Engineering)',
-        desc: 'Pelajari peringkat menu makanan dan minuman berdasarkan volume penjualan dan profit margin untuk menyusun strategi promo.',
-        diagram: {
-          filename: 'top_menu_ranking.png (480 × 160 px)',
-          items: [
-            '[1] Top 1: Nasi Goreng Spesial (320 porsi)',
-            '[2] Top 2: Es Kopi Susu Aren (280 gelas)',
-            '[3] Top 3: Ayam Bakar Madu (195 porsi)',
-          ],
-        },
-      },
-      {
-        heading: '3. Kategori Laporan Siap Ekspor',
-        desc: 'Daftar jenis laporan yang dapat diunduh langsung:',
-        table: {
-          headers: ['No', 'Nama Laporan', 'Format Tersedia'],
-          rows: [
-            ['1', 'Laporan Omzet Kasir per Jam', 'PDF, Excel (.xlsx), Direct Thermal Print.'],
-            ['2', 'Laporan Pembayaran EDC & QRIS', 'Excel untuk rekonsiliasi mutasi rekening bank.'],
-            ['3', 'Laporan Pajak Daerah PB1', 'Format standar siap lampir Surat Pemberitahuan Pajak Daerah.'],
-          ],
-        },
-      },
-    ],
-  },
-  {
-    id: 10,
-    order: 10,
-    code: '10',
-    title: '10. Tools',
-    subtitle: 'Panduan Modul',
-    icon: Sliders,
-    lead: 'Utilitas konfigurasi teknis: pengaturan printer kasir thermal LAN/USB, IP address hardware, auto cut, barcode scanner, dan backup database lokal.',
-    intro: 'Panduan konfigurasi teknis perangkat keras kasir dan pemeliharaan database lokal.',
-    sections: [
-      {
-        heading: '1. Konfigurasi Printer Kasir LAN / USB / Bluetooth',
-        desc: 'Buka Tools > Printer Setup. Masukkan IP Address printer kasir dan printer dapur, lakukan uji cetak (Test Print) untuk memastikan koneksi stabil.',
-        diagram: {
-          filename: 'printer_hardware_setup.png (480 × 160 px)',
-          items: [
-            '[1] IP Address Printer Dapur: 192.168.1.200 (Port 9100)',
-            '[2] IP Address Printer Kasir: 192.168.1.201 (Port 9100)',
-            '[3] Tombol Test Print Thermal Receipt →',
-          ],
-        },
-      },
-      {
-        heading: '2. Pengaturan Laci Uang (Cash Drawer Kick)',
-        desc: 'Atur perintah trigger cash drawer agar laci terbuka otomatis saat transaksi pembayaran tunai diselesaikan kasir.',
-        diagram: {
-          filename: 'cash_drawer_command.png (480 × 160 px)',
-          items: [
-            '[1] Trigger Command: ESC p 0 25 250 (Standar ESC/POS)',
-            '[2] Uji Buka Laci Kasir Secara Manual',
-          ],
-        },
-      },
-      {
-        heading: '3. Troubleshooting Masalah Koneksi Printer',
-        desc: 'Langkah darurat saat printer dapur tidak merespons:',
-        table: {
-          headers: ['No', 'Gejala Gangguan', 'Solusi Perbaikan Mandiri'],
-          rows: [
-            ['1', 'Lampu Error Merah Berkedip', 'Periksa kertas struk, pastikan kertas terpasang kencang dan tutup rapat.'],
-            ['2', 'Kabel LAN Lepas / Timeout', 'Pastikan kabel LAN terpasang erat di router switch hub kasir.'],
-            ['3', 'Printer Dapur Macet', 'Aktifkan fitur Emergency Kitchen Routing di menu Tools untuk alihkan cetak ke printer kasir.'],
-          ],
-        },
-      },
-    ],
-  },
-]
-
-// Current module list
-const modulesList = ref(presto10ModulesData)
-
-// Active Module object
-const currentModule = computed(() => {
-  return modulesList.value.find(m => m.id === selectedModuleId.value) || modulesList.value[1]
+    desc: 'Panduan modul sistem.',
+    manualBooks: [],
+  }
 })
 
-// Previous and Next module computed
+// Current active manual book (if multiple exist for this module)
+const currentManualBook = computed(() => {
+  if (currentModule.value && currentModule.value.manualBooks && currentModule.value.manualBooks.length > 0) {
+    const idx = Math.min(activeManualIndex.value, currentModule.value.manualBooks.length - 1)
+    return currentModule.value.manualBooks[idx]
+  }
+  return null
+})
+
+// Navigation indices
 const currentIndex = computed(() => {
   return modulesList.value.findIndex(m => m.id === currentModule.value.id)
 })
@@ -554,15 +209,18 @@ const nextModule = computed(() => {
 })
 
 function selectModule(mod) {
-  selectedModuleId.value = mod.id
-  router.replace({ params: { systemId: selectedSystemId.value, moduleId: mod.id } })
+  selectedModuleOrder.value = mod.order || mod.id
+  activeManualIndex.value = 0
+  router.replace({ params: { systemId: selectedSystemId.value, moduleId: mod.order || mod.id } })
   window.scrollTo({ top: 120, behavior: 'smooth' })
 }
 
 function switchSystem(sys) {
   selectedSystemId.value = sys.id
-  selectedModuleId.value = 1
+  selectedModuleOrder.value = 1
+  activeManualIndex.value = 0
   router.replace({ params: { systemId: sys.id, moduleId: 1 } })
+  loadSystemData()
 }
 
 function goBackToSystemDetail() {
@@ -581,15 +239,20 @@ function goToNext() {
   }
 }
 
-// Sync route parameters
+onMounted(() => {
+  loadSystemData()
+})
+
 watch(
   () => route.params,
   newParams => {
-    if (newParams.systemId) {
+    if (newParams.systemId && Number(newParams.systemId) !== selectedSystemId.value) {
       selectedSystemId.value = Number(newParams.systemId)
+      loadSystemData()
     }
     if (newParams.moduleId) {
-      selectedModuleId.value = Number(newParams.moduleId)
+      selectedModuleOrder.value = Number(newParams.moduleId)
+      activeManualIndex.value = 0
     }
   }
 )
@@ -633,7 +296,7 @@ watch(
           <span class="text-slate-300 font-light">|</span>
           <span class="text-slate-500 text-sm font-medium hidden sm:inline">Pusat Bantuan Publik</span>
 
-          <!-- Pill Button: "← Kembali ke Pilihan Modul" (Exact Match to Design) -->
+          <!-- Pill Button: "← Kembali ke Pilihan Modul" -->
           <button
             @click="goBackToSystemDetail"
             class="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold text-xs border border-sky-100 transition-colors shadow-2xs cursor-pointer"
@@ -700,14 +363,17 @@ watch(
     <main class="flex-1 max-w-[1600px] w-full mx-auto px-6 sm:px-12 lg:px-20 xl:px-28 py-8 sm:py-10">
       <div class="flex flex-col md:flex-row gap-8 items-start">
         
-        <!-- LEFT COLUMN: Sidebar "DAFTAR MODUL (10)" -->
+        <!-- LEFT COLUMN: Sidebar "DAFTAR MODUL" -->
         <aside class="w-full md:w-80 lg:w-[340px] shrink-0">
           <div class="bg-slate-100/70 border border-slate-200/80 rounded-2xl p-4 sm:p-5 sticky top-24">
-            <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3.5 px-1">
-              DAFTAR MODUL ({{ modulesList.length }})
+            <div class="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider mb-3.5 px-1">
+              <span>DAFTAR MODUL ({{ modulesList.length }})</span>
+              <span class="text-[10px] font-normal text-slate-400 capitalize">
+                {{ currentSystem.name }}
+              </span>
             </div>
 
-            <!-- List of 10 Modules -->
+            <!-- List of Modules from Database `menu_systems` -->
             <div class="space-y-2.5 max-h-[calc(100vh-220px)] overflow-y-auto pr-1">
               <div
                 v-for="mod in modulesList"
@@ -715,140 +381,151 @@ watch(
                 @click="selectModule(mod)"
                 :class="[
                   'rounded-xl p-4 border transition-all duration-150 cursor-pointer text-left',
-                  selectedModuleId === mod.id
+                  currentModule.id === mod.id
                     ? 'bg-white border-2 border-sky-500 ring-2 ring-sky-100 shadow-sm'
                     : 'bg-white border-slate-200/90 hover:border-slate-300 hover:shadow-2xs'
                 ]"
               >
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between gap-2">
                   <h3
                     :class="[
                       'text-sm font-bold tracking-tight',
-                      selectedModuleId === mod.id ? 'text-sky-700 font-extrabold' : 'text-slate-900'
+                      currentModule.id === mod.id ? 'text-sky-700 font-extrabold' : 'text-slate-900'
                     ]"
                   >
                     {{ mod.title }}
                   </h3>
+
+                  <!-- Indicator: Published Manual in DB -->
+                  <span
+                    v-if="mod.hasManualBook"
+                    title="Buku panduan resmi telah dipublish"
+                    class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"
+                  ></span>
                 </div>
-                <div
-                  :class="[
-                    'text-[11px] mt-1 font-medium',
-                    selectedModuleId === mod.id ? 'text-sky-600 font-semibold' : 'text-slate-400'
-                  ]"
-                >
-                  <span v-if="selectedModuleId === mod.id">Sedang Dibaca • Aktif</span>
-                  <span v-else>Panduan Modul</span>
+
+                <div class="flex items-center justify-between text-[11px] mt-1 font-medium">
+                  <span
+                    :class="currentModule.id === mod.id ? 'text-sky-600 font-semibold' : 'text-slate-400'"
+                  >
+                    <span v-if="currentModule.id === mod.id">Sedang Dibaca • Aktif</span>
+                    <span v-else-if="mod.hasManualBook">
+                      {{ mod.manualBooks.length > 1 ? `${mod.manualBooks.length} Bab Panduan` : 'Tersedia Panduan' }}
+                    </span>
+                    <span v-else>Panduan Modul</span>
+                  </span>
+
+                  <span v-if="mod.hasManualBook" class="text-[10px] text-emerald-600 font-bold px-1.5 py-0.5 rounded bg-emerald-50">
+                    Published
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </aside>
 
-        <!-- RIGHT COLUMN: Detailed Reader Content Canvas (Exact Match to Design) -->
+        <!-- RIGHT COLUMN: Detailed Reader Content Canvas -->
         <article class="flex-1 min-w-0 bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-10 lg:p-12 shadow-xs">
           
-          <!-- Category Breadcrumb / Subtitle -->
-          <div class="text-xs font-bold text-sky-600 uppercase tracking-wider">
-            {{ currentSystem.shortName }} • Modul {{ currentModule.code }} dari {{ String(modulesList.length).padStart(2, '0') }}
+          <!-- Category Breadcrumb / Subtitle (Always Dynamically Matches Active System) -->
+          <div class="text-xs font-bold text-sky-600 uppercase tracking-wider flex items-center gap-2">
+            <span>{{ currentSystem.shortName }}</span>
+            <span class="text-slate-300">•</span>
+            <span>Modul {{ currentModule.code }} dari {{ String(modulesList.length).padStart(2, '0') }}</span>
           </div>
 
           <!-- Module Main Title -->
           <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 tracking-tight">
-            {{ currentModule.title }}
+            {{ currentManualBook ? currentManualBook.title : currentModule.title }}
           </h2>
 
-          <!-- Module Lead Text / Summary -->
+          <!-- Module Lead Text / Description -->
           <p class="mt-4 text-slate-600 text-sm sm:text-base leading-relaxed">
-            {{ currentModule.lead }}
+            {{ currentManualBook ? (currentManualBook.description || currentModule.desc) : currentModule.desc }}
           </p>
 
-          <p class="mt-4 text-slate-600 text-sm sm:text-base leading-relaxed">
-            {{ currentModule.intro }}
-          </p>
+          <!-- Chapter / Section Tabs Switcher (If multiple manual books exist for this menu) -->
+          <div
+            v-if="currentModule.manualBooks && currentModule.manualBooks.length > 1"
+            class="mt-6 flex items-center gap-2 p-1.5 bg-slate-50 border border-slate-200 rounded-xl overflow-x-auto"
+          >
+            <button
+              v-for="(mb, mbIdx) in currentModule.manualBooks"
+              :key="mb.id"
+              @click="activeManualIndex = mbIdx"
+              :class="[
+                'px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5',
+                activeManualIndex === mbIdx
+                  ? 'bg-sky-600 text-white shadow-xs'
+                  : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200/70'
+              ]"
+            >
+              <FileText class="w-3.5 h-3.5" />
+              <span>Bab {{ mbIdx + 1 }}: {{ mb.title }}</span>
+            </button>
+          </div>
 
           <hr class="my-8 border-slate-100" />
 
-          <!-- Dynamic Sections List (Steps 1, 2, 3...) -->
-          <div class="space-y-10">
+          <!-- CASE 1: Real Published Manual Book Content from Database `manual_books` -->
+          <div v-if="currentManualBook && currentManualBook.content" class="manual-book-content">
+            <!-- Render HTML Content directly from `dbprobuscs.manual_books.content` -->
             <div
-              v-for="(sec, idx) in currentModule.sections"
-              :key="idx"
-              class="space-y-4"
-            >
-              <!-- Section Heading -->
-              <h3 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
-                {{ sec.heading }}
-              </h3>
+              class="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-relaxed prose-table:w-full prose-table:border-collapse prose-th:bg-slate-100 prose-th:p-3 prose-td:p-3 prose-img:rounded-xl prose-img:shadow-xs prose-img:border prose-img:border-slate-200"
+              v-html="currentManualBook.content"
+            ></div>
+          </div>
 
-              <!-- Section Description -->
-              <p class="text-sm sm:text-base text-slate-600 leading-relaxed">
-                {{ sec.desc }}
-              </p>
-
-              <!-- Visual Diagram / Mockup Step Box (Matching Screenshot denah_meja_resto.png & input_pesanan_menu.png) -->
-              <div
-                v-if="sec.diagram"
-                class="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 my-4"
-              >
-                <!-- Image Header Filename Pill -->
-                <div class="flex items-center gap-2 text-xs font-mono text-slate-500 mb-3">
-                  <ImageIcon class="w-4 h-4 text-slate-400 shrink-0" />
-                  <span>{{ sec.diagram.filename }}</span>
-                </div>
-
-                <!-- Highlight Box Containers (Simulating Step Highlights from Screenshot) -->
-                <div class="space-y-2.5">
-                  <div
-                    v-for="(item, itemIdx) in sec.diagram.items"
-                    :key="itemIdx"
-                    class="p-3 bg-white rounded-lg border border-red-400/80 text-xs sm:text-sm font-semibold text-slate-800 shadow-2xs flex items-center justify-between"
+          <!-- CASE 2: Draft / Not Yet Published in Database (Helpful Overview & Contact Support) -->
+          <div v-else class="space-y-6">
+            <!-- Notice Box -->
+            <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-5 sm:p-6 flex items-start gap-4 text-amber-900">
+              <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <HelpCircle class="w-5 h-5 stroke-[2]" />
+              </div>
+              <div class="flex-1">
+                <h4 class="text-sm font-bold text-amber-950">
+                  Dokumen Panduan Modul Sedang Disusun
+                </h4>
+                <p class="text-xs sm:text-sm text-amber-800/90 mt-1 leading-relaxed">
+                  Buku panduan interaktif resmi untuk modul <strong>{{ currentModule.name }}</strong> pada sistem <strong>{{ currentSystem.name }}</strong> sedang dalam proses kurasi dan publikasi oleh tim implementator Probus.
+                </p>
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                  <a
+                    href="https://wa.me/62811389211"
+                    target="_blank"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-xs transition-colors"
                   >
-                    <span>{{ item }}</span>
-                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">
-                      Langkah {{ itemIdx + 1 }}
-                    </span>
-                  </div>
+                    <MessageSquare class="w-3.5 h-3.5 fill-white/20" />
+                    <span>Tanyakan Penggunaan ke WhatsApp Support</span>
+                  </a>
+                  <button
+                    @click="goBackToSystemDetail"
+                    class="px-4 py-2 rounded-lg bg-white hover:bg-amber-100/50 text-amber-900 font-semibold text-xs border border-amber-300 transition-colors"
+                  >
+                    Kembali ke Daftar Modul
+                  </button>
                 </div>
               </div>
+            </div>
 
-              <!-- Structured Table Guide (e.g. Status Meja / Aksi) -->
-              <div
-                v-if="sec.table"
-                class="overflow-x-auto rounded-xl border border-slate-200 mt-4 shadow-2xs"
-              >
-                <table class="w-full text-left text-xs sm:text-sm border-collapse">
-                  <thead>
-                    <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-700 font-bold">
-                      <th
-                        v-for="(th, thIdx) in sec.table.headers"
-                        :key="thIdx"
-                        :class="[
-                          'py-3 px-4',
-                          thIdx === 0 ? 'w-16 text-center' : (thIdx === 1 ? 'w-48 sm:w-64' : '')
-                        ]"
-                      >
-                        {{ th }}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-100 text-slate-700">
-                    <tr
-                      v-for="(row, rowIdx) in sec.table.rows"
-                      :key="rowIdx"
-                      class="hover:bg-slate-50/60 transition-colors"
-                    >
-                      <td class="py-3.5 px-4 font-semibold text-center text-slate-500">
-                        {{ row[0] }}
-                      </td>
-                      <td class="py-3.5 px-4 font-semibold text-slate-900">
-                        {{ row[1] }}
-                      </td>
-                      <td class="py-3.5 px-4 leading-relaxed text-slate-600">
-                        {{ row[2] }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+            <!-- Standard Operational Procedure Outline -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-6">
+              <h3 class="text-base font-bold text-slate-900 mb-2">
+                Ringkasan Fungsi & Prosedur Modul
+              </h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                {{ currentModule.desc }}
+              </p>
+              <div class="mt-4 p-4 bg-white rounded-lg border border-slate-200 text-xs text-slate-500 space-y-2">
+                <div class="flex items-center gap-2">
+                  <CheckCircle2 class="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>Pastikan akun Anda memiliki hak akses (role permission) untuk membuka modul ini.</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <CheckCircle2 class="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>Untuk bantuan konfigurasi awal, hubungi tim implementator resmi Probus System.</span>
+                </div>
               </div>
             </div>
           </div>
@@ -896,3 +573,55 @@ watch(
   </div>
 </template>
 
+<style scoped>
+/* Ensure database-rendered HTML tables and images look clean */
+:deep(.manual-book-content table) {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 1.25rem 0 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+:deep(.manual-book-content th) {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  padding: 10px 14px !important;
+  border: 1px solid #e2e8f0 !important;
+  text-align: left !important;
+  font-size: 0.875rem !important;
+}
+
+:deep(.manual-book-content td) {
+  padding: 10px 14px !important;
+  border: 1px solid #e2e8f0 !important;
+  font-size: 0.875rem !important;
+  color: #334155 !important;
+  line-height: 1.5 !important;
+}
+
+:deep(.manual-book-content h3) {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+:deep(.manual-book-content p) {
+  font-size: 0.9375rem !important;
+  color: #475569 !important;
+  line-height: 1.625 !important;
+  margin-bottom: 1rem !important;
+}
+
+:deep(.manual-book-content img) {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 8px !important;
+  margin: 1rem 0 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+</style>

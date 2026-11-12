@@ -81,10 +81,14 @@ func (h *Handler) GetArticleByID(c *gin.Context) {
 }
 
 func (h *Handler) GetManualBooks(c *gin.Context) {
+	kategoriID, _ := strconv.ParseUint(c.Query("kategori_id"), 10, 32)
 	menuID, _ := strconv.ParseUint(c.Query("menu_id"), 10, 32)
 	search := c.Query("q")
+	if search == "" {
+		search = c.Query("search")
+	}
 
-	manuals, err := h.service.GetManualBooks(c.Request.Context(), uint(menuID), search)
+	manuals, err := h.service.GetManualBooks(c.Request.Context(), uint(kategoriID), uint(menuID), search)
 	if err != nil {
 		response.InternalError(c, "Failed to retrieve manual books", err.Error())
 		return

@@ -9,7 +9,7 @@ type Service interface {
 	GetCategoryByID(ctx context.Context, id uint) (*Kategori, error)
 	GetArticles(ctx context.Context, page, limit int, kategoriID, menuID uint, search string) ([]Article, int64, error)
 	GetArticleByID(ctx context.Context, id uint) (*Article, error)
-	GetManualBooks(ctx context.Context, menuID uint, search string) ([]ManualBook, error)
+	GetManualBooks(ctx context.Context, kategoriID, menuID uint, search string) ([]ManualBook, error)
 	GetManualBookByID(ctx context.Context, id uint) (*ManualBook, error)
 	Search(ctx context.Context, query string, limit int) ([]SearchResultItem, error)
 }
@@ -38,8 +38,8 @@ func (s *service) GetArticleByID(ctx context.Context, id uint) (*Article, error)
 	return s.repo.FindArticleByID(ctx, id)
 }
 
-func (s *service) GetManualBooks(ctx context.Context, menuID uint, search string) ([]ManualBook, error) {
-	return s.repo.FindManualBooks(ctx, menuID, search)
+func (s *service) GetManualBooks(ctx context.Context, kategoriID, menuID uint, search string) ([]ManualBook, error) {
+	return s.repo.FindManualBooks(ctx, kategoriID, menuID, search)
 }
 
 func (s *service) GetManualBookByID(ctx context.Context, id uint) (*ManualBook, error) {
