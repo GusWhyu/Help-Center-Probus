@@ -25,3 +25,8 @@ Thumbs.db
 # Storage / uploads
 storage/
 public/uploads/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/

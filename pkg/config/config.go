@@ -48,7 +48,7 @@ func LoadConfig() (*Config, error) {
 	cfg := &Config{
 		AppName:            getEnv("APP_NAME", "BarongFramework"),
 		AppEnv:             getEnv("APP_ENV", "development"),
-		AppPort:            getEnv("APP_PORT", "8080"),
+		AppPort:            getEnvAny([]string{"APP_PORT", "PORT", "SERVER_PORT"}, "8088"),
 		GinMode:            getEnv("GIN_MODE", "debug"),
 		APIPrefix:          getEnv("API_PREFIX", "/api/v1"),
 		JWTSecret:          getEnv("JWT_SECRET", "default-insecure-secret-key-32-chars"),
@@ -66,15 +66,15 @@ func LoadConfig() (*Config, error) {
 	}
 
 	// 1. Primary/Default Database
-	defaultDriver := strings.ToLower(strings.TrimSpace(getEnv("DB_DRIVER", "postgres")))
+	defaultDriver := strings.ToLower(strings.TrimSpace(getEnvAny([]string{"DB_DRIVER", "DB_CONNECTION"}, "postgres")))
 	cfg.Databases["default"] = DatabaseConfig{
 		Name:            "default",
 		Driver:          defaultDriver,
 		Host:            getEnv("DB_HOST", "127.0.0.1"),
 		Port:            getEnv("DB_PORT", defaultDatabasePort(defaultDriver)),
-		User:            getEnv("DB_USER", defaultDatabaseUser(defaultDriver)),
+		User:            getEnvAny([]string{"DB_USER", "DB_USERNAME"}, defaultDatabaseUser(defaultDriver)),
 		Password:        getEnv("DB_PASSWORD", defaultDatabasePassword(defaultDriver)),
-		DBName:          getEnv("DB_NAME", "barong_main"),
+		DBName:          getEnvAny([]string{"DB_NAME", "DB_DATABASE"}, "barong_main"),
 		SSLMode:         getEnv("DB_SSLMODE", "disable"),
 		MaxOpenConns:    getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
 		MaxIdleConns:    getEnvAsInt("DB_MAX_IDLE_CONNS", 10),
@@ -134,6 +134,15 @@ func defaultDatabasePassword(driver string) string {
 func getEnv(key, defaultVal string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
+	}
+	return defaultVal
+}
+
+func getEnvAny(keys []string, defaultVal string) string {
+	for _, key := range keys {
+		if val := strings.TrimSpace(os.Getenv(key)); val != "" {
+			return val
+		}
 	}
 	return defaultVal
 }
