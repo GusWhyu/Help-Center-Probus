@@ -24,6 +24,7 @@ import {
   TrendingUp,
   Printer
 } from 'lucide-vue-next'
+import WhatsAppSupportDropdown from '../components/WhatsAppSupportDropdown.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -414,16 +415,7 @@ function goBackHome() {
           <span class="font-medium text-slate-600">Bahasa Indonesia</span>
           <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
         </div>
-        <div class="flex items-center gap-1.5">
-          <span>Butuh bantuan cepat? Hubungi WhatsApp Support:</span>
-          <a
-            href="https://wa.me/62811389211"
-            target="_blank"
-            class="text-slate-800 font-semibold hover:text-sky-600 transition-colors"
-          >
-            +62 811-389-211
-          </a>
-        </div>
+        <WhatsAppSupportDropdown />
       </div>
     </header>
 
