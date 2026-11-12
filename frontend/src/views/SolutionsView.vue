@@ -118,14 +118,64 @@ onMounted(() => {
   loadArticles()
 })
 
-// System Filter Options (matching UI layout)
-const systemOptions = [
-  { value: 2, label: 'PRESTO Resto POS' },
-  { value: 1, label: 'Probus Hotel PMS' },
-  { value: 8, label: 'PPE 2.0 Management' },
-  { value: 5, label: 'Back Office & Akuntansi' },
-  { value: 'all', label: 'Semua Sistem' },
-]
+// Metadata for the 9 Probus system categories
+const default9SystemMeta = {
+  1: { label: 'Probus Hotel PMS', code: 'PHIS' },
+  2: { label: 'PRESTO Resto POS', code: 'PRESTO' },
+  3: { label: 'PPOS Point of Sales', code: 'PPOS' },
+  4: { label: 'Probus Self Order', code: 'SELF ORDER' },
+  5: { label: 'PR-PO Online Logistik', code: 'PR-PO ONLINE' },
+  6: { label: 'Order Taker Mobile', code: 'ORDER TAKER' },
+  7: { label: 'Vrestropical POS', code: 'VRESTROPICAL' },
+  8: { label: 'PPE 2.0 Management', code: 'PPE' },
+  9: { label: 'Barong POS Cloud', code: 'BARONG POS' },
+}
+
+// Order of the 9 systems
+const preferredOrder = [2, 1, 8, 3, 4, 5, 6, 7, 9]
+
+// All 9 system categories + Semua Sistem (Total 10 options)
+const systemOptions = computed(() => {
+  const result = []
+
+  if (categories.value && categories.value.length > 0) {
+    const sorted = [...categories.value].sort((a, b) => {
+      const idxA = preferredOrder.indexOf(a.id)
+      const idxB = preferredOrder.indexOf(b.id)
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB
+      return a.id - b.id
+    })
+
+    sorted.forEach(c => {
+      const meta = default9SystemMeta[c.id]
+      result.push({
+        value: c.id,
+        code: c.name,
+        label: meta ? meta.label : (c.name || `Sistem ${c.id}`),
+      })
+    })
+  } else {
+    preferredOrder.forEach(id => {
+      const meta = default9SystemMeta[id]
+      if (meta) {
+        result.push({
+          value: id,
+          code: meta.code,
+          label: meta.label,
+        })
+      }
+    })
+  }
+
+  // Append 'Semua Sistem' at the end
+  result.push({
+    value: 'all',
+    code: 'ALL',
+    label: 'Semua Sistem',
+  })
+
+  return result
+})
 
 function selectSystem(systemVal) {
   selectedSystemFilter.value = systemVal
@@ -330,10 +380,15 @@ function goBackHome() {
           </button>
         </div>
 
-        <!-- 1. PILIH SISTEM ROW -->
+        <!-- 1. PILIH SISTEM ROW (9 Kategori Produk Probus + Semua Sistem) -->
         <div class="mt-7 text-left">
-          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-            PILIH SISTEM
+          <div class="flex items-center justify-between mb-2.5">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              PILIH SISTEM (9 Kategori Produk Probus)
+            </div>
+            <div class="text-xs text-slate-400 font-medium">
+              9 Kategori Sistem
+            </div>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <button
@@ -341,9 +396,9 @@ function goBackHome() {
               :key="opt.value"
               @click="selectSystem(opt.value)"
               :class="[
-                'px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer',
+                'px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer',
                 selectedSystemFilter === opt.value
-                  ? 'bg-slate-950 text-white shadow-xs'
+                  ? 'bg-slate-950 text-white shadow-xs ring-2 ring-slate-900/10'
                   : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-950 shadow-2xs'
               ]"
             >
