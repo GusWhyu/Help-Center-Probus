@@ -18,7 +18,8 @@ import {
   MonitorCheck,
   Building2,
   Zap,
-  HelpCircle
+  HelpCircle,
+  Loader2
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import WhatsAppSupportDropdown from '../components/WhatsAppSupportDropdown.vue'
@@ -26,137 +27,75 @@ import WhatsAppSupportDropdown from '../components/WhatsAppSupportDropdown.vue'
 const router = useRouter()
 const searchQuery = ref('')
 const selectedSystemFilter = ref('all')
-const selectedTagFilter = ref('all')
 const isLoading = ref(false)
 
-// Real articles matching dbprobuscs articles table
-const articles = ref([
-  {
-    id: 1,
-    title: 'Cara Menangani Printer Kasir Thermal yang Tidak Mencetak Struk',
-    system: 'PRESTO',
-    categoryName: 'Hardware & Printer',
-    readTime: '4 menit baca',
-    summary: 'Langkah cepat penanganan printer thermal saat struk tidak keluar pada jam operasional kasir.',
-    content: `
-      <div class="space-y-4">
-        <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-sm">
-          <strong>Peringatan Awal:</strong> Jangan mematikan saklar listrik utama kasir saat printer sedang memproses antrian cetak.
-        </div>
-        <h3 class="text-lg font-bold text-slate-900">1. Periksa Fisik Printer & Lampu Indikator (LED)</h3>
-        <ul class="list-disc pl-5 space-y-1.5 text-slate-600">
-          <li><strong>Lampu Merah (Error) Berkedip</strong>: Kemungkinan kertas struk habis atau penutup printer belum tertutup rapat.</li>
-          <li><strong>Lampu Biru/Hijau Mati</strong>: Periksa kabel adaptor daya di bagian belakang printer apakah terlepas.</li>
-        </ul>
-        <h3 class="text-lg font-bold text-slate-900 mt-6">2. Periksa Posisi Kertas Thermal</h3>
-        <p>Kertas thermal memiliki satu sisi sensitif panas. Pastikan gulungan kertas menghadap ke atas (posisi kertas keluar dari bawah gulungan). Jika terbalik, printer tetap berjalan namun hasil cetak akan polos/kosong.</p>
-        <h3 class="text-lg font-bold text-slate-900 mt-6">3. Restart Service Spooler & Test Ping IP</h3>
-        <p>Jika printer menggunakan kabel LAN (Ethernet), buka CMD di komputer kasir dan ketik <code>ping 192.168.1.200</code> (sesuaikan dengan IP printer). Jika respons <em>Reply</em>, buka PRESTO POS dan lakukan test print ulang.</p>
-      </div>
-    `,
-  },
-  {
-    id: 2,
-    title: 'Mengatur IP Address Statis Printer Kitchen (LAN Port 9100)',
-    system: 'PRESTO',
-    categoryName: 'Jaringan & Network',
-    readTime: '5 menit baca',
-    summary: 'Panduan konfigurasi IP Address static pada printer dapur LAN agar cetakan order makanan tidak terputus.',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">1. Alasan Menggunakan IP Statis</h3>
-        <p class="text-slate-600">Printer dapur harus memiliki alamat IP yang tetap (statis). Jika menggunakan DHCP otomatis dari router, alamat IP printer dapat berubah sewaktu-waktu sehingga pesanan dari kasir gagal tercetak di dapur.</p>
-        
-        <h3 class="text-lg font-bold text-slate-900 mt-6">2. Langkah Menetapkan IP Statis via Web Browser</h3>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li>Cetak kertas Self-Test printer dengan menahan tombol <em>FEED</em> sambil menyalakan saklar daya. Catat alamat IP default printer.</li>
-          <li>Buka Google Chrome di komputer kasir yang berada di jaringan LAN yang sama, lalu ketik alamat IP printer tersebut pada address bar.</li>
-          <li>Login ke menu pengaturan printer (Default user: <em>admin</em>, pass: <em>admin</em> atau <em>12345678</em>).</li>
-          <li>Masuk ke menu <strong>Network Configuration > TCP/IP</strong>, ubah mode dari <em>DHCP</em> menjadi <em>Static IP</em>.</li>
-          <li>Masukkan IP di luar rentang pool DHCP router (misal: <code>192.168.1.210</code>, Subnet: <code>255.255.255.0</code>, Gateway: <code>192.168.1.1</code>).</li>
-          <li>Klik <strong>Save & Reboot</strong>. Update juga IP baru ini pada menu <em>Tools > Hardware Setup</em> di aplikasi PRESTO.</li>
-        </ol>
-      </div>
-    `,
-  },
-  {
-    id: 3,
-    title: 'Solusi Laci Uang (Cash Drawer) Tidak Terbuka Otomatis Saat Bayar',
-    system: 'PRESTO',
-    categoryName: 'Hardware & Kasir',
-    readTime: '3 menit baca',
-    summary: 'Pengecekan kabel RJ11 dan pengaturan printer driver agar cash drawer memicu tendangan pembuka otomatis.',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">Penyebab Umum & Solusi</h3>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li><strong>Kabel RJ11 Longgar</strong>: Kabel telepon (RJ11) dari laci uang harus terpasang kencang ke port <em>DK (Drawer Kick)</em> di belakang printer thermal kasir.</li>
-          <li><strong>Kunci Manual Terkunci Penuh</strong>: Pastikan lubang kunci di bagian depan laci uang berada pada posisi vertikal (otomatis). Jika berada di posisi horizontal, laci terkunci manual dan tidak dapat ditendang secara elektrik.</li>
-          <li><strong>Driver Cash Drawer Kick</strong>: Buka <em>Device and Printers > Printer Properties > Device Settings</em>, pastikan opsi <em>Cash Drawer #1: Open Before Printing</em> diaktifkan.</li>
-        </ol>
-      </div>
-    `,
-  },
-  {
-    id: 4,
-    title: 'Mengatasi Kertas Struk Macet (Paper Jam) pada Pemotong Otomatis',
-    system: 'PRESTO',
-    categoryName: 'Hardware & Printer',
-    readTime: '3 menit baca',
-    summary: 'Cara mengembalikan pisau auto-cutter yang tersangkut tanpa merusak gear mesin printer.',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">Langkah Menyelamatkan Pisau Auto-Cutter</h3>
-        <p class="text-slate-600">Jika penutup printer tidak bisa dibuka karena pisau pemotong tersangkut di tengah:</p>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li>Matikan saklar printer kasir terlebih dahulu.</li>
-          <li>Buka penutup plastik kecil di bagian depan pemotong (gear cover).</li>
-          <li>Putar roda gerigi (gear) secara perlahan menggunakan jari hingga bilah pisau pemotong kembali mundur ke posisi semula.</li>
-          <li>Buka tuas penutup printer, bersihkan sisa robekan kertas yang tersangkut, lalu tutup kembali dengan kencang hingga berbunyi 'klik'.</li>
-        </ol>
-      </div>
-    `,
-  },
-  {
-    id: 5,
-    title: 'Mengalihkan Cetakan Order Dapur Sementara Saat Printer Utama Rusak',
-    system: 'PRESTO',
-    categoryName: 'Operasional & Transaksi',
-    readTime: '4 menit baca',
-    summary: 'Prosedur darurat mengalihkan routing tiket order dapur ke printer kasir saat terjadi gangguan printer kitchen.',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">Fitur Emergency Kitchen Routing</h3>
-        <p class="text-slate-600">Saat jam sibuk makan siang atau makan malam dan printer dapur mendadak rusak atau habis kertas:</p>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li>Buka menu <strong>Tools > Hardware & Printer Setup</strong>.</li>
-          <li>Pada kolom <em>Routing Kitchen Printer</em>, ubah target printer sementara ke <strong>Printer Kasir (Cashier Thermal)</strong>.</li>
-          <li>Simpan pengaturan. Seluruh tiket order makanan akan tercetak ganda di meja kasir sehingga kasir dapat mengantarkan tiket fisik secara manual ke chef dapur.</li>
-        </ol>
-      </div>
-    `,
-  },
-  {
-    id: 6,
-    title: 'Cara Menghubungkan Printer Thermal Bluetooth ke Tablet Kasir Android',
-    system: 'PPOS',
-    categoryName: 'Hardware & Kasir',
-    readTime: '4 menit baca',
-    summary: 'Panduan pairing Bluetooth dan konfigurasi nomor PIN 0000/1234 pada aplikasi PPOS Tablet.',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">Langkah Pairing Bluetooth</h3>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li>Nyalakan printer thermal mobile bluetooth.</li>
-          <li>Buka pengaturan <em>Settings > Bluetooth</em> pada tablet Android.</li>
-          <li>Cari nama perangkat printer (contoh: <em>RPP02N</em>, <em>MPT-II</em>, atau <em>Bluetooth Printer</em>).</li>
-          <li>Masukkan kode PIN pairing (biasanya <code>0000</code> atau <code>1234</code>).</li>
-          <li>Buka aplikasi PPOS, masuk ke menu <strong>Pengaturan > Printer Bluetooth</strong>, lalu pilih printer yang telah terhubung. Lakukan test print.</li>
-        </ol>
-      </div>
-    `,
-  },
-])
+const systemNameMap = {
+  1: 'PHIS',
+  2: 'PRESTO',
+  3: 'PPOS',
+  4: 'SELF ORDER',
+  5: 'PR-PO ONLINE',
+  6: 'ORDER TAKER',
+  7: 'VRESTROPICAL',
+  8: 'PPE',
+  9: 'BARONG POS',
+}
+
+function formatArticleContent(html) {
+  if (!html) return ''
+  return html.replace(/http:\/\/(127\.0\.0\.1|localhost):8000\/uploads\//g, '/uploads/')
+}
+
+function cleanSummary(text) {
+  if (!text) return ''
+  return text.replace(/&nbsp;/g, ' ').replace(/<[^>]*>?/gm, '').trim()
+}
+
+// Articles list from database
+const articles = ref([])
+
+// Load articles from database
+async function loadArticles() {
+  isLoading.value = true
+  try {
+    const res = await apiClient.get('/articles', { params: { limit: 100 } })
+    if (res.data && res.data.data && Array.isArray(res.data.data)) {
+      articles.value = res.data.data.map(item => {
+        const primaryMenu = item.menu_systems && item.menu_systems.length > 0 ? item.menu_systems[0] : null
+        const katId = primaryMenu ? primaryMenu.kategori_id : 2
+        const sysCode = systemNameMap[katId] || 'PRESTO'
+        const menuName = primaryMenu ? primaryMenu.name : 'Umum'
+
+        // Estimate read time
+        const words = (item.content || '').split(/\s+/).length
+        const minutes = Math.max(2, Math.min(10, Math.ceil(words / 150)))
+
+        return {
+          id: item.id,
+          title: item.title,
+          system: sysCode,
+          kategoriId: katId,
+          categoryName: menuName,
+          menuName: menuName,
+          status: item.status,
+          visibility: item.visibility,
+          readTime: `${minutes} menit baca`,
+          summary: cleanSummary(item.summary) || 'Panduan pemecahan kendala teknis dan operasional sistem Probus.',
+          content: formatArticleContent(item.content),
+          raw: item,
+        }
+      })
+    }
+  } catch (err) {
+    console.error('Failed to load articles from database:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadArticles()
+})
 
 // Filter options
 const systemOptions = [
@@ -170,11 +109,15 @@ const systemOptions = [
 // Filtered articles
 const filteredArticles = computed(() => {
   return articles.value.filter(art => {
-    const matchSystem = selectedSystemFilter.value === 'all' || art.system === selectedSystemFilter.value
-    const matchQuery = !searchQuery.value.trim() ||
-      art.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      art.summary.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      art.categoryName.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const matchSystem = selectedSystemFilter.value === 'all' ||
+      art.system === selectedSystemFilter.value ||
+      art.kategoriId === Number(selectedSystemFilter.value)
+    const q = searchQuery.value.trim().toLowerCase()
+    const matchQuery = !q ||
+      (art.title && art.title.toLowerCase().includes(q)) ||
+      (art.summary && art.summary.toLowerCase().includes(q)) ||
+      (art.categoryName && art.categoryName.toLowerCase().includes(q)) ||
+      (art.system && art.system.toLowerCase().includes(q))
     return matchSystem && matchQuery
   })
 })
@@ -298,7 +241,7 @@ function goBackHome() {
             :key="opt.value"
             @click="selectedSystemFilter = opt.value"
             :class="[
-              'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all',
+              'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
               selectedSystemFilter === opt.value
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
@@ -318,8 +261,13 @@ function goBackHome() {
             Daftar Artikel Solusi Masalah
           </h2>
           <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Menampilkan {{ filteredArticles.length }} artikel pemecahan masalah teknis
+            Menampilkan {{ filteredArticles.length }} artikel pemecahan masalah teknis dari basis data
           </p>
+        </div>
+
+        <div v-if="isLoading" class="flex items-center gap-2 text-xs text-slate-400">
+          <Loader2 class="w-4 h-4 animate-spin text-amber-500" />
+          <span>Memuat artikel...</span>
         </div>
       </div>
 
@@ -361,7 +309,7 @@ function goBackHome() {
       </div>
 
       <!-- Empty State -->
-      <div v-if="filteredArticles.length === 0" class="text-center py-16 bg-white rounded-2xl border border-slate-200">
+      <div v-if="!isLoading && filteredArticles.length === 0" class="text-center py-16 bg-white rounded-2xl border border-slate-200">
         <AlertCircle class="w-12 h-12 text-slate-300 mx-auto mb-3" />
         <h3 class="text-base font-bold text-slate-800">Tidak ada artikel yang sesuai</h3>
         <p class="text-xs sm:text-sm text-slate-500 mt-1 max-w-md mx-auto">
@@ -382,8 +330,8 @@ function goBackHome() {
         <p>© 2026 PT Probus System Indonesia • Bank Solusi Resmi</p>
         <p>
           Masih terkendala? Hubungi WhatsApp Support:
-          <a href="https://wa.me/62811389211" target="_blank" class="font-semibold text-slate-700 hover:text-sky-600 transition-colors">
-            +62 811-389-211
+          <a href="https://wa.me/6281910875514" target="_blank" class="font-semibold text-slate-700 hover:text-sky-600 transition-colors">
+            +62 819-1087-5514
           </a>
         </p>
       </div>
@@ -394,17 +342,17 @@ function goBackHome() {
       v-if="readerModalOpen && activeArticle"
       class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4 sm:p-6"
     >
-      <div class="bg-white w-full max-w-3xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in duration-200">
+      <div class="bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in duration-200">
         <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
           <div class="flex items-center gap-2.5">
             <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider bg-amber-100 text-amber-800">
               Artikel Solusi
             </span>
-            <span class="text-xs text-slate-500 font-medium">• {{ activeArticle.system }}</span>
+            <span class="text-xs text-slate-500 font-medium">• {{ activeArticle.system }} ({{ activeArticle.categoryName }})</span>
           </div>
           <button
             @click="closeReader"
-            class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors"
+            class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
           >
             <X class="w-4 h-4" />
           </button>
@@ -416,7 +364,7 @@ function goBackHome() {
           </h2>
 
           <div
-            class="text-slate-700 text-sm sm:text-base leading-relaxed pt-4 border-t border-slate-100"
+            class="manual-book-content text-slate-700 text-sm sm:text-base leading-relaxed pt-4 border-t border-slate-100"
             v-html="activeArticle.content"
           ></div>
         </div>
@@ -429,7 +377,7 @@ function goBackHome() {
             <button
               v-if="!feedbackGiven"
               @click="giveFeedback"
-              class="px-3.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-medium inline-flex items-center gap-1.5 transition-colors"
+              class="px-3.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <ThumbsUp class="w-3.5 h-3.5" />
               <span>Ya, Berhasil</span>
@@ -440,7 +388,7 @@ function goBackHome() {
             </div>
             <button
               @click="closeReader"
-              class="px-4 py-1.5 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors"
+              class="px-4 py-1.5 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
             >
               Tutup
             </button>
@@ -451,3 +399,62 @@ function goBackHome() {
   </div>
 </template>
 
+<style scoped>
+:deep(.manual-book-content table) {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 1.25rem 0 !important;
+}
+
+:deep(.manual-book-content th) {
+  background-color: #0b1a36 !important;
+  color: #ffffff !important;
+  padding: 10px 14px !important;
+  border: 1px solid #334155 !important;
+  font-weight: 700 !important;
+  font-size: 0.875rem !important;
+}
+
+:deep(.manual-book-content td) {
+  padding: 10px 14px !important;
+  border: 1px solid #cbd5e1 !important;
+  font-size: 0.875rem !important;
+  color: #334155 !important;
+  line-height: 1.5 !important;
+}
+
+:deep(.manual-book-content h2),
+:deep(.manual-book-content h3) {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+:deep(.manual-book-content ol),
+:deep(.manual-book-content ul) {
+  padding-left: 1.5rem !important;
+  margin-bottom: 1rem !important;
+}
+
+:deep(.manual-book-content li) {
+  margin-bottom: 0.5rem !important;
+  line-height: 1.625 !important;
+}
+
+:deep(.manual-book-content p) {
+  font-size: 0.9375rem !important;
+  color: #475569 !important;
+  line-height: 1.625 !important;
+  margin-bottom: 0.75rem !important;
+}
+
+:deep(.manual-book-content img) {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 8px !important;
+  margin: 1rem 0 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+</style>

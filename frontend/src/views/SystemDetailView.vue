@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft,
@@ -24,6 +24,7 @@ import {
   TrendingUp,
   Printer
 } from 'lucide-vue-next'
+import apiClient from '../api/client'
 import WhatsAppSupportDropdown from '../components/WhatsAppSupportDropdown.vue'
 
 const route = useRoute()
@@ -271,92 +272,68 @@ const presto10Modules = [
   },
 ]
 
-// Troubleshooting Articles for "Solusi" Tab
-const troubleshootingArticles = [
-  {
-    id: 1,
-    title: 'Cara Menangani Printer Kasir Thermal yang Tidak Mencetak Struk',
-    menuName: '10. Tools',
-    readTime: '4 menit baca',
-    summary: 'Langkah cepat penanganan printer thermal saat struk tidak keluar pada jam operasional kasir.',
-    content: `
-      <div class="space-y-4">
-        <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-sm">
-          <strong>Peringatan Awal:</strong> Jangan mematikan saklar listrik utama kasir saat printer sedang memproses antrian cetak.
-        </div>
-        <h3 class="text-lg font-bold text-slate-900">1. Periksa Fisik Printer & Lampu Indikator (LED)</h3>
-        <ul class="list-disc pl-5 space-y-1 text-slate-600">
-          <li><strong>Lampu Merah (Error) Berkedip</strong>: Kemungkinan kertas struk habis atau penutup printer belum tertutup rapat.</li>
-          <li><strong>Lampu Biru/Hijau Mati</strong>: Periksa kabel adaptor daya di bagian belakang printer apakah terlepas.</li>
-        </ul>
-        <h3 class="text-lg font-bold text-slate-900 mt-6">2. Periksa Posisi Kertas Thermal</h3>
-        <p>Kertas thermal memiliki satu sisi sensitif panas. Pastikan gulungan kertas menghadap ke atas (posisi kertas keluar dari bawah gulungan).</p>
-      </div>
-    `,
-  },
-  {
-    id: 2,
-    title: 'Solusi Laci Uang (Cash Drawer) Tidak Terbuka Otomatis Saat Bayar',
-    menuName: '10. Tools',
-    readTime: '3 menit baca',
-    summary: 'Pengecekan kabel RJ11 dan pengaturan printer driver agar cash drawer memicu tendangan pembuka otomatis.',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">Penyebab Umum & Solusi</h3>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li><strong>Kabel RJ11 Longgar</strong>: Kabel telepon (RJ11) dari laci uang harus terpasang kencang ke port DK.</li>
-          <li><strong>Kunci Manual Terkunci Penuh</strong>: Pastikan lubang kunci laci berada pada posisi vertikal.</li>
-        </ol>
-      </div>
-    `,
-  },
-  {
-    id: 3,
-    title: 'Mengatur IP Address Statis Printer Kitchen (LAN Port 9100)',
-    menuName: '10. Tools',
-    readTime: '5 menit baca',
-    summary: 'Panduan konfigurasi IP Address static pada printer dapur LAN agar cetakan order makanan tidak terputus.',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">Langkah Menetapkan IP Statis via Web Browser</h3>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li>Cetak kertas Self-Test printer dengan menahan tombol FEED sambil menyalakan saklar daya.</li>
-          <li>Buka browser di komputer kasir, ketik IP printer, lalu ubah mode dari DHCP ke Static IP.</li>
-        </ol>
-      </div>
-    `,
-  },
-  {
-    id: 4,
-    title: 'Mengatasi Kertas Struk Macet (Paper Jam) pada Pemotong Otomatis',
-    menuName: '10. Tools',
-    readTime: '3 menit baca',
-    summary: 'Cara mengembalikan pisau auto-cutter yang tersangkut tanpa merusak gear mesin printer.',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">Langkah Menyelamatkan Pisau Auto-Cutter</h3>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li>Matikan saklar printer kasir terlebih dahulu.</li>
-          <li>Buka penutup plastik kecil di bagian depan pemotong (gear cover).</li>
-          <li>Putar roda gerigi (gear) secara perlahan menggunakan jari hingga bilah pisau mundur ke posisi semula.</li>
-        </ol>
-      </div>
-    `,
-  },
-  {
-    id: 5,
-    title: 'Mengalihkan Cetakan Order Dapur Sementara Saat Printer Utama Rusak',
-    menuName: '02. Transaksi',
-    readTime: '4 menit baca',
-    summary: 'Prosedur darurat mengalihkan routing tiket order dapur ke printer kasir saat terjadi gangguan printer kitchen.',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">Fitur Emergency Kitchen Routing</h3>
-        <p class="text-slate-600">Buka menu <strong>10. Tools > Hardware Setup</strong>, ubah target printer sementara ke Printer Kasir.</p>
-      </div>
-    `,
-  },
-]
+function formatArticleContent(html) {
+  if (!html) return ''
+  return html.replace(/http:\/\/(127\.0\.0\.1|localhost):8000\/uploads\//g, '/uploads/')
+}
+
+function cleanSummary(text) {
+  if (!text) return ''
+  return text.replace(/&nbsp;/g, ' ').replace(/<[^>]*>?/gm, '').trim()
+}
+
+// Troubleshooting Articles for "Solusi" Tab loaded dynamically from database
+const troubleshootingArticles = ref([])
+
+async function loadSystemArticles() {
+  try {
+    const res = await apiClient.get('/articles', {
+      params: { kategori_id: systemId.value, limit: 50 }
+    })
+    if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+      troubleshootingArticles.value = res.data.data.map(item => {
+        const primaryMenu = item.menu_systems && item.menu_systems.length > 0 ? item.menu_systems[0] : null
+        const menuName = primaryMenu ? primaryMenu.name : 'Tools'
+        const words = (item.content || '').split(/\s+/).length
+        const minutes = Math.max(2, Math.min(10, Math.ceil(words / 150)))
+
+        return {
+          id: item.id,
+          title: item.title,
+          menuName: menuName,
+          readTime: `${minutes} menit baca`,
+          summary: cleanSummary(item.summary) || 'Panduan pemecahan masalah teknis dan operasional sistem Probus.',
+          content: formatArticleContent(item.content),
+        }
+      })
+    } else {
+      const fallbackRes = await apiClient.get('/articles', { params: { limit: 50 } })
+      if (fallbackRes.data && fallbackRes.data.data && Array.isArray(fallbackRes.data.data)) {
+        troubleshootingArticles.value = fallbackRes.data.data.map(item => {
+          const primaryMenu = item.menu_systems && item.menu_systems.length > 0 ? item.menu_systems[0] : null
+          const menuName = primaryMenu ? primaryMenu.name : 'Tools'
+          const words = (item.content || '').split(/\s+/).length
+          const minutes = Math.max(2, Math.min(10, Math.ceil(words / 150)))
+
+          return {
+            id: item.id,
+            title: item.title,
+            menuName: menuName,
+            readTime: `${minutes} menit baca`,
+            summary: cleanSummary(item.summary) || 'Panduan pemecahan masalah teknis dan operasional sistem Probus.',
+            content: formatArticleContent(item.content),
+          }
+        })
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load system troubleshooting articles:', err)
+  }
+}
+
+onMounted(() => {
+  loadSystemArticles()
+})
 
 // Filtered lists
 const filteredModuleCards = computed(() => {
@@ -369,8 +346,8 @@ const filteredModuleCards = computed(() => {
 
 const filteredTroubleshooting = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return troubleshootingArticles
-  return troubleshootingArticles.filter(a =>
+  if (!q) return troubleshootingArticles.value
+  return troubleshootingArticles.value.filter(a =>
     a.title.toLowerCase().includes(q) || a.summary.toLowerCase().includes(q)
   )
 })
@@ -532,7 +509,7 @@ function goBackHome() {
                 activeTab === 'solusi' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
               ]"
             >
-              12 Artikel
+              {{ troubleshootingArticles.length }} Artikel
             </span>
           </button>
         </div>
@@ -737,7 +714,7 @@ function goBackHome() {
           </h2>
 
           <div
-            class="text-slate-700 text-sm sm:text-base leading-relaxed pt-4 border-t border-slate-100"
+            class="manual-book-content text-slate-700 text-sm sm:text-base leading-relaxed pt-4 border-t border-slate-100"
             v-html="activeReaderItem.content"
           ></div>
         </div>
@@ -771,3 +748,63 @@ function goBackHome() {
     </div>
   </div>
 </template>
+
+<style scoped>
+:deep(.manual-book-content table) {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 1.25rem 0 !important;
+}
+
+:deep(.manual-book-content th) {
+  background-color: #0b1a36 !important;
+  color: #ffffff !important;
+  padding: 10px 14px !important;
+  border: 1px solid #334155 !important;
+  font-weight: 700 !important;
+  font-size: 0.875rem !important;
+}
+
+:deep(.manual-book-content td) {
+  padding: 10px 14px !important;
+  border: 1px solid #cbd5e1 !important;
+  font-size: 0.875rem !important;
+  color: #334155 !important;
+  line-height: 1.5 !important;
+}
+
+:deep(.manual-book-content h2),
+:deep(.manual-book-content h3) {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+:deep(.manual-book-content ol),
+:deep(.manual-book-content ul) {
+  padding-left: 1.5rem !important;
+  margin-bottom: 1rem !important;
+}
+
+:deep(.manual-book-content li) {
+  margin-bottom: 0.5rem !important;
+  line-height: 1.625 !important;
+}
+
+:deep(.manual-book-content p) {
+  font-size: 0.9375rem !important;
+  color: #475569 !important;
+  line-height: 1.625 !important;
+  margin-bottom: 0.75rem !important;
+}
+
+:deep(.manual-book-content img) {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 8px !important;
+  margin: 1rem 0 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+</style>
