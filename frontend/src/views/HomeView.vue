@@ -9,8 +9,6 @@ import {
   BarChart3,
   Package,
   ArrowRight,
-  Lightbulb,
-  MessageSquare,
   MonitorCheck,
   ChevronDown,
   BookOpen,
@@ -374,35 +372,9 @@ function clearSearch() {
           </div>
         </div>
       </div>
-
-      <!-- 5. Bottom Help / Notification Banner -->
-      <div class="mt-12 bg-sky-50/70 border border-sky-200/90 rounded-2xl p-6 sm:p-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 shadow-xs">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0 shadow-2xs border border-sky-200/70">
-            <Lightbulb class="w-6 h-6 stroke-[2]" />
-          </div>
-          <div>
-            <h4 class="text-base sm:text-lg text-slate-900 font-bold">
-              Tidak menemukan sistem yang Anda cari?
-            </h4>
-            <p class="text-xs sm:text-sm text-slate-600 mt-0.5">
-              Konsultasikan langsung kendala Anda dengan tim support teknis Probus untuk panduan sistem lainnya.
-            </p>
-          </div>
-        </div>
-
-        <a
-          href="https://wa.me/62811389211"
-          target="_blank"
-          class="shrink-0 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs sm:text-sm px-5 py-3 rounded-xl flex items-center gap-2.5 shadow-xs transition-all hover:shadow-md"
-        >
-          <MessageSquare class="w-4 h-4 fill-white/20" />
-          <span>Hubungi WhatsApp Support</span>
-        </a>
-      </div>
     </main>
 
-    <!-- 6. Footer -->
+    <!-- 5. Footer -->
     <footer class="border-t border-slate-200 bg-white py-6 px-6 sm:px-12 lg:px-20 xl:px-28 text-xs sm:text-sm text-slate-500">
       <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
         <p class="font-normal">© 2026 CV Mitra Solusi Mandiri</p>
