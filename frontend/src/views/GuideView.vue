@@ -46,15 +46,15 @@ const activeManualIndex = ref(0)
 
 const isLoading = ref(false)
 const availableSystems = ref([
-  { id: 2, name: 'PRESTO', title: 'PRESTO Resto POS (10 Modul)', shortName: 'PRESTO Resto POS' },
-  { id: 1, name: 'PHIS', title: 'Probus Hotel PMS (10 Modul)', shortName: 'Probus Hotel PMS' },
-  { id: 8, name: 'PPE', title: 'PPE 2.0 Management (10 Modul)', shortName: 'PPE 2.0 Management' },
-  { id: 3, name: 'PPOS', title: 'PPOS Point of Sales (10 Modul)', shortName: 'PPOS Point of Sales' },
-  { id: 4, name: 'SELF ORDER', title: 'Probus Self Order (10 Modul)', shortName: 'Probus Self Order' },
-  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO Online & Purchasing (10 Modul)', shortName: 'PR-PO Online' },
-  { id: 6, name: 'ORDER TAKER', title: 'Order Taker Mobile (10 Modul)', shortName: 'Order Taker Mobile' },
-  { id: 7, name: 'VRESTROPICAL', title: 'Vrestropical POS (10 Modul)', shortName: 'Vrestropical POS' },
-  { id: 9, name: 'BARONG POS', title: 'Barong POS Cloud (8 Modul)', shortName: 'Barong POS Cloud' },
+  { id: 2, name: 'PRESTO', title: 'PRESTO Resto POS', shortName: 'PRESTO Resto POS' },
+  { id: 1, name: 'PHIS', title: 'Probus Hotel PMS', shortName: 'Probus Hotel PMS' },
+  { id: 8, name: 'PPE', title: 'PPE 2.0 Management', shortName: 'PPE 2.0 Management' },
+  { id: 3, name: 'PPOS', title: 'PPOS Point of Sales', shortName: 'PPOS Point of Sales' },
+  { id: 4, name: 'SELF ORDER', title: 'Probus Self Order', shortName: 'Probus Self Order' },
+  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO Online', shortName: 'PR-PO Online' },
+  { id: 6, name: 'ORDER TAKER', title: 'Order Taker Mobile', shortName: 'Order Taker Mobile' },
+  { id: 7, name: 'VRESTROPICAL', title: 'Vrestropical POS', shortName: 'Vrestropical POS' },
+  { id: 9, name: 'BARONG POS', title: 'Barong POS Cloud', shortName: 'Barong POS Cloud' },
 ])
 
 const currentSystem = computed(() => {
@@ -91,7 +91,7 @@ async function loadSystemData() {
       availableSystems.value = catRes.data.data.map(cat => ({
         id: cat.id,
         name: cat.name,
-        title: `${cat.name} (${cat.total_menus || 10} Modul)`,
+        title: cat.name === 'PRESTO' ? 'PRESTO Resto POS' : (cat.name === 'PHIS' ? 'Probus Hotel PMS' : `${cat.name}`),
         shortName: cat.name === 'PRESTO' ? 'PRESTO Resto POS' : (cat.name === 'PHIS' ? 'Probus Hotel PMS' : `${cat.name} System`),
       }))
     }
@@ -111,7 +111,7 @@ async function loadSystemData() {
 
     // 4. Build module list combining database `menu_systems` and preloaded `manual_books`
     if (menusFromDb.length > 0) {
-      modulesList.value = menusFromDb.map((menu, idx) => {
+      const allModules = menusFromDb.map((menu, idx) => {
         const orderNum = menu.order || (idx + 1)
         const meta = defaultModuleMeta[orderNum] || {
           code: String(orderNum).padStart(2, '0'),
@@ -138,29 +138,17 @@ async function loadSystemData() {
           hasManualBook: linkedManuals.length > 0,
         }
       })
+
+      // Hanya tampilkan modul yang sudah memiliki buku panduan (published)
+      modulesList.value = allModules.filter(m => m.hasManualBook)
     } else {
-      // Fallback to default 10 PRESTO modules if database returns empty
-      modulesList.value = Object.keys(defaultModuleMeta).map(key => {
-        const num = Number(key)
-        const meta = defaultModuleMeta[num]
-        return {
-          id: num,
-          order: num,
-          code: meta.code,
-          name: meta.defaultTitle.replace(/^\d+\.\s*/, ''),
-          title: meta.defaultTitle,
-          desc: meta.lead,
-          icon: meta.icon,
-          manualBooks: [],
-          hasManualBook: false,
-        }
-      })
+      modulesList.value = []
     }
 
     // Ensure active module is valid
     const exists = modulesList.value.some(m => m.order === selectedModuleOrder.value || m.id === selectedModuleOrder.value)
     if (!exists && modulesList.value.length > 0) {
-      selectedModuleOrder.value = modulesList.value[0].order || 1
+      selectedModuleOrder.value = modulesList.value[0].order || modulesList.value[0].id
     }
   } catch (err) {
     console.error('Failed to load system manual book data:', err)
@@ -171,14 +159,8 @@ async function loadSystemData() {
 
 // Current active module
 const currentModule = computed(() => {
-  return modulesList.value.find(m => m.order === selectedModuleOrder.value || m.id === selectedModuleOrder.value) || modulesList.value[0] || {
-    id: 1,
-    order: 1,
-    code: '01',
-    title: '01. Setup Master',
-    desc: 'Panduan modul sistem.',
-    manualBooks: [],
-  }
+  if (modulesList.value.length === 0) return null
+  return modulesList.value.find(m => m.order === selectedModuleOrder.value || m.id === selectedModuleOrder.value) || modulesList.value[0]
 })
 
 // Current active manual book (if multiple exist for this module)
@@ -192,6 +174,7 @@ const currentManualBook = computed(() => {
 
 // Navigation indices
 const currentIndex = computed(() => {
+  if (!currentModule.value) return -1
   return modulesList.value.findIndex(m => m.id === currentModule.value.id)
 })
 
@@ -365,15 +348,15 @@ watch(
               </span>
             </div>
 
-            <!-- List of Modules from Database `menu_systems` -->
-            <div class="space-y-2.5 max-h-[calc(100vh-220px)] overflow-y-auto pr-1">
+            <!-- List of Published Modules from Database -->
+            <div v-if="modulesList.length > 0" class="space-y-2.5 max-h-[calc(100vh-220px)] overflow-y-auto pr-1">
               <div
                 v-for="mod in modulesList"
                 :key="mod.id"
                 @click="selectModule(mod)"
                 :class="[
                   'rounded-xl p-4 border transition-all duration-150 cursor-pointer text-left',
-                  currentModule.id === mod.id
+                  currentModule?.id === mod.id
                     ? 'bg-white border-2 border-sky-500 ring-2 ring-sky-100 shadow-sm'
                     : 'bg-white border-slate-200/90 hover:border-slate-300 hover:shadow-2xs'
                 ]"
@@ -382,36 +365,31 @@ watch(
                   <h3
                     :class="[
                       'text-sm font-bold tracking-tight',
-                      currentModule.id === mod.id ? 'text-sky-700 font-extrabold' : 'text-slate-900'
+                      currentModule?.id === mod.id ? 'text-sky-700 font-extrabold' : 'text-slate-900'
                     ]"
                   >
                     {{ mod.title }}
                   </h3>
-
-                  <!-- Indicator: Published Manual in DB -->
-                  <span
-                    v-if="mod.hasManualBook"
-                    title="Buku panduan resmi telah dipublish"
-                    class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"
-                  ></span>
                 </div>
 
                 <div class="flex items-center justify-between text-[11px] mt-1 font-medium">
                   <span
-                    :class="currentModule.id === mod.id ? 'text-sky-600 font-semibold' : 'text-slate-400'"
+                    :class="currentModule?.id === mod.id ? 'text-sky-600 font-semibold' : 'text-slate-400'"
                   >
-                    <span v-if="currentModule.id === mod.id">Sedang Dibaca • Aktif</span>
-                    <span v-else-if="mod.hasManualBook">
+                    <span v-if="currentModule?.id === mod.id">Sedang Dibaca</span>
+                    <span v-else>
                       {{ mod.manualBooks.length > 1 ? `${mod.manualBooks.length} Bab Panduan` : 'Tersedia Panduan' }}
                     </span>
-                    <span v-else>Panduan Modul</span>
-                  </span>
-
-                  <span v-if="mod.hasManualBook" class="text-[10px] text-emerald-600 font-bold px-1.5 py-0.5 rounded bg-emerald-50">
-                    Published
                   </span>
                 </div>
               </div>
+            </div>
+
+            <!-- Empty State when no modules are published -->
+            <div v-else class="text-center py-8 px-4 bg-white/60 rounded-xl border border-dashed border-slate-200">
+              <BookOpen class="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p class="text-xs font-semibold text-slate-600">Belum Ada Modul Terbit</p>
+              <p class="text-[11px] text-slate-400 mt-1">Panduan modul untuk sistem ini sedang dalam proses penyusunan.</p>
             </div>
           </div>
         </aside>
@@ -419,132 +397,153 @@ watch(
         <!-- RIGHT COLUMN: Detailed Reader Content Canvas -->
         <article class="flex-1 min-w-0 bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-10 lg:p-12 shadow-xs">
           
-          <!-- Category Breadcrumb / Subtitle (Always Dynamically Matches Active System) -->
-          <div class="text-xs font-bold text-sky-600 uppercase tracking-wider flex items-center gap-2">
-            <span>{{ currentSystem.shortName }}</span>
-            <span class="text-slate-300">•</span>
-            <span>Modul {{ currentModule.code }} dari {{ String(modulesList.length).padStart(2, '0') }}</span>
-          </div>
+          <div v-if="currentModule">
+            <!-- Category Breadcrumb / Subtitle (Always Dynamically Matches Active System) -->
+            <div class="text-xs font-bold text-sky-600 uppercase tracking-wider flex items-center gap-2">
+              <span>{{ currentSystem.shortName }}</span>
+              <span class="text-slate-300">•</span>
+              <span>Modul {{ currentModule.code }} dari {{ String(modulesList.length).padStart(2, '0') }}</span>
+            </div>
 
-          <!-- Module Main Title -->
-          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 tracking-tight">
-            {{ currentManualBook ? currentManualBook.title : currentModule.title }}
-          </h2>
+            <!-- Module Main Title -->
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 tracking-tight">
+              {{ currentManualBook ? currentManualBook.title : currentModule.title }}
+            </h2>
 
-          <!-- Module Lead Text / Description -->
-          <p class="mt-4 text-slate-600 text-sm sm:text-base leading-relaxed">
-            {{ currentManualBook ? (currentManualBook.description || currentModule.desc) : currentModule.desc }}
-          </p>
+            <!-- Module Lead Text / Description -->
+            <p class="mt-4 text-slate-600 text-sm sm:text-base leading-relaxed">
+              {{ currentManualBook ? (currentManualBook.description || currentModule.desc) : currentModule.desc }}
+            </p>
 
-          <!-- Chapter / Section Tabs Switcher (If multiple manual books exist for this menu) -->
-          <div
-            v-if="currentModule.manualBooks && currentModule.manualBooks.length > 1"
-            class="mt-6 flex items-center gap-2 p-1.5 bg-slate-50 border border-slate-200 rounded-xl overflow-x-auto"
-          >
-            <button
-              v-for="(mb, mbIdx) in currentModule.manualBooks"
-              :key="mb.id"
-              @click="activeManualIndex = mbIdx"
-              :class="[
-                'px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5',
-                activeManualIndex === mbIdx
-                  ? 'bg-sky-600 text-white shadow-xs'
-                  : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200/70'
-              ]"
-            >
-              <FileText class="w-3.5 h-3.5" />
-              <span>Bab {{ mbIdx + 1 }}: {{ mb.title }}</span>
-            </button>
-          </div>
-
-          <hr class="my-8 border-slate-100" />
-
-          <!-- CASE 1: Real Published Manual Book Content from Database `manual_books` -->
-          <div v-if="currentManualBook && currentManualBook.content" class="manual-book-content">
-            <!-- Render HTML Content directly from `dbprobuscs.manual_books.content` -->
+            <!-- Chapter / Section Tabs Switcher (If multiple manual books exist for this menu) -->
             <div
-              class="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-relaxed prose-table:w-full prose-table:border-collapse prose-th:bg-slate-100 prose-th:p-3 prose-td:p-3 prose-img:rounded-xl prose-img:shadow-xs prose-img:border prose-img:border-slate-200"
-              v-html="currentManualBook.content"
-            ></div>
-          </div>
+              v-if="currentModule.manualBooks && currentModule.manualBooks.length > 1"
+              class="mt-6 flex items-center gap-2 p-1.5 bg-slate-50 border border-slate-200 rounded-xl overflow-x-auto"
+            >
+              <button
+                v-for="(mb, mbIdx) in currentModule.manualBooks"
+                :key="mb.id"
+                @click="activeManualIndex = mbIdx"
+                :class="[
+                  'px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5',
+                  activeManualIndex === mbIdx
+                    ? 'bg-sky-600 text-white shadow-xs'
+                    : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200/70'
+                ]"
+              >
+                <FileText class="w-3.5 h-3.5" />
+                <span>Bab {{ mbIdx + 1 }}: {{ mb.title }}</span>
+              </button>
+            </div>
 
-          <!-- CASE 2: Draft / Not Yet Published in Database (Helpful Overview & Contact Support) -->
-          <div v-else class="space-y-6">
-            <!-- Notice Box -->
-            <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-5 sm:p-6 flex items-start gap-4 text-amber-900">
-              <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                <HelpCircle class="w-5 h-5 stroke-[2]" />
+            <hr class="my-8 border-slate-100" />
+
+            <!-- CASE 1: Real Published Manual Book Content from Database `manual_books` -->
+            <div v-if="currentManualBook && currentManualBook.content" class="manual-book-content">
+              <!-- Render HTML Content directly from `dbprobuscs.manual_books.content` -->
+              <div
+                class="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-relaxed prose-table:w-full prose-table:border-collapse prose-th:bg-slate-100 prose-th:p-3 prose-td:p-3 prose-img:rounded-xl prose-img:shadow-xs prose-img:border prose-img:border-slate-200"
+                v-html="currentManualBook.content"
+              ></div>
+            </div>
+
+            <!-- CASE 2: Draft / Not Yet Published in Database (Helpful Overview & Contact Support) -->
+            <div v-else class="space-y-6">
+              <!-- Notice Box -->
+              <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-5 sm:p-6 flex items-start gap-4 text-amber-900">
+                <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                  <HelpCircle class="w-5 h-5 stroke-[2]" />
+                </div>
+                <div class="flex-1">
+                  <h4 class="text-sm font-bold text-amber-950">
+                    Dokumen Panduan Modul Sedang Disusun
+                  </h4>
+                  <p class="text-xs sm:text-sm text-amber-800/90 mt-1 leading-relaxed">
+                    Buku panduan interaktif resmi untuk modul <strong>{{ currentModule.name }}</strong> pada sistem <strong>{{ currentSystem.name }}</strong> sedang dalam proses kurasi dan publikasi oleh tim implementator Probus.
+                  </p>
+                  <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <a
+                      href="https://wa.me/62811389211"
+                      target="_blank"
+                      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-xs transition-colors"
+                    >
+                      <MessageSquare class="w-3.5 h-3.5 fill-white/20" />
+                      <span>Tanyakan Penggunaan ke WhatsApp Support</span>
+                    </a>
+                    <button
+                      @click="goBackToSystemDetail"
+                      class="px-4 py-2 rounded-lg bg-white hover:bg-amber-100/50 text-amber-900 font-semibold text-xs border border-amber-300 transition-colors"
+                    >
+                      Kembali ke Daftar Modul
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div class="flex-1">
-                <h4 class="text-sm font-bold text-amber-950">
-                  Dokumen Panduan Modul Sedang Disusun
-                </h4>
-                <p class="text-xs sm:text-sm text-amber-800/90 mt-1 leading-relaxed">
-                  Buku panduan interaktif resmi untuk modul <strong>{{ currentModule.name }}</strong> pada sistem <strong>{{ currentSystem.name }}</strong> sedang dalam proses kurasi dan publikasi oleh tim implementator Probus.
+
+              <!-- Standard Operational Procedure Outline -->
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-6">
+                <h3 class="text-base font-bold text-slate-900 mb-2">
+                  Ringkasan Fungsi & Prosedur Modul
+                </h3>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                  {{ currentModule.desc }}
                 </p>
-                <div class="mt-4 flex flex-wrap items-center gap-3">
-                  <a
-                    href="https://wa.me/62811389211"
-                    target="_blank"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-xs transition-colors"
-                  >
-                    <MessageSquare class="w-3.5 h-3.5 fill-white/20" />
-                    <span>Tanyakan Penggunaan ke WhatsApp Support</span>
-                  </a>
-                  <button
-                    @click="goBackToSystemDetail"
-                    class="px-4 py-2 rounded-lg bg-white hover:bg-amber-100/50 text-amber-900 font-semibold text-xs border border-amber-300 transition-colors"
-                  >
-                    Kembali ke Daftar Modul
-                  </button>
+                <div class="mt-4 p-4 bg-white rounded-lg border border-slate-200 text-xs text-slate-500 space-y-2">
+                  <div class="flex items-center gap-2">
+                    <CheckCircle2 class="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Pastikan akun Anda memiliki hak akses (role permission) untuk membuka modul ini.</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <CheckCircle2 class="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Untuk bantuan konfigurasi awal, hubungi tim implementator resmi Probus System.</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Standard Operational Procedure Outline -->
-            <div class="bg-slate-50 border border-slate-200 rounded-xl p-6">
-              <h3 class="text-base font-bold text-slate-900 mb-2">
-                Ringkasan Fungsi & Prosedur Modul
-              </h3>
-              <p class="text-sm text-slate-600 leading-relaxed">
-                {{ currentModule.desc }}
-              </p>
-              <div class="mt-4 p-4 bg-white rounded-lg border border-slate-200 text-xs text-slate-500 space-y-2">
-                <div class="flex items-center gap-2">
-                  <CheckCircle2 class="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Pastikan akun Anda memiliki hak akses (role permission) untuk membuka modul ini.</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <CheckCircle2 class="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Untuk bantuan konfigurasi awal, hubungi tim implementator resmi Probus System.</span>
-                </div>
-              </div>
+            <!-- Bottom Navigation Bar: "← Modul Sebelumnya" & "Modul Selanjutnya →" -->
+            <div class="mt-12 pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <!-- Previous Button -->
+              <button
+                v-if="prevModule"
+                @click="goToPrev"
+                class="w-full sm:w-auto inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 px-4 py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                <ArrowLeft class="w-4 h-4 text-slate-400" />
+                <span>Modul Sebelumnya: {{ prevModule.title }}</span>
+              </button>
+              <div v-else class="hidden sm:block"></div>
+
+              <!-- Next Button -->
+              <button
+                v-if="nextModule"
+                @click="goToNext"
+                class="w-full sm:w-auto inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-sky-600 hover:text-sky-700 px-4 py-2.5 rounded-lg border border-sky-200 bg-sky-50/60 hover:bg-sky-50 transition-colors cursor-pointer shadow-2xs"
+              >
+                <span>Modul Selanjutnya: {{ nextModule.title }}</span>
+                <ArrowRight class="w-4 h-4 text-sky-600" />
+              </button>
+              <div v-else class="hidden sm:block"></div>
             </div>
           </div>
 
-          <!-- Bottom Navigation Bar: "← Modul Sebelumnya" & "Modul Selanjutnya →" -->
-          <div class="mt-12 pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <!-- Previous Button -->
-            <button
-              v-if="prevModule"
-              @click="goToPrev"
-              class="w-full sm:w-auto inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 px-4 py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              <ArrowLeft class="w-4 h-4 text-slate-400" />
-              <span>Modul Sebelumnya: {{ prevModule.title }}</span>
-            </button>
-            <div v-else class="hidden sm:block"></div>
-
-            <!-- Next Button -->
-            <button
-              v-if="nextModule"
-              @click="goToNext"
-              class="w-full sm:w-auto inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-sky-600 hover:text-sky-700 px-4 py-2.5 rounded-lg border border-sky-200 bg-sky-50/60 hover:bg-sky-50 transition-colors cursor-pointer shadow-2xs"
-            >
-              <span>Modul Selanjutnya: {{ nextModule.title }}</span>
-              <ArrowRight class="w-4 h-4 text-sky-600" />
-            </button>
-            <div v-else class="hidden sm:block"></div>
+          <!-- Empty State if system has no published modules -->
+          <div v-else class="text-center py-16 px-4">
+            <div class="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4">
+              <BookOpen class="w-8 h-8 stroke-[1.5]" />
+            </div>
+            <h3 class="text-lg font-bold text-slate-900">Belum Ada Panduan Terbit</h3>
+            <p class="text-sm text-slate-500 max-w-md mx-auto mt-2 leading-relaxed">
+              Buku panduan resmi untuk sistem <strong>{{ currentSystem.name }}</strong> belum dipublikasikan atau sedang dalam proses penyusunan.
+            </p>
+            <div class="mt-6 flex items-center justify-center gap-3">
+              <button
+                @click="goBackToSystemDetail"
+                class="px-4 py-2 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 font-semibold text-xs border border-sky-100 transition-colors"
+              >
+                Kembali ke Ringkasan Sistem
+              </button>
+            </div>
           </div>
         </article>
       </div>
@@ -553,13 +552,7 @@ watch(
     <!-- 5. Footer -->
     <footer class="border-t border-slate-200 bg-white py-6 px-6 sm:px-12 lg:px-20 xl:px-28 text-xs sm:text-sm text-slate-500 mt-auto">
       <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-        <p class="font-normal">© 2026 PT Probus System Indonesia</p>
-        <p>
-          Masih terkendala? Hubungi WhatsApp Support:
-          <a href="https://wa.me/62811389211" target="_blank" class="font-semibold text-slate-700 hover:text-sky-600 transition-colors">
-            +62 811-389-211
-          </a>
-        </p>
+        <p class="font-normal">© 2026 CV Mitra Solusi Mandiri</p>
       </div>
     </footer>
   </div>

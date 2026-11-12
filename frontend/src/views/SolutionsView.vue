@@ -379,13 +379,7 @@ function goBackHome() {
     <!-- 5. Footer -->
     <footer class="border-t border-slate-200 bg-white py-6 px-6 sm:px-12 lg:px-20 xl:px-28 text-xs sm:text-sm text-slate-500">
       <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-        <p>© 2026 PT Probus System Indonesia • Bank Solusi Resmi</p>
-        <p>
-          Masih terkendala? Hubungi WhatsApp Support:
-          <a href="https://wa.me/62811389211" target="_blank" class="font-semibold text-slate-700 hover:text-sky-600 transition-colors">
-            +62 811-389-211
-          </a>
-        </p>
+        <p>© 2026 CV Mitra Solusi Mandiri • Bank Solusi Resmi</p>
       </div>
     </footer>
 
