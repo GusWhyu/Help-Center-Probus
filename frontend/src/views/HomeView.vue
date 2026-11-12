@@ -209,10 +209,7 @@ function clearSearch() {
           <router-link to="/solutions" class="text-slate-600 hover:text-slate-950 transition-colors">
             Bank Solusi
           </router-link>
-          <a href="#" class="text-slate-600 hover:text-slate-950 transition-colors">
-            Status Layanan
-          </a>
-          <a href="#" class="text-slate-600 hover:text-slate-950 transition-colors">
+          <a href="https://wa.me/6281910875514" target="_blank" class="text-slate-600 hover:text-slate-950 transition-colors">
             Hubungi Implementator
           </a>
         </div>
