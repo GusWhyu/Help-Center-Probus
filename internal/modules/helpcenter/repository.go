@@ -78,7 +78,9 @@ func (r *repository) FindArticles(ctx context.Context, page, limit int, kategori
 		limit = 10
 	}
 
-	query := r.db.WithContext(ctx).Model(&Article{})
+	query := r.db.WithContext(ctx).Model(&Article{}).
+		Where("status = ?", "published").
+		Where("visibility = ?", "publik")
 
 	if menuID > 0 {
 		query = query.Joins("JOIN menu_has_articles ON menu_has_articles.article_id = articles.id").
@@ -113,6 +115,8 @@ func (r *repository) FindArticles(ctx context.Context, page, limit int, kategori
 func (r *repository) FindArticleByID(ctx context.Context, id uint) (*Article, error) {
 	var article Article
 	err := r.db.WithContext(ctx).
+		Where("status = ?", "published").
+		Where("visibility = ?", "publik").
 		Preload("MenuSystems").
 		First(&article, id).Error
 	if err != nil {
@@ -174,6 +178,8 @@ func (r *repository) SearchAll(ctx context.Context, query string, limit int) ([]
 	// 1. Search Articles
 	var articles []Article
 	err := r.db.WithContext(ctx).Model(&Article{}).
+		Where("status = ?", "published").
+		Where("visibility = ?", "publik").
 		Where("(LOWER(title) LIKE ? OR LOWER(summary) LIKE ?)", likeTerm, likeTerm).
 		Order("id ASC").
 		Limit(limit).

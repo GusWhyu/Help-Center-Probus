@@ -291,7 +291,9 @@ async function loadSystemArticles() {
       params: { kategori_id: systemId.value, limit: 50 }
     })
     if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
-      troubleshootingArticles.value = res.data.data.map(item => {
+      troubleshootingArticles.value = res.data.data
+        .filter(item => item.status === 'published' && item.visibility === 'publik')
+        .map(item => {
         const primaryMenu = item.menu_systems && item.menu_systems.length > 0 ? item.menu_systems[0] : null
         const menuName = primaryMenu ? primaryMenu.name : 'Tools'
         const words = (item.content || '').split(/\s+/).length
@@ -309,7 +311,9 @@ async function loadSystemArticles() {
     } else {
       const fallbackRes = await apiClient.get('/articles', { params: { limit: 50 } })
       if (fallbackRes.data && fallbackRes.data.data && Array.isArray(fallbackRes.data.data)) {
-        troubleshootingArticles.value = fallbackRes.data.data.map(item => {
+        troubleshootingArticles.value = fallbackRes.data.data
+          .filter(item => item.status === 'published' && item.visibility === 'publik')
+          .map(item => {
           const primaryMenu = item.menu_systems && item.menu_systems.length > 0 ? item.menu_systems[0] : null
           const menuName = primaryMenu ? primaryMenu.name : 'Tools'
           const words = (item.content || '').split(/\s+/).length

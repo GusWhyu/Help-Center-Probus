@@ -54,13 +54,15 @@ function cleanSummary(text) {
 // Articles list from database
 const articles = ref([])
 
-// Load articles from database
+// Load articles from database (only published & public articles)
 async function loadArticles() {
   isLoading.value = true
   try {
     const res = await apiClient.get('/articles', { params: { limit: 100 } })
     if (res.data && res.data.data && Array.isArray(res.data.data)) {
-      articles.value = res.data.data.map(item => {
+      articles.value = res.data.data
+        .filter(item => item.status === 'published' && item.visibility === 'publik')
+        .map(item => {
         const primaryMenu = item.menu_systems && item.menu_systems.length > 0 ? item.menu_systems[0] : null
         const katId = primaryMenu ? primaryMenu.kategori_id : 2
         const sysCode = systemNameMap[katId] || 'PRESTO'
