@@ -584,34 +584,26 @@ watch(
             {{ currentManualBook ? currentManualBook.title : currentModule.title }}
           </h2>
 
-          <!-- Chapter / Section Tabs Switcher (If multiple manual books exist for this menu) -->
+          <!-- Active Chapter Indicator (Only show the active chapter, unopened white button removed) -->
           <div
-            v-if="currentModule.manualBooks && currentModule.manualBooks.length > 1"
-            class="mt-6 flex items-center gap-2 p-1.5 bg-slate-50 border border-slate-200 rounded-xl overflow-x-auto"
+            v-if="currentModule.manualBooks && currentModule.manualBooks.length > 1 && currentManualBook"
+            class="mt-2.5 flex items-center"
           >
-            <button
-              v-for="(mb, mbIdx) in currentModule.manualBooks"
-              :key="mb.id"
-              @click="activeManualIndex = mbIdx"
-              :class="[
-                'px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5',
-                activeManualIndex === mbIdx
-                  ? 'bg-sky-600 text-white shadow-xs'
-                  : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200/70'
-              ]"
+            <span
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold bg-sky-600 text-white shadow-2xs"
             >
               <FileText class="w-3.5 h-3.5" />
-              <span>Bab {{ mbIdx + 1 }}: {{ mb.title }}</span>
-            </button>
+              <span>Bab {{ activeManualIndex + 1 }}: {{ currentManualBook.title }}</span>
+            </span>
           </div>
 
-          <hr class="my-8 border-slate-100" />
+          <hr class="mt-2.5 mb-3 border-slate-100" />
 
           <!-- CASE 1: Real Published Manual Book Content from Database `manual_books` -->
           <div v-if="currentManualBook && currentManualBook.content" class="manual-book-content">
             <!-- Render HTML Content directly from `dbprobuscs.manual_books.content` -->
             <div
-              class="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-relaxed prose-table:w-full prose-table:border-collapse prose-th:bg-slate-100 prose-th:p-3 prose-td:p-3 prose-img:rounded-xl prose-img:shadow-xs prose-img:border prose-img:border-slate-200"
+              class="prose prose-slate max-w-none [&>*:first-child]:mt-0 prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-relaxed prose-table:w-full prose-table:border-collapse prose-th:bg-slate-100 prose-th:p-3 prose-td:p-3 prose-img:rounded-xl prose-img:shadow-xs prose-img:border prose-img:border-slate-200"
               v-html="currentManualBook.content"
             ></div>
           </div>
@@ -708,6 +700,13 @@ watch(
 </template>
 
 <style scoped>
+:deep(.manual-book-content > .prose > :first-child),
+:deep(.manual-book-content .prose > :first-child),
+:deep(.manual-book-content > :first-child) {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
 /* Ensure database-rendered HTML tables and images look clean */
 :deep(.manual-book-content table) {
   width: 100% !important;
