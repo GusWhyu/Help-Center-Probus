@@ -11,13 +11,15 @@ import {
   Loader2,
   ChevronRight,
   Share2,
-  Printer
+  Printer,
+  Menu
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { slugify, findArticleByParam } from '../utils/slug'
 
 const route = useRoute()
 const router = useRouter()
+const mobileMenuOpen = ref(false)
 
 const articleParam = computed(() => route.params.id)
 const article = ref(null)
@@ -161,8 +163,9 @@ watch(
 <template>
   <div class="min-h-screen bg-slate-50/50 text-slate-800 font-sans flex flex-col antialiased">
     <!-- 1. Utility Top Bar -->
-    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-6 sm:px-12 lg:px-20 xl:px-28">
-      <div class="max-w-[1600px] mx-auto flex items-center justify-end">
+    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto flex items-center justify-between sm:justify-end">
+        <span class="text-slate-400 text-[11px] sm:hidden">Pusat Bantuan Resmi</span>
         <div class="flex items-center gap-2 text-slate-600">
           <span class="text-slate-400 hidden sm:inline">Butuh bantuan cepat?</span>
           <a
@@ -177,32 +180,33 @@ watch(
     </header>
 
     <!-- 2. Main Navigation Bar with "Kembali ke Bank Solusi" Button -->
-    <nav class="border-b border-slate-200/80 bg-white/95 backdrop-blur-sm py-3.5 px-6 sm:px-12 lg:px-20 xl:px-28 sticky top-0 z-40 shadow-xs">
-      <div class="max-w-[1600px] mx-auto flex items-center justify-between">
+    <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-8 sticky top-0 z-40 shadow-xs">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
         <!-- Logo & Back Button -->
-        <div class="flex items-center gap-3.5">
-          <div class="flex items-center gap-2.5 cursor-pointer" @click="router.push('/')">
+        <div class="flex items-center gap-2.5 sm:gap-3.5">
+          <div class="flex items-center cursor-pointer" @click="router.push('/')">
             <img
               src="/probus-logo.png"
               alt="Probus System"
-              class="h-8 sm:h-9 w-auto object-contain hover:opacity-90 transition-opacity"
+              class="h-7 sm:h-9 w-auto object-contain hover:opacity-90 transition-opacity"
             />
           </div>
-          <span class="text-slate-300 font-light">|</span>
-          <span class="text-slate-500 text-sm font-medium hidden sm:inline">Pusat Bantuan Publik</span>
+          <span class="text-slate-300 font-light hidden sm:inline">|</span>
+          <span class="text-slate-500 text-sm font-medium hidden md:inline">Pusat Bantuan Publik</span>
 
-          <!-- Pill Button: "← Kembali ke Bank Solusi" (matches screenshot) -->
+          <!-- Pill Button: "← Kembali ke Bank Solusi" -->
           <button
             @click="router.push('/solutions')"
-            class="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold text-xs border border-sky-100 transition-colors shadow-2xs cursor-pointer"
+            class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold text-xs border border-sky-100 transition-colors shadow-2xs cursor-pointer"
           >
             <ArrowLeft class="w-3.5 h-3.5" />
-            <span>Kembali ke Bank Solusi</span>
+            <span class="hidden sm:inline">Kembali ke Bank Solusi</span>
+            <span class="sm:hidden">Bank Solusi</span>
           </button>
         </div>
 
-        <!-- Navigation Links -->
-        <div class="hidden lg:flex items-center gap-8 text-sm font-medium">
+        <!-- Desktop Navigation Links -->
+        <div class="hidden md:flex items-center gap-8 text-sm font-medium">
           <router-link to="/" class="text-slate-600 hover:text-slate-950 transition-colors">
             Panduan Sistem
           </router-link>
@@ -216,6 +220,56 @@ watch(
           >
             Hubungi Implementator
           </router-link>
+        </div>
+
+        <!-- Mobile Hamburger Button -->
+        <div class="flex md:hidden items-center">
+          <button
+            @click="mobileMenuOpen = !mobileMenuOpen"
+            type="button"
+            class="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none transition-colors"
+            aria-label="Toggle Menu"
+          >
+            <X v-if="mobileMenuOpen" class="w-5 h-5" />
+            <Menu v-else class="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Dropdown Drawer -->
+      <div
+        v-if="mobileMenuOpen"
+        class="md:hidden border-t border-slate-100 mt-3 pt-3 pb-2 space-y-1 animate-in fade-in slide-in-from-top-2 duration-150"
+      >
+        <router-link
+          to="/"
+          @click="mobileMenuOpen = false"
+          class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+        >
+          Panduan Sistem
+        </router-link>
+        <router-link
+          to="/solutions"
+          @click="mobileMenuOpen = false"
+          class="block px-3 py-2 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700"
+        >
+          Bank Solusi
+        </router-link>
+        <router-link
+          to="/contact"
+          @click="mobileMenuOpen = false"
+          class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+        >
+          Hubungi Implementator
+        </router-link>
+        <div class="pt-2 border-t border-slate-100 px-3">
+          <a
+            href="tel:+62361256500"
+            class="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-sky-600"
+          >
+            <Phone class="w-3.5 h-3.5 text-slate-500" />
+            <span>Phone: +62 361 256 500</span>
+          </a>
         </div>
       </div>
     </nav>
@@ -337,8 +391,8 @@ watch(
     </main>
 
     <!-- 4. Footer -->
-    <footer class="border-t border-slate-200 bg-white py-6 px-6 sm:px-12 lg:px-20 xl:px-28 text-xs text-slate-500">
-      <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+    <footer class="border-t border-slate-200 bg-white py-6 px-4 sm:px-6 lg:px-8 text-xs text-slate-500">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
         <p>© 2026 CV Mitra Solusi Mandiri • Bank Solusi Resmi</p>
       </div>
     </footer>

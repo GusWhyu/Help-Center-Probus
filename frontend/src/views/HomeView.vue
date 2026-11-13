@@ -20,7 +20,8 @@ import {
   UtensilsCrossed,
   Sparkles,
   Laptop,
-  Phone
+  Phone,
+  Menu
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { getSystemSlug, slugify } from '../utils/slug'
@@ -29,6 +30,7 @@ import { detectSystemIcon } from '../utils/iconResolver'
 const router = useRouter()
 const searchQuery = ref('')
 const isLoading = ref(false)
+const mobileMenuOpen = ref(false)
 
 // Metadata mapping for the 9 database categories in dbprobuscs
 const categoryMetaMap = {
@@ -174,8 +176,9 @@ function clearSearch() {
   <div class="min-h-screen bg-white text-slate-800 font-sans flex flex-col antialiased">
     
     <!-- 1. Utility Top Bar -->
-    <header class="border-b border-slate-100 bg-white text-xs text-slate-500 py-2.5 px-6 sm:px-12 lg:px-20 xl:px-28">
-      <div class="max-w-[1600px] mx-auto flex items-center justify-end">
+    <header class="border-b border-slate-100 bg-white text-xs text-slate-500 py-2.5 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto flex items-center justify-between sm:justify-end">
+        <span class="text-slate-400 text-[11px] sm:hidden">Pusat Bantuan Resmi</span>
         <div class="flex items-center gap-2 text-slate-600">
           <span class="text-slate-400 hidden sm:inline">Butuh bantuan cepat?</span>
           <a
@@ -190,23 +193,23 @@ function clearSearch() {
     </header>
 
     <!-- 2. Main Navigation Bar -->
-    <nav class="border-b border-slate-200/80 bg-white/95 backdrop-blur-sm py-4 px-6 sm:px-12 lg:px-20 xl:px-28 sticky top-0 z-40 shadow-xs">
-      <div class="max-w-[1600px] mx-auto flex items-center justify-between">
+    <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-8 sticky top-0 z-40 shadow-xs">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
         <!-- Logo & Title -->
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2.5 cursor-pointer" @click="router.push('/')">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center cursor-pointer" @click="router.push('/')">
             <img
               src="/probus-logo.png"
               alt="Probus System"
-              class="h-9 sm:h-10 w-auto object-contain hover:opacity-90 transition-opacity"
+              class="h-8 sm:h-9 w-auto object-contain hover:opacity-90 transition-opacity"
             />
           </div>
-          <span class="text-slate-300 font-light">|</span>
-          <span class="text-slate-500 text-sm sm:text-base font-medium">Pusat Bantuan Publik</span>
+          <span class="hidden sm:inline text-slate-300 font-light">|</span>
+          <span class="hidden sm:inline text-slate-500 text-xs sm:text-sm font-medium">Pusat Bantuan Publik</span>
         </div>
 
-        <!-- Navigation Links -->
-        <div class="hidden lg:flex items-center gap-9 text-sm font-medium">
+        <!-- Desktop Navigation Links -->
+        <div class="hidden md:flex items-center gap-8 text-sm font-medium">
           <router-link to="/" class="text-sky-600 font-semibold hover:text-sky-700 transition-colors relative py-1">
             Panduan Sistem
             <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-600 rounded-full"></span>
@@ -218,21 +221,71 @@ function clearSearch() {
             Hubungi Implementator
           </router-link>
         </div>
+
+        <!-- Mobile Hamburger Button -->
+        <div class="flex md:hidden items-center">
+          <button
+            @click="mobileMenuOpen = !mobileMenuOpen"
+            type="button"
+            class="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none transition-colors"
+            aria-label="Toggle Menu"
+          >
+            <X v-if="mobileMenuOpen" class="w-5 h-5" />
+            <Menu v-else class="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Dropdown Drawer -->
+      <div
+        v-if="mobileMenuOpen"
+        class="md:hidden border-t border-slate-100 mt-3 pt-3 pb-2 space-y-1 animate-in fade-in slide-in-from-top-2 duration-150"
+      >
+        <router-link
+          to="/"
+          @click="mobileMenuOpen = false"
+          class="block px-3 py-2 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700"
+        >
+          Panduan Sistem
+        </router-link>
+        <router-link
+          to="/solutions"
+          @click="mobileMenuOpen = false"
+          class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+        >
+          Bank Solusi
+        </router-link>
+        <router-link
+          to="/contact"
+          @click="mobileMenuOpen = false"
+          class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+        >
+          Hubungi Implementator
+        </router-link>
+        <div class="pt-2 border-t border-slate-100 px-3">
+          <a
+            href="tel:+62361256500"
+            class="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-sky-600"
+          >
+            <Phone class="w-3.5 h-3.5 text-slate-500" />
+            <span>Phone: +62 361 256 500</span>
+          </a>
+        </div>
       </div>
     </nav>
 
     <!-- 3. Clean Hero & Search Omnibox Section -->
-    <section class="pt-16 pb-12 sm:pt-20 sm:pb-16 px-6 sm:px-12 lg:px-20 xl:px-28 text-center bg-gradient-to-b from-white via-sky-50/20 to-transparent">
+    <section class="pt-10 pb-8 sm:pt-16 sm:pb-12 lg:pt-20 lg:pb-16 px-4 sm:px-6 lg:px-8 text-center bg-gradient-to-b from-white via-sky-50/20 to-transparent">
       <div class="max-w-4xl mx-auto">
-        <h1 class="text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold text-slate-900 tracking-tight leading-tight">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl xl:text-[2.75rem] font-extrabold text-slate-900 tracking-tight leading-tight">
           Pusat Bantuan & Panduan Sistem Probus
         </h1>
-        <p class="mt-4 text-slate-500 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
+        <p class="mt-3 sm:mt-4 text-slate-500 text-sm sm:text-base lg:text-lg leading-relaxed max-w-2xl mx-auto">
           Pilih sistem atau produk yang Anda gunakan untuk melihat manual book dan solusi kendala teknis.
         </p>
 
         <!-- Search Omnibox -->
-        <div class="mt-8 max-w-2xl mx-auto relative group">
+        <div class="mt-7 sm:mt-8 max-w-2xl mx-auto relative group">
           <!-- Search Icon with Centering & Focus Effect -->
           <div class="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center transition-colors duration-200 text-slate-400 group-focus-within:text-sky-600">
             <Search class="w-5 h-5" />
@@ -243,7 +296,7 @@ function clearSearch() {
             v-model="searchQuery"
             type="text"
             placeholder="Ketik kendala, fitur, atau nama modul yang Anda cari..."
-            class="w-full pl-12 sm:pl-14 pr-12 sm:pr-14 py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:shadow-md transition-all duration-200"
+            class="w-full pl-12 sm:pl-14 pr-12 sm:pr-14 py-3 sm:py-3.5 lg:py-4 rounded-2xl text-sm sm:text-base bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:shadow-md transition-all duration-200"
           />
 
           <!-- Clear Search Button -->
@@ -260,22 +313,23 @@ function clearSearch() {
           <!-- Live Search Results Dropdown -->
           <div
             v-if="searchQuery && searchResults.length > 0"
-            class="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150"
+            class="absolute left-0 right-0 top-full mt-2.5 bg-white rounded-2xl border border-slate-200/90 shadow-xl overflow-hidden z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150"
           >
-            <div class="p-3 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Hasil Pencarian ({{ searchResults.length }})
+            <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
+              <span class="uppercase tracking-wider">Hasil Pencarian</span>
+              <span class="bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full font-bold text-[11px]">{{ searchResults.length }}</span>
             </div>
             <div class="max-h-80 overflow-y-auto divide-y divide-slate-100">
               <div
                 v-for="item in searchResults"
                 :key="item.id"
                 @click="handleSearchItemClick(item)"
-                class="p-4 hover:bg-sky-50/60 cursor-pointer transition-colors flex items-start gap-3.5"
+                class="p-3.5 sm:p-4 hover:bg-sky-50/60 cursor-pointer transition-colors flex items-start gap-3.5"
               >
                 <div
                   :class="[
-                    'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5',
-                    item.type === 'article' ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'
+                    'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5',
+                    item.type === 'article' ? 'bg-amber-50 text-amber-600 border border-amber-200/60' : 'bg-sky-50 text-sky-600 border border-sky-200/60'
                   ]"
                 >
                   <AlertCircle v-if="item.type === 'article'" class="w-4 h-4" />
@@ -285,7 +339,7 @@ function clearSearch() {
                   <div class="flex items-center gap-2">
                     <span
                       :class="[
-                        'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider',
+                        'text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider',
                         item.type === 'article' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-sky-50 text-sky-700 border border-sky-200'
                       ]"
                     >
@@ -301,20 +355,29 @@ function clearSearch() {
               </div>
             </div>
           </div>
+
+          <!-- Empty State Dropdown -->
+          <div
+            v-else-if="searchQuery && searchResults.length === 0"
+            class="absolute left-0 right-0 top-full mt-2.5 bg-white rounded-2xl border border-slate-200/90 shadow-xl p-6 z-50 text-center animate-in fade-in duration-150"
+          >
+            <p class="text-sm text-slate-600 font-medium">Tidak ada hasil untuk "<span class="text-slate-800 font-semibold">{{ searchQuery }}</span>"</p>
+            <p class="text-xs text-slate-400 mt-1">Coba gunakan kata kunci lain seperti nama fitur, nomor modul, atau topik kendala.</p>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- 4. Section: Pilih Produk / Sistem Probus -->
-    <main class="flex-1 max-w-[1600px] w-full mx-auto px-6 sm:px-12 lg:px-20 xl:px-28 pb-16">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-16">
       
       <!-- Section Header -->
-      <div class="mb-7 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+      <div class="mb-6 sm:mb-7 flex flex-col sm:flex-row sm:items-end justify-between gap-2 sm:gap-3">
         <div>
-          <h2 class="text-2xl sm:text-[1.65rem] font-bold text-slate-900 tracking-tight">
+          <h2 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Pilih Produk / Sistem Probus
           </h2>
-          <p class="text-sm sm:text-base text-slate-500 mt-1.5">
+          <p class="text-xs sm:text-sm text-slate-500 mt-1">
             Pilih sistem yang digunakan oleh properti Anda untuk melihat modul penggunaan dan solusi kendala:
           </p>
         </div>
@@ -324,20 +387,20 @@ function clearSearch() {
       </div>
 
       <!-- 9 Cards Grid (3 Columns on Large Screens, 2 on Tablet, 1 on Mobile) -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
         <div
           v-for="sys in systems"
           :key="sys.id"
           @click="selectCard(sys.id)"
-          class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 hover:border-sky-500 hover:ring-4 hover:ring-sky-500/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs"
+          class="bg-white rounded-2xl p-5 sm:p-6 lg:p-7 border border-slate-200/90 hover:border-sky-500 hover:ring-4 hover:ring-sky-500/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs"
         >
           <div>
             <!-- Card Top: Icon & Badge -->
             <div class="flex items-center justify-between">
               <div
-                class="w-12 h-12 rounded-xl flex items-center justify-center bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600 transition-colors shadow-2xs"
+                class="w-11 sm:w-12 h-11 sm:h-12 rounded-xl flex items-center justify-center bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600 transition-colors shadow-2xs"
               >
-                <component :is="sys.icon" class="w-6 h-6 stroke-[1.8]" />
+                <component :is="sys.icon" class="w-5 sm:w-6 h-5 sm:h-6 stroke-[1.8]" />
               </div>
               <span
                 class="text-xs font-semibold px-3 py-1.5 rounded-lg tracking-wide bg-slate-100 text-slate-600 group-hover:bg-sky-100/70 group-hover:text-sky-700 transition-colors"
@@ -347,20 +410,20 @@ function clearSearch() {
             </div>
 
             <!-- Card Middle: Title & Description -->
-            <h3 class="font-bold text-slate-900 text-lg sm:text-xl mt-5 group-hover:text-sky-600 transition-colors">
+            <h3 class="font-bold text-slate-900 text-base sm:text-lg lg:text-xl mt-4 sm:mt-5 group-hover:text-sky-600 transition-colors">
               {{ sys.title }}
             </h3>
-            <p class="text-sm text-slate-500 mt-2.5 leading-relaxed line-clamp-2">
+            <p class="text-xs sm:text-sm text-slate-500 mt-2 sm:mt-2.5 leading-relaxed line-clamp-2">
               {{ sys.desc }}
             </p>
           </div>
 
           <!-- Card Bottom: Modul Count & Link -->
-          <div class="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between text-sm">
-            <span class="font-medium text-xs sm:text-sm text-slate-500">
+          <div class="pt-5 sm:pt-6 mt-5 sm:mt-6 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm">
+            <span class="font-medium text-slate-500">
               {{ sys.modulCount }} Modul Penggunaan
             </span>
-            <span class="text-sky-600 font-semibold flex items-center gap-1.5 group-hover:text-sky-700 text-xs sm:text-sm">
+            <span class="text-sky-600 font-semibold flex items-center gap-1.5 group-hover:text-sky-700">
               <span>Pilih Sistem</span>
               <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </span>
@@ -371,8 +434,8 @@ function clearSearch() {
     </main>
 
     <!-- 5. Footer -->
-    <footer class="border-t border-slate-200 bg-white py-6 px-6 sm:px-12 lg:px-20 xl:px-28 text-xs sm:text-sm text-slate-500">
-      <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+    <footer class="border-t border-slate-200 bg-white py-6 px-4 sm:px-6 lg:px-8 text-xs sm:text-sm text-slate-500">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
         <p class="font-normal">© 2026 CV Mitra Solusi Mandiri</p>
       </div>
     </footer>

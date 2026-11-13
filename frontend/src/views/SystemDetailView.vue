@@ -25,11 +25,13 @@ import {
   BarChart3,
   TrendingUp,
   Printer,
-  Phone
+  Phone,
+  Menu
 } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
+const mobileMenuOpen = ref(false)
 
 // Get system ID from route parameter, supports both slugs ('self-order') and legacy IDs ('4')
 const systemId = computed(() => getSystemIdFromParam(route.params.id, 2))
@@ -427,8 +429,9 @@ function goBackHome() {
 <template>
   <div class="min-h-screen bg-slate-50/40 text-slate-800 font-sans flex flex-col antialiased">
     <!-- 1. Utility Top Bar -->
-    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-6 sm:px-12 lg:px-20 xl:px-28">
-      <div class="max-w-[1600px] mx-auto flex items-center justify-end">
+    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto flex items-center justify-between sm:justify-end">
+        <span class="text-slate-400 text-[11px] sm:hidden">Pusat Bantuan Resmi</span>
         <div class="flex items-center gap-2 text-slate-600">
           <span class="text-slate-400 hidden sm:inline">Butuh bantuan cepat?</span>
           <a
@@ -443,32 +446,33 @@ function goBackHome() {
     </header>
 
     <!-- 2. Main Navigation Bar with "Kembali ke Pilihan Sistem" Button -->
-    <nav class="border-b border-slate-200/80 bg-white/95 backdrop-blur-sm py-3.5 px-6 sm:px-12 lg:px-20 xl:px-28 sticky top-0 z-40 shadow-xs">
-      <div class="max-w-[1600px] mx-auto flex items-center justify-between">
+    <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-8 sticky top-0 z-40 shadow-xs">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
         <!-- Logo, Title & Back Button -->
-        <div class="flex items-center gap-3.5">
-          <div class="flex items-center gap-2.5 cursor-pointer" @click="goBackHome">
+        <div class="flex items-center gap-2.5 sm:gap-3.5">
+          <div class="flex items-center cursor-pointer" @click="goBackHome">
             <img
               src="/probus-logo.png"
               alt="Probus System"
-              class="h-8 sm:h-9 w-auto object-contain hover:opacity-90 transition-opacity"
+              class="h-7 sm:h-9 w-auto object-contain hover:opacity-90 transition-opacity"
             />
           </div>
-          <span class="text-slate-300 font-light">|</span>
-          <span class="text-slate-500 text-sm font-medium hidden sm:inline">Pusat Bantuan Publik</span>
+          <span class="text-slate-300 font-light hidden sm:inline">|</span>
+          <span class="text-slate-500 text-sm font-medium hidden md:inline">Pusat Bantuan Publik</span>
 
-          <!-- Pill Button: "← Kembali ke Pilihan Sistem" (Matching Design) -->
+          <!-- Pill Button: "← Kembali ke Pilihan Sistem" -->
           <button
             @click="goBackHome"
-            class="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold text-xs border border-sky-100 transition-colors shadow-2xs"
+            class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold text-xs border border-sky-100 transition-colors shadow-2xs"
           >
             <ArrowLeft class="w-3.5 h-3.5" />
-            <span>Kembali ke Pilihan Sistem</span>
+            <span class="hidden sm:inline">Kembali ke Pilihan Sistem</span>
+            <span class="sm:hidden">Pilihan Sistem</span>
           </button>
         </div>
 
-        <!-- Navigation Links -->
-        <div class="hidden lg:flex items-center gap-8 text-sm font-medium">
+        <!-- Desktop Navigation Links -->
+        <div class="hidden md:flex items-center gap-8 text-sm font-medium">
           <router-link to="/" class="text-sky-600 font-semibold hover:text-sky-700 transition-colors relative py-1">
             Panduan Sistem
             <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-600 rounded-full"></span>
@@ -480,11 +484,61 @@ function goBackHome() {
             Hubungi Implementator
           </router-link>
         </div>
+
+        <!-- Mobile Hamburger Button -->
+        <div class="flex md:hidden items-center">
+          <button
+            @click="mobileMenuOpen = !mobileMenuOpen"
+            type="button"
+            class="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none transition-colors"
+            aria-label="Toggle Menu"
+          >
+            <X v-if="mobileMenuOpen" class="w-5 h-5" />
+            <Menu v-else class="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Dropdown Drawer -->
+      <div
+        v-if="mobileMenuOpen"
+        class="md:hidden border-t border-slate-100 mt-3 pt-3 pb-2 space-y-1 animate-in fade-in slide-in-from-top-2 duration-150"
+      >
+        <router-link
+          to="/"
+          @click="mobileMenuOpen = false"
+          class="block px-3 py-2 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700"
+        >
+          Panduan Sistem
+        </router-link>
+        <router-link
+          to="/solutions"
+          @click="mobileMenuOpen = false"
+          class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+        >
+          Bank Solusi
+        </router-link>
+        <router-link
+          to="/contact"
+          @click="mobileMenuOpen = false"
+          class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+        >
+          Hubungi Implementator
+        </router-link>
+        <div class="pt-2 border-t border-slate-100 px-3">
+          <a
+            href="tel:+62361256500"
+            class="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-sky-600"
+          >
+            <Phone class="w-3.5 h-3.5 text-slate-500" />
+            <span>Phone: +62 361 256 500</span>
+          </a>
+        </div>
       </div>
     </nav>
 
     <!-- 3. Header Hero Section (Centered with Pill Switcher & Note) -->
-    <section class="pt-12 pb-10 px-6 sm:px-12 lg:px-20 xl:px-28 text-center bg-gradient-to-b from-white via-sky-50/20 to-transparent">
+    <section class="pt-10 pb-8 sm:pt-12 sm:pb-10 px-4 sm:px-6 lg:px-8 text-center bg-gradient-to-b from-white via-sky-50/20 to-transparent">
       <div class="max-w-4xl mx-auto">
         <!-- Category Badge -->
         <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-sky-50 text-sky-700 text-xs font-semibold border border-sky-100 mb-3.5 shadow-2xs">
@@ -578,7 +632,7 @@ function goBackHome() {
     </section>
 
     <!-- 4. Main Section: 10 Modul Cards Grid (Setup Master hingga Tools) -->
-    <main class="flex-1 max-w-[1600px] w-full mx-auto px-6 sm:px-12 lg:px-20 xl:px-28 pb-20">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-20">
       <!-- Section Header -->
       <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-2">
         <div>
@@ -595,7 +649,7 @@ function goBackHome() {
       </div>
 
       <!-- TAB 1: 10 Modul Cards Grid (Setup Master s/d Tools) -->
-      <div v-if="activeTab === 'manual'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+      <div v-if="activeTab === 'manual'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
         <div
           v-for="card in filteredModuleCards"
           :key="card.id"
@@ -702,8 +756,8 @@ function goBackHome() {
     </main>
 
     <!-- 6. Footer -->
-    <footer class="border-t border-slate-200 bg-white py-6 px-6 sm:px-12 lg:px-20 xl:px-28 text-xs sm:text-sm text-slate-500">
-      <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+    <footer class="border-t border-slate-200 bg-white py-6 px-4 sm:px-6 lg:px-8 text-xs sm:text-sm text-slate-500">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
         <p class="font-normal">
           © 2026 CV Mitra Solusi Mandiri • Pusat Bantuan & Manual Book Resmi
         </p>

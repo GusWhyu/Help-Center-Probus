@@ -12,10 +12,13 @@ import {
   Building2,
   Clock,
   Globe,
-  ArrowRight
+  ArrowRight,
+  Menu,
+  X
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const mobileMenuOpen = ref(false)
 
 // Form state
 const form = ref({
@@ -85,8 +88,9 @@ function resetForm() {
 <template>
   <div class="min-h-screen bg-slate-50/40 text-slate-800 font-sans flex flex-col antialiased">
     <!-- 1. Utility Top Bar -->
-    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-6 sm:px-12 lg:px-20 xl:px-28">
-      <div class="max-w-[1600px] mx-auto flex items-center justify-end">
+    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto flex items-center justify-between sm:justify-end">
+        <span class="text-slate-400 text-[11px] sm:hidden">Pusat Bantuan Resmi</span>
         <div class="flex items-center gap-2 text-slate-600">
           <span class="text-slate-400 hidden sm:inline">Butuh bantuan cepat?</span>
           <a
@@ -101,23 +105,23 @@ function resetForm() {
     </header>
 
     <!-- 2. Main Navigation Bar -->
-    <nav class="border-b border-slate-200/80 bg-white/95 backdrop-blur-sm py-4 px-6 sm:px-12 lg:px-20 xl:px-28 sticky top-0 z-40 shadow-xs">
-      <div class="max-w-[1600px] mx-auto flex items-center justify-between">
+    <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-8 sticky top-0 z-40 shadow-xs">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
         <!-- Logo & Title -->
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3">
           <div class="flex items-center cursor-pointer" @click="router.push('/')">
             <img
               src="/probus-logo.png"
               alt="Probus System"
-              class="h-9 sm:h-10 w-auto object-contain hover:opacity-90 transition-opacity"
+              class="h-8 sm:h-9 w-auto object-contain hover:opacity-90 transition-opacity"
             />
           </div>
-          <span class="text-slate-300 font-light">|</span>
-          <span class="text-slate-500 text-sm sm:text-base font-medium">Pusat Bantuan Publik</span>
+          <span class="text-slate-300 font-light hidden sm:inline">|</span>
+          <span class="text-slate-500 text-sm font-medium hidden sm:inline">Pusat Bantuan Publik</span>
         </div>
 
-        <!-- Navigation Links (Hubungi Implementator Active) -->
-        <div class="hidden lg:flex items-center gap-9 text-sm font-medium">
+        <!-- Desktop Navigation Links (Hubungi Implementator Active) -->
+        <div class="hidden md:flex items-center gap-8 text-sm font-medium">
           <router-link to="/" class="text-slate-600 hover:text-slate-950 transition-colors">
             Panduan Sistem
           </router-link>
@@ -129,25 +133,75 @@ function resetForm() {
             <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-600 rounded-full"></span>
           </router-link>
         </div>
+
+        <!-- Mobile Hamburger Button -->
+        <div class="flex md:hidden items-center">
+          <button
+            @click="mobileMenuOpen = !mobileMenuOpen"
+            type="button"
+            class="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none transition-colors"
+            aria-label="Toggle Menu"
+          >
+            <X v-if="mobileMenuOpen" class="w-5 h-5" />
+            <Menu v-else class="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Dropdown Drawer -->
+      <div
+        v-if="mobileMenuOpen"
+        class="md:hidden border-t border-slate-100 mt-3 pt-3 pb-2 space-y-1 animate-in fade-in slide-in-from-top-2 duration-150"
+      >
+        <router-link
+          to="/"
+          @click="mobileMenuOpen = false"
+          class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+        >
+          Panduan Sistem
+        </router-link>
+        <router-link
+          to="/solutions"
+          @click="mobileMenuOpen = false"
+          class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+        >
+          Bank Solusi
+        </router-link>
+        <router-link
+          to="/contact"
+          @click="mobileMenuOpen = false"
+          class="block px-3 py-2 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700"
+        >
+          Hubungi Implementator
+        </router-link>
+        <div class="pt-2 border-t border-slate-100 px-3">
+          <a
+            href="tel:+62361256500"
+            class="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-sky-600"
+          >
+            <Phone class="w-3.5 h-3.5 text-slate-500" />
+            <span>Phone: +62 361 256 500</span>
+          </a>
+        </div>
       </div>
     </nav>
 
     <!-- 3. Header Hero Section (Matches Screenshot media_1794540993219_f5b98a39.jpg) -->
-    <section class="pt-14 pb-10 sm:pt-16 sm:pb-12 px-6 sm:px-12 lg:px-20 xl:px-28 text-center bg-gradient-to-b from-white via-sky-50/20 to-transparent">
+    <section class="pt-10 pb-8 sm:pt-14 sm:pb-10 px-4 sm:px-6 lg:px-8 text-center bg-gradient-to-b from-white via-sky-50/20 to-transparent">
       <div class="max-w-4xl mx-auto">
-        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
           Contact Our Team
         </h1>
-        <p class="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
+        <p class="mt-3 sm:mt-4 text-slate-600 text-sm sm:text-base lg:text-lg leading-relaxed max-w-2xl mx-auto">
           Have questions about our hotel PMS, restaurant POS, or retail systems? Reach out to our consultants in Bali for advice or a custom demo.
         </p>
 
         <!-- Company Profile Button Requested by User -->
-        <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
+        <div class="mt-6 sm:mt-7 flex flex-wrap items-center justify-center gap-3">
           <a
             href="https://probussystem.com/"
             target="_blank"
-            class="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all group"
+            class="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all group"
           >
             <Globe class="w-4 h-4 text-sky-400" />
             <span>Kunjungi Website Company Profile Probus</span>
@@ -158,7 +212,7 @@ function resetForm() {
     </section>
 
     <!-- 4. Main Contact Grid (Two Columns: Send Us a Message & Office/Contact Cards) -->
-    <main class="flex-1 max-w-[1300px] w-full mx-auto px-6 sm:px-10 lg:px-12 pb-20">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-20">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         <!-- LEFT COLUMN: "Send Us a Message" Form (col-span-7) -->
@@ -434,8 +488,8 @@ function resetForm() {
     </main>
 
     <!-- 5. Footer -->
-    <footer class="border-t border-slate-200 bg-white py-6 px-6 sm:px-12 lg:px-20 xl:px-28 text-xs sm:text-sm text-slate-500 mt-auto">
-      <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+    <footer class="border-t border-slate-200 bg-white py-6 px-4 sm:px-6 lg:px-8 text-xs sm:text-sm text-slate-500 mt-auto">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
         <p class="font-normal">© 2026 CV Mitra Solusi Mandiri</p>
       </div>
     </footer>
