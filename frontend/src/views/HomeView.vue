@@ -12,7 +12,6 @@ import {
   Lightbulb,
   MessageSquare,
   MonitorCheck,
-  ChevronDown,
   BookOpen,
   AlertCircle,
   X,
@@ -175,12 +174,7 @@ function clearSearch() {
     
     <!-- 1. Utility Top Bar -->
     <header class="border-b border-slate-100 bg-white text-xs text-slate-500 py-2.5 px-6 sm:px-12 lg:px-20 xl:px-28">
-      <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-        <div class="flex items-center gap-2 cursor-pointer hover:text-slate-800 transition-colors">
-          <span class="text-base">🇮🇩</span>
-          <span class="font-medium text-slate-600">Bahasa Indonesia</span>
-          <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
-        </div>
+      <div class="max-w-[1600px] mx-auto flex items-center justify-end">
         <div class="flex items-center gap-2 text-slate-600">
           <span class="text-slate-400 hidden sm:inline">Butuh bantuan cepat?</span>
           <a
