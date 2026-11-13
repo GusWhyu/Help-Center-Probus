@@ -173,13 +173,12 @@ onMounted(() => {
             Bank Solusi
             <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-600 rounded-full"></span>
           </router-link>
-          <a
-            href="https://wa.me/6281910875514"
-            target="_blank"
+          <router-link
+            to="/contact"
             class="text-slate-600 hover:text-slate-950 transition-colors"
           >
             Hubungi Implementator
-          </a>
+          </router-link>
         </div>
       </div>
     </nav>

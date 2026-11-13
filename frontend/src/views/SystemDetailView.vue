@@ -435,9 +435,9 @@ function goBackHome() {
           <router-link to="/solutions" class="text-slate-600 hover:text-slate-950 transition-colors">
             Bank Solusi
           </router-link>
-          <a href="https://wa.me/6281910875514" target="_blank" class="text-slate-600 hover:text-slate-950 transition-colors">
+          <router-link to="/contact" class="text-slate-600 hover:text-slate-950 transition-colors">
             Hubungi Implementator
-          </a>
+          </router-link>
         </div>
       </div>
     </nav>

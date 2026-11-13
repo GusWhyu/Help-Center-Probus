@@ -4,6 +4,7 @@ import SystemDetailView from '../views/SystemDetailView.vue'
 import SolutionsView from '../views/SolutionsView.vue'
 import SolutionDetailView from '../views/SolutionDetailView.vue'
 import GuideView from '../views/GuideView.vue'
+import ContactView from '../views/ContactView.vue'
 
 const routes = [
   {
@@ -39,6 +40,19 @@ const routes = [
   {
     path: '/solution/:id',
     redirect: to => `/solutions/${to.params.id}`,
+  },
+  {
+    path: '/contact',
+    name: 'contact',
+    component: ContactView,
+  },
+  {
+    path: '/hubungi-kami',
+    redirect: '/contact',
+  },
+  {
+    path: '/contact-us',
+    redirect: '/contact',
   },
 ]
 
