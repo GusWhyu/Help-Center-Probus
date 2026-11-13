@@ -460,14 +460,25 @@ function goBackHome() {
         </p>
 
         <!-- Search Bar -->
-        <div class="mt-6 max-w-2xl mx-auto relative shadow-2xs">
-          <Search class="absolute left-4 w-4 h-4 text-slate-400 pointer-events-none top-3.5" />
+        <div class="mt-6 max-w-2xl mx-auto relative group">
+          <div class="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center transition-colors duration-200 text-slate-400 group-focus-within:text-sky-600">
+            <Search class="w-4.5 h-4.5" />
+          </div>
           <input
             v-model="searchQuery"
             type="text"
             :placeholder="`Ketik fitur, nomor modul, atau topik panduan ${currentSystem.name}...`"
-            class="w-full pl-11 pr-4 py-3 rounded-xl text-sm bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all shadow-xs"
+            class="w-full pl-11 sm:pl-12 pr-11 sm:pr-12 py-3 sm:py-3.5 rounded-2xl text-sm bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:shadow-md transition-all duration-200"
           />
+          <button
+            v-if="searchQuery"
+            @click="searchQuery = ''"
+            type="button"
+            class="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none"
+            title="Hapus pencarian"
+          >
+            <X class="w-4 h-4" />
+          </button>
         </div>
 
         <!-- Segmented Tab Switcher (Matching Design) -->
@@ -672,13 +683,7 @@ function goBackHome() {
     <footer class="border-t border-slate-200 bg-white py-6 px-6 sm:px-12 lg:px-20 xl:px-28 text-xs sm:text-sm text-slate-500">
       <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
         <p class="font-normal">
-          © 2026 PT Probus System Indonesia • Pusat Bantuan & Manual Book Resmi
-        </p>
-        <p>
-          Masih terkendala? Hubungi WhatsApp Support:
-          <a href="https://wa.me/62811389211" target="_blank" class="font-semibold text-slate-700 hover:text-sky-600 transition-colors">
-            +62 811-389-211
-          </a>
+          © 2026 CV Mitra Solusi Mandiri • Pusat Bantuan & Manual Book Resmi
         </p>
       </div>
     </footer>

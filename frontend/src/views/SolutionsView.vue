@@ -336,18 +336,22 @@ function goBackHome() {
         </p>
 
         <!-- Search Omnibox -->
-        <div class="mt-6 max-w-3xl mx-auto relative shadow-2xs">
-          <Search class="absolute left-4 w-4 h-4 text-slate-400 pointer-events-none top-4" />
+        <div class="mt-7 max-w-3xl mx-auto relative group">
+          <div class="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center transition-colors duration-200 text-slate-400 group-focus-within:text-amber-600">
+            <Search class="w-4.5 h-4.5" />
+          </div>
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Cari solusi kendala (contoh: printer, cash drawer, paper jam, IP address)..."
-            class="w-full pl-11 pr-10 py-3.5 rounded-xl text-sm bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-100 transition-all shadow-xs"
+            class="w-full pl-11 sm:pl-12 pr-11 sm:pr-12 py-3.5 rounded-2xl text-sm bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:shadow-md transition-all duration-200"
           />
           <button
             v-if="searchQuery"
             @click="searchQuery = ''"
-            class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
+            type="button"
+            class="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none"
+            title="Hapus pencarian"
           >
             <X class="w-4 h-4" />
           </button>
@@ -515,13 +519,7 @@ function goBackHome() {
     <!-- 5. Footer -->
     <footer class="border-t border-slate-200 bg-white py-6 px-6 sm:px-12 lg:px-20 xl:px-28 text-xs sm:text-sm text-slate-500">
       <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-        <p>© 2026 PT Probus System Indonesia • Bank Solusi Resmi</p>
-        <p>
-          Masih terkendala? Hubungi WhatsApp Support:
-          <a href="https://wa.me/6281910875514" target="_blank" class="font-semibold text-slate-700 hover:text-sky-600 transition-colors">
-            +62 819-1087-5514
-          </a>
-        </p>
+        <p>© 2026 CV Mitra Solusi Mandiri • Bank Solusi Resmi</p>
       </div>
     </footer>
   </div>

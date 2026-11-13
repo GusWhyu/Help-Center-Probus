@@ -303,17 +303,7 @@ onMounted(() => {
     <!-- 4. Footer -->
     <footer class="border-t border-slate-200 bg-white py-6 px-6 sm:px-12 lg:px-20 xl:px-28 text-xs text-slate-500">
       <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-        <p>© 2026 PT Probus System Indonesia</p>
-        <p>
-          Masih terkendala? Hubungi WhatsApp Support:
-          <a
-            href="https://wa.me/6281910875514"
-            target="_blank"
-            class="font-semibold text-slate-700 hover:text-sky-600 transition-colors"
-          >
-            +62 819-1087-5514
-          </a>
-        </p>
+        <p>© 2026 CV Mitra Solusi Mandiri • Bank Solusi Resmi</p>
       </div>
     </footer>
   </div>

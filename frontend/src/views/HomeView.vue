@@ -233,18 +233,27 @@ function clearSearch() {
         </p>
 
         <!-- Search Omnibox -->
-        <div class="mt-8 max-w-2xl mx-auto relative shadow-xs">
-          <Search class="absolute left-4.5 w-5 h-5 text-slate-400 pointer-events-none top-4" />
+        <div class="mt-8 max-w-2xl mx-auto relative group">
+          <!-- Search Icon with Centering & Focus Effect -->
+          <div class="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center transition-colors duration-200 text-slate-400 group-focus-within:text-sky-600">
+            <Search class="w-5 h-5" />
+          </div>
+
+          <!-- Search Input Field -->
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Ketik kendala, fitur, atau nama modul yang Anda cari..."
-            class="w-full pl-12 pr-12 py-3.5 sm:py-4 rounded-xl text-base bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all shadow-xs"
+            class="w-full pl-12 sm:pl-14 pr-12 sm:pr-14 py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:shadow-md transition-all duration-200"
           />
+
+          <!-- Clear Search Button -->
           <button
             v-if="searchQuery"
             @click="clearSearch"
-            class="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
+            type="button"
+            class="absolute right-3.5 sm:right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none"
+            title="Hapus pencarian"
           >
             <X class="w-4 h-4" />
           </button>
@@ -378,43 +387,12 @@ function clearSearch() {
         </div>
       </div>
 
-      <!-- 5. Bottom Help / Notification Banner -->
-      <div class="mt-12 bg-sky-50/70 border border-sky-200/90 rounded-2xl p-6 sm:p-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 shadow-xs">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0 shadow-2xs border border-sky-200/70">
-            <Lightbulb class="w-6 h-6 stroke-[2]" />
-          </div>
-          <div>
-            <h4 class="text-base sm:text-lg text-slate-900 font-bold">
-              Tidak menemukan sistem yang Anda cari?
-            </h4>
-            <p class="text-xs sm:text-sm text-slate-600 mt-0.5">
-              Konsultasikan langsung kendala Anda dengan tim support teknis Probus untuk panduan sistem lainnya.
-            </p>
-          </div>
-        </div>
-
-        <a
-          href="https://wa.me/62811389211"
-          target="_blank"
-          class="shrink-0 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs sm:text-sm px-5 py-3 rounded-xl flex items-center gap-2.5 shadow-xs transition-all hover:shadow-md"
-        >
-          <MessageSquare class="w-4 h-4 fill-white/20" />
-          <span>Hubungi WhatsApp Support</span>
-        </a>
-      </div>
     </main>
 
-    <!-- 6. Footer -->
+    <!-- 5. Footer -->
     <footer class="border-t border-slate-200 bg-white py-6 px-6 sm:px-12 lg:px-20 xl:px-28 text-xs sm:text-sm text-slate-500">
       <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-        <p class="font-normal">© 2026 PT Probus System Indonesia</p>
-        <p>
-          Masih terkendala? Hubungi WhatsApp Support:
-          <a href="https://wa.me/62811389211" target="_blank" class="font-semibold text-slate-700 hover:text-sky-600 transition-colors">
-            +62 811-389-211
-          </a>
-        </p>
+        <p class="font-normal">© 2026 CV Mitra Solusi Mandiri</p>
       </div>
     </footer>
   </div>

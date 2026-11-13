@@ -1,9 +1,9 @@
 <script setup>
-import FloatingWhatsAppWidget from './components/FloatingWhatsAppWidget.vue'
+import FloatingWhatsAppSupport from './components/FloatingWhatsAppSupport.vue'
 </script>
 
 <template>
   <RouterView />
-  <FloatingWhatsAppWidget />
+  <FloatingWhatsAppSupport />
 </template>
 
