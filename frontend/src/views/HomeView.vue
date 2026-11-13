@@ -20,7 +20,7 @@ import {
   Laptop
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import { resolveIcon } from '../utils/iconResolver'
+import { detectSystemIcon } from '../utils/iconResolver'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -116,7 +116,7 @@ onMounted(async () => {
           badge: meta.badge,
           desc: cat.description || meta.desc,
           modulCount: cat.total_menus || cat.modul_count || (cat.name === 'BARONG POS' ? 8 : 10),
-          icon: resolveIcon(cat.icon, cat.name, 'system'),
+          icon: detectSystemIcon(cat.name),
         }
       })
     }

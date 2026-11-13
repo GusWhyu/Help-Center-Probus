@@ -29,7 +29,7 @@ import {
   FileText
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import { resolveIcon } from '../utils/iconResolver'
+import { detectModuleIcon } from '../utils/iconResolver'
 
 const route = useRoute()
 const router = useRouter()
@@ -132,7 +132,7 @@ async function loadSystemData() {
           name: menu.name,
           title: `${meta.code}. ${menu.name}`,
           desc: menu.description || meta.lead,
-          icon: resolveIcon(menu.icon, menu.name, 'module') || meta.icon,
+          icon: detectModuleIcon(menu.name, orderNum),
           manualBooks: linkedManuals,
           hasManualBook: linkedManuals.length > 0,
         }

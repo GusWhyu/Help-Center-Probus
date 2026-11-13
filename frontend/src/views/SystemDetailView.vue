@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import apiClient from '../api/client'
-import { resolveIcon } from '../utils/iconResolver'
+import { detectModuleIcon } from '../utils/iconResolver'
 import {
   ArrowLeft,
   ArrowRight,
@@ -372,7 +372,7 @@ onMounted(async () => {
           order: orderNum,
           title: `${code}. ${menu.name}`,
           desc: menu.description || 'Panduan operasional dan tata cara penggunaan fitur modul.',
-          icon: resolveIcon(menu.icon, menu.name, 'module'),
+          icon: detectModuleIcon(menu.name, orderNum),
           countText: `${menu.manual_books ? menu.manual_books.length : 1} Panduan`,
           estTime: 'Est. 5 menit',
         }
