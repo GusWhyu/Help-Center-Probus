@@ -6,7 +6,6 @@ import {
   ArrowRight,
   Search,
   BookOpen,
-  ChevronDown,
   ChevronRight,
   ImageIcon,
   CheckCircle2,
@@ -30,7 +29,6 @@ import {
   FileText
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import WhatsAppSupportDropdown from '../components/WhatsAppSupportDropdown.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -245,28 +243,13 @@ watch(
 <template>
   <div class="min-h-screen bg-slate-50/50 text-slate-800 font-sans flex flex-col antialiased">
     
-    <!-- 1. Utility Top Bar -->
-    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-6 sm:px-12 lg:px-20 xl:px-28">
-      <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-        <div class="flex items-center gap-2 cursor-pointer hover:text-slate-800 transition-colors">
-          <span class="text-base">🇮🇩</span>
-          <span class="font-medium text-slate-600">Bahasa Indonesia</span>
-          <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
-        </div>
-        <WhatsAppSupportDropdown />
-      </div>
-    </header>
-
-    <!-- 2. Main Navigation Bar with "Kembali ke Pilihan Modul" Button -->
+    <!-- Main Navigation Bar with "Kembali ke Pilihan Modul" Button -->
     <nav class="border-b border-slate-200/80 bg-white/95 backdrop-blur-sm py-3.5 px-6 sm:px-12 lg:px-20 xl:px-28 sticky top-0 z-40 shadow-xs">
       <div class="max-w-[1600px] mx-auto flex items-center justify-between">
         <!-- Logo & Back Button -->
         <div class="flex items-center gap-3.5">
-          <div class="flex items-center gap-2.5 cursor-pointer" @click="router.push('/')">
-            <div class="w-8 h-8 rounded-lg bg-slate-950 flex items-center justify-center text-white font-extrabold text-base tracking-wider shadow-sm">
-              P
-            </div>
-            <span class="font-black text-lg tracking-wider text-slate-950">PROBUS</span>
+          <div class="flex items-center cursor-pointer" @click="router.push('/')">
+            <img src="/img/probus-logo.png" alt="Probus System" class="h-8 sm:h-9 w-auto object-contain" />
           </div>
           <span class="text-slate-300 font-light">|</span>
           <span class="text-slate-500 text-sm font-medium hidden sm:inline">Pusat Bantuan Publik</span>

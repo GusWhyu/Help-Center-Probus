@@ -7,7 +7,6 @@ import {
   Search,
   BookOpen,
   Lightbulb,
-  ChevronDown,
   X,
   ThumbsUp,
   CheckCircle2,
@@ -24,7 +23,6 @@ import {
   TrendingUp,
   Printer
 } from 'lucide-vue-next'
-import WhatsAppSupportDropdown from '../components/WhatsAppSupportDropdown.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,7 +33,6 @@ const systemId = computed(() => Number(route.params.id) || 2)
 // Active Tab: 'manual' or 'solusi'
 const activeTab = ref('manual')
 const searchQuery = ref('')
-const selectedCardId = ref(2) // default highlight: card 02 (Transaksi)
 
 // System metadata mapping
 const systemsInfo = {
@@ -381,7 +378,6 @@ const activeReaderItem = ref(null)
 const feedbackGiven = ref(false)
 
 function openReader(item, type = 'manual') {
-  selectedCardId.value = item.id
   if (type === 'manual') {
     router.push(`/system/${systemId.value}/guide/${item.id}`)
     return
@@ -407,28 +403,13 @@ function goBackHome() {
 
 <template>
   <div class="min-h-screen bg-slate-50/40 text-slate-800 font-sans flex flex-col antialiased">
-    <!-- 1. Utility Top Bar -->
-    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-6 sm:px-12 lg:px-20 xl:px-28">
-      <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-        <div class="flex items-center gap-2 cursor-pointer hover:text-slate-800 transition-colors">
-          <span class="text-base">🇮🇩</span>
-          <span class="font-medium text-slate-600">Bahasa Indonesia</span>
-          <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
-        </div>
-        <WhatsAppSupportDropdown />
-      </div>
-    </header>
-
-    <!-- 2. Main Navigation Bar with "Kembali ke Pilihan Sistem" Button -->
+    <!-- Main Navigation Bar with "Kembali ke Pilihan Sistem" Button -->
     <nav class="border-b border-slate-200/80 bg-white/95 backdrop-blur-sm py-3.5 px-6 sm:px-12 lg:px-20 xl:px-28 sticky top-0 z-40 shadow-xs">
       <div class="max-w-[1600px] mx-auto flex items-center justify-between">
         <!-- Logo, Title & Back Button -->
         <div class="flex items-center gap-3.5">
-          <div class="flex items-center gap-2.5 cursor-pointer" @click="goBackHome">
-            <div class="w-8 h-8 rounded-lg bg-slate-950 flex items-center justify-center text-white font-extrabold text-base tracking-wider shadow-sm">
-              P
-            </div>
-            <span class="font-black text-lg tracking-wider text-slate-950">PROBUS</span>
+          <div class="flex items-center cursor-pointer" @click="goBackHome">
+            <img src="/img/probus-logo.png" alt="Probus System" class="h-8 sm:h-9 w-auto object-contain" />
           </div>
           <span class="text-slate-300 font-light">|</span>
           <span class="text-slate-500 text-sm font-medium hidden sm:inline">Pusat Bantuan Publik</span>
@@ -480,14 +461,25 @@ function goBackHome() {
         </p>
 
         <!-- Search Bar -->
-        <div class="mt-6 max-w-2xl mx-auto relative shadow-2xs">
-          <Search class="absolute left-4 w-4 h-4 text-slate-400 pointer-events-none top-3.5" />
+        <div class="mt-6 max-w-2xl mx-auto relative group">
+          <div class="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center transition-colors duration-200 text-slate-400 group-focus-within:text-sky-600">
+            <Search class="w-4.5 h-4.5" />
+          </div>
           <input
             v-model="searchQuery"
             type="text"
             :placeholder="`Ketik fitur, nomor modul, atau topik panduan ${currentSystem.name}...`"
-            class="w-full pl-11 pr-4 py-3 rounded-xl text-sm bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all shadow-xs"
+            class="w-full pl-11 sm:pl-12 pr-11 sm:pr-12 py-3 sm:py-3.5 rounded-2xl text-sm bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:shadow-md transition-all duration-200"
           />
+          <button
+            v-if="searchQuery"
+            @click="searchQuery = ''"
+            type="button"
+            class="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none"
+            title="Hapus pencarian"
+          >
+            <X class="w-4 h-4" />
+          </button>
         </div>
 
         <!-- Segmented Tab Switcher (Matching Design) -->
@@ -568,36 +560,17 @@ function goBackHome() {
           v-for="card in filteredModuleCards"
           :key="card.id"
           @click="openReader(card, 'manual')"
-          :class="[
-            'bg-white rounded-2xl p-6 sm:p-7 border transition-all duration-200 cursor-pointer flex flex-col justify-between group',
-            selectedCardId === card.id
-              ? 'border-2 border-sky-500 shadow-md ring-4 ring-sky-500/10'
-              : 'border-slate-200 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5'
-          ]"
+          class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 hover:border-sky-500 hover:ring-4 hover:ring-sky-500/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs"
         >
           <div>
             <!-- Card Top: Icon & Count Badge -->
             <div class="flex items-center justify-between">
-              <div
-                :class="[
-                  'w-11 h-11 rounded-xl flex items-center justify-center transition-colors',
-                  selectedCardId === card.id
-                    ? 'bg-sky-50 text-sky-600'
-                    : 'bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600'
-                ]"
-              >
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600 transition-colors shadow-2xs">
                 <component :is="card.icon" class="w-5 h-5 stroke-[1.8]" />
               </div>
 
               <!-- Top Right Badge (Pill) -->
-              <span
-                :class="[
-                  'text-xs font-semibold px-2.5 py-1 rounded-md tracking-wide transition-colors',
-                  selectedCardId === card.id
-                    ? 'bg-sky-600 text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
-                ]"
-              >
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-md tracking-wide bg-slate-100 text-slate-600 group-hover:bg-sky-50 group-hover:text-sky-700 transition-colors">
                 {{ card.countText }}
               </span>
             </div>
@@ -611,15 +584,11 @@ function goBackHome() {
             </p>
           </div>
 
-          <!-- Card Bottom: Est Time & Action Link -->
-          <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm">
-            <span class="text-slate-400 font-normal flex items-center gap-1">
-              <span>⏱</span>
-              <span>{{ card.estTime }}</span>
-            </span>
+          <!-- Card Bottom: Action Link -->
+          <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-end text-xs sm:text-sm">
             <span class="text-sky-600 font-semibold flex items-center gap-1 group-hover:text-sky-700">
               <span>Buka Manual Book</span>
-              <ArrowRight class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight class="w-3.5 h-3.5 group-hover:translate-x-1.5 transition-transform" />
             </span>
           </div>
         </div>
@@ -662,8 +631,11 @@ function goBackHome() {
         </div>
       </div>
 
-      <!-- 5. Bottom Green Help Banner -->
-      <div class="mt-10 sm:mt-12 bg-emerald-50/70 border border-emerald-200/90 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+      <!-- 5. Bottom Green Help Banner (Hanya muncul di Tab Manual Book) -->
+      <div
+        v-if="activeTab === 'manual'"
+        class="mt-10 sm:mt-12 bg-emerald-50/70 border border-emerald-200/90 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs"
+      >
         <div class="flex items-start sm:items-center gap-4">
           <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
             <Lightbulb class="w-5 h-5 stroke-[2]" />

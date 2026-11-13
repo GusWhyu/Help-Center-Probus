@@ -7,7 +7,6 @@ import {
   ChevronRight,
   AlertCircle,
   Clock,
-  ChevronDown,
   X,
   ThumbsUp,
   CheckCircle2,
@@ -21,7 +20,6 @@ import {
   HelpCircle
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import WhatsAppSupportDropdown from '../components/WhatsAppSupportDropdown.vue'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -206,27 +204,12 @@ function goBackHome() {
 
 <template>
   <div class="min-h-screen bg-slate-50/40 text-slate-800 font-sans flex flex-col antialiased">
-    <!-- 1. Utility Top Bar -->
-    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-6 sm:px-12 lg:px-20 xl:px-28">
-      <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-        <div class="flex items-center gap-2 cursor-pointer hover:text-slate-800 transition-colors">
-          <span class="text-base">🇮🇩</span>
-          <span class="font-medium text-slate-600">Bahasa Indonesia</span>
-          <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
-        </div>
-        <WhatsAppSupportDropdown />
-      </div>
-    </header>
-
-    <!-- 2. Main Navigation Bar -->
+    <!-- Main Navigation Bar -->
     <nav class="border-b border-slate-200/80 bg-white/95 backdrop-blur-sm py-3.5 px-6 sm:px-12 lg:px-20 xl:px-28 sticky top-0 z-40 shadow-xs">
       <div class="max-w-[1600px] mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3.5">
-          <div class="flex items-center gap-2.5 cursor-pointer" @click="goBackHome">
-            <div class="w-8 h-8 rounded-lg bg-slate-950 flex items-center justify-center text-white font-extrabold text-base tracking-wider shadow-sm">
-              P
-            </div>
-            <span class="font-black text-lg tracking-wider text-slate-950">PROBUS</span>
+          <div class="flex items-center cursor-pointer" @click="goBackHome">
+            <img src="/img/probus-logo.png" alt="Probus System" class="h-8 sm:h-9 w-auto object-contain" />
           </div>
           <span class="text-slate-300 font-light">|</span>
           <span class="text-slate-500 text-sm font-medium">Bank Solusi Publik</span>
@@ -274,18 +257,22 @@ function goBackHome() {
         </p>
 
         <!-- Search Bar -->
-        <div class="mt-7 max-w-3xl mx-auto relative shadow-2xs">
-          <Search class="absolute left-4 w-4 h-4 text-slate-400 pointer-events-none top-4" />
+        <div class="mt-7 max-w-3xl mx-auto relative group">
+          <div class="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center transition-colors duration-200 text-slate-400 group-focus-within:text-amber-600">
+            <Search class="w-4.5 h-4.5" />
+          </div>
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Cari solusi kendala (contoh: printer, cash drawer, paper jam, IP address)..."
-            class="w-full pl-11 pr-10 py-3.5 rounded-xl text-sm bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-100 transition-all shadow-xs"
+            class="w-full pl-11 sm:pl-12 pr-11 sm:pr-12 py-3.5 rounded-2xl text-sm bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:shadow-md transition-all duration-200"
           />
           <button
             v-if="searchQuery"
             @click="searchQuery = ''"
-            class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
+            type="button"
+            class="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none"
+            title="Hapus pencarian"
           >
             <X class="w-4 h-4" />
           </button>
