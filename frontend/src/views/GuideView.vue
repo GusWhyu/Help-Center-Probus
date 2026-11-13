@@ -8,45 +8,36 @@ import {
   BookOpen,
   ChevronDown,
   ChevronRight,
-  ImageIcon,
+  Folder,
   CheckCircle2,
-  Table,
-  Info,
-  Clock,
-  Printer,
-  Settings,
-  UtensilsCrossed,
-  Store,
-  PieChart,
-  ShoppingBag,
-  Receipt,
-  Wallet,
-  BarChart3,
-  TrendingUp,
-  Sliders,
-  ExternalLink,
-  MessageSquare,
-  HelpCircle,
-  FileText,
   Phone,
-  Menu
+  Menu,
+  X,
+  User,
+  PenTool,
+  HelpCircle,
+  MessageSquare
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import { detectModuleIcon, detectSystemIcon } from '../utils/iconResolver'
+import { detectSystemIcon } from '../utils/iconResolver'
 import { slugify, getSystemSlug, getSystemIdFromParam, findModuleByParam } from '../utils/slug'
 
 const route = useRoute()
 const router = useRouter()
 const mobileMenuOpen = ref(false)
 
-// Selected System ID (supports slug e.g. 'self-order' and legacy ID e.g. '4')
+// Selected System ID (supports slug e.g. 'presto' and legacy ID e.g. '2')
 const selectedSystemId = ref(getSystemIdFromParam(route.params.systemId, 2))
 
-// Selected Module Order / ID (can be slug e.g. 'setup-master' or ID e.g. '55')
+// Selected Module Order / ID
 const selectedModuleOrder = ref(route.params.moduleId || 2)
 
-// Active selected manual book inside the active module (if multiple exist)
+// Active selected manual book index inside the active module (0-based)
 const activeManualIndex = ref(0)
+
+// Sidebar search and accordion state
+const tocSearchQuery = ref('')
+const expandedModules = ref({})
 
 const isLoading = ref(false)
 const availableSystems = ref([
@@ -65,25 +56,58 @@ const currentSystem = computed(() => {
   return availableSystems.value.find(s => s.id === selectedSystemId.value) || availableSystems.value[0]
 })
 
-// Default 10 PRESTO modules metadata (fallback & icon mapping)
-const defaultModuleMeta = {
-  1: { code: '01', defaultTitle: '01. Setup Master', icon: Settings, lead: 'Konfigurasi master meja, denah resto, kategori menu, harga jual, dan tarif pajak/service.' },
-  2: { code: '02', defaultTitle: '02. Order Taker & Transaksi Meja', icon: UtensilsCrossed, lead: 'Panduan kasir & pramusaji untuk membuka meja, input menu, catatan dapur, dan kirim order.' },
-  3: { code: '03', defaultTitle: '03. Outlet Activity', icon: Store, lead: 'Monitoring operasional outlet: void pesanan, cancel item, move table, dan join bill.' },
-  4: { code: '04', defaultTitle: '04. Cost Control', icon: PieChart, lead: 'Pengendalian HPP resep makanan, pemakaian bahan per porsi, dan waste management.' },
-  5: { code: '05', defaultTitle: '05. Purcashing AP', icon: ShoppingBag, lead: 'Purchase Order (PO), penerimaan barang gudang (receiving), dan buku hutang supplier.' },
-  6: { code: '06', defaultTitle: '06. AR (Account Receivable)', icon: Receipt, lead: 'Manajemen piutang tamu korporat, city ledger, faktur invoice, dan pelunasan piutang.' },
-  7: { code: '07', defaultTitle: '07. General Cashier', icon: Wallet, lead: 'Sentralisasi setoran kasir outlet harian (drop cash), kas kecil petty cash, dan rekonsiliasi.' },
-  8: { code: '08', defaultTitle: '08. Accounting System', icon: BarChart3, lead: 'Jurnal otomatis penjualan, buku besar, neraca saldo, dan laporan laba rugi restoran.' },
-  9: { code: '09', defaultTitle: '09. Report', icon: TrendingUp, lead: 'Laporan analitik eksekutif: rekap penjualan kasir, ranking menu terlaris, dan pajak PB1.' },
-  10: { code: '10', defaultTitle: '10. Tools', icon: Sliders, lead: 'Konfigurasi printer thermal LAN/USB, auto cash drawer, diagnostik perangkat keras.' },
-}
-
 // Current Modules list for the selected system
 const modulesList = ref([])
 
 // All published manual books for the current system from database
 const systemManualBooks = ref([])
+
+// Helper: membersihkan nomor ganda pada judul bab (#1 01. Sales -> #1 Sales)
+function cleanChapterTitle(title) {
+  if (!title) return ''
+  return title.replace(/^\d+[\.\s\-_]+/, '').trim() || title
+}
+
+// Helper: normalisasi gambar TinyMCE & Word Importer ke /uploads/...
+function formatArticleContent(html) {
+  if (!html) return ''
+  return html
+    .replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, '/uploads/')
+    .replace(/\.\.\/uploads\//g, '/uploads/')
+}
+
+// Helper tanggal
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  try {
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+  } catch {
+    return dateStr
+  }
+}
+
+function formatDateRelative(dateStr) {
+  if (!dateStr) return ''
+  try {
+    const d = new Date(dateStr)
+    const now = new Date()
+    const diffMs = now - d
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    if (diffDays === 0) return 'Hari ini'
+    if (diffDays === 1) return 'Kemarin'
+    if (diffDays < 30) return `${diffDays} hari yang lalu`
+    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+  } catch {
+    return dateStr
+  }
+}
+
+function isWordImportDesc(desc) {
+  if (!desc) return true
+  const lower = desc.toLowerCase()
+  return lower.includes('diimpor dari file word') || lower.includes('.docx')
+}
 
 // Fetch categories, system menus, and published manual books
 async function loadSystemData() {
@@ -108,26 +132,21 @@ async function loadSystemData() {
       menusFromDb = detailRes.data.data.menus
     }
 
-    // 3. Fetch published manual books for this category from database (menu_has_manual_books)
+    // 3. Fetch published manual books for this category from database
     const manualRes = await apiClient.get('/manual-books', {
       params: { kategori_id: selectedSystemId.value }
     })
     const rawManuals = (manualRes.data && manualRes.data.data) ? manualRes.data.data : []
     systemManualBooks.value = rawManuals.map(mb => ({
       ...mb,
-      description: (mb.description && (mb.description.toLowerCase().includes('diimpor dari file word') || mb.description.toLowerCase().includes('.docx'))) ? '' : mb.description
+      description: isWordImportDesc(mb.description) ? '' : mb.description
     }))
 
     // 4. Build module list combining database `menu_systems` and preloaded `manual_books`
     if (menusFromDb.length > 0) {
       const allModules = menusFromDb.map((menu, idx) => {
         const orderNum = menu.order || (idx + 1)
-        const meta = defaultModuleMeta[orderNum] || {
-          code: String(orderNum).padStart(2, '0'),
-          defaultTitle: `${String(orderNum).padStart(2, '0')}. ${menu.name}`,
-          icon: BookOpen,
-          lead: menu.description || 'Panduan operasional dan tata cara penggunaan fitur modul.',
-        }
+        const code = String(orderNum).padStart(2, '0')
 
         // Find manual books linked to this menu_system_id
         const linkedManuals = systemManualBooks.value.filter(mb => {
@@ -135,21 +154,24 @@ async function loadSystemData() {
           return mb.menu_systems.some(ms => ms.id === menu.id)
         })
 
+        // Sort sub-menus ascending by order
+        linkedManuals.sort((a, b) => (a.order || 0) - (b.order || 0))
+
         return {
           id: menu.id,
           order: orderNum,
-          code: meta.code,
+          code: code,
           name: menu.name,
-          title: `${meta.code}. ${menu.name}`,
-          desc: menu.description || meta.lead,
-          icon: detectModuleIcon(menu.name, orderNum),
+          title: `${code}. ${menu.name}`,
+          desc: menu.description || 'Panduan operasional dan tata cara penggunaan fitur modul.',
           manualBooks: linkedManuals,
           hasManualBook: linkedManuals.length > 0,
         }
       })
 
-      // Hanya tampilkan modul yang sudah memiliki buku panduan (published)
-      modulesList.value = allModules.filter(m => m.hasManualBook)
+      // Hanya tampilkan modul yang sudah memiliki buku panduan (published), fallback ke allModules jika belum ada
+      const withDocs = allModules.filter(m => m.hasManualBook)
+      modulesList.value = withDocs.length > 0 ? withDocs : allModules
     } else {
       modulesList.value = []
     }
@@ -158,17 +180,13 @@ async function loadSystemData() {
     const matched = findModuleByParam(modulesList.value, selectedModuleOrder.value || route.params.moduleId)
     if (matched) {
       selectedModuleOrder.value = matched.id
-      if (matched.hasManualBook) {
-        openDropdownId.value = matched.id
-      }
+      expandedModules.value[matched.id] = true
     } else if (modulesList.value.length > 0) {
       selectedModuleOrder.value = modulesList.value[0].id
-      if (modulesList.value[0].hasManualBook) {
-        openDropdownId.value = modulesList.value[0].id
-      }
+      expandedModules.value[modulesList.value[0].id] = true
     }
 
-    // Canonical slug URL synchronization: replace numeric IDs in browser URL with clean slugs
+    // Synchronize canonical URL
     if (modulesList.value.length > 0) {
       const active = modulesList.value.find(m => m.id === selectedModuleOrder.value) || modulesList.value[0]
       const sysSlug = getSystemSlug(selectedSystemId.value)
@@ -184,6 +202,21 @@ async function loadSystemData() {
   }
 }
 
+// Filtered modules by sidebar TOC search query
+const filteredModulesList = computed(() => {
+  const q = (tocSearchQuery.value || '').trim().toLowerCase()
+  if (!q) return modulesList.value
+  return modulesList.value.filter(mod => {
+    const titleMatch = (mod.title || '').toLowerCase().includes(q)
+    const nameMatch = (mod.name || '').toLowerCase().includes(q)
+    const subMatch = (mod.manualBooks || []).some(mb =>
+      (mb.title || '').toLowerCase().includes(q) ||
+      cleanChapterTitle(mb.title).toLowerCase().includes(q)
+    )
+    return titleMatch || nameMatch || subMatch
+  })
+})
+
 // Current active module
 const currentModule = computed(() => {
   return modulesList.value.find(m => m.id === selectedModuleOrder.value || m.order === selectedModuleOrder.value) || modulesList.value[0] || {
@@ -196,7 +229,7 @@ const currentModule = computed(() => {
   }
 })
 
-// Current active manual book (if multiple exist for this module)
+// Current active manual book (sub menu)
 const currentManualBook = computed(() => {
   if (currentModule.value && currentModule.value.manualBooks && currentModule.value.manualBooks.length > 0) {
     const idx = Math.min(activeManualIndex.value, currentModule.value.manualBooks.length - 1)
@@ -205,7 +238,24 @@ const currentManualBook = computed(() => {
   return null
 })
 
-// Navigation indices
+// Sub-Menu Navigation inside current module
+const prevChapter = computed(() => {
+  if (!currentModule.value || !currentModule.value.manualBooks) return null
+  if (activeManualIndex.value > 0) {
+    return currentModule.value.manualBooks[activeManualIndex.value - 1]
+  }
+  return null
+})
+
+const nextChapter = computed(() => {
+  if (!currentModule.value || !currentModule.value.manualBooks) return null
+  if (activeManualIndex.value < currentModule.value.manualBooks.length - 1) {
+    return currentModule.value.manualBooks[activeManualIndex.value + 1]
+  }
+  return null
+})
+
+// Module Navigation in current system
 const currentIndex = computed(() => {
   return modulesList.value.findIndex(m => m.id === currentModule.value.id)
 })
@@ -218,26 +268,25 @@ const prevModule = computed(() => {
 })
 
 const nextModule = computed(() => {
-  if (currentIndex.value < modulesList.value.length - 1) {
+  if (currentIndex.value >= 0 && currentIndex.value < modulesList.value.length - 1) {
     return modulesList.value[currentIndex.value + 1]
   }
   return null
 })
 
-const openDropdownId = ref(null)
-
-function toggleDropdown(modId) {
-  if (openDropdownId.value === modId) {
-    openDropdownId.value = null
-  } else {
-    openDropdownId.value = modId
+// User interactions
+function toggleModule(mod) {
+  const id = mod.id
+  expandedModules.value[id] = !expandedModules.value[id]
+  if (expandedModules.value[id] && selectedModuleOrder.value !== mod.id) {
+    selectModule(mod)
   }
 }
 
-function selectModuleAndChapter(mod, mbIdx) {
+function selectChapter(mod, chapterIdx) {
   selectedModuleOrder.value = mod.id
-  activeManualIndex.value = mbIdx
-  openDropdownId.value = mod.id
+  activeManualIndex.value = chapterIdx
+  expandedModules.value[mod.id] = true
   const sysSlug = getSystemSlug(selectedSystemId.value)
   const modSlug = slugify(mod.name)
   router.replace(`/system/${sysSlug}/guide/${modSlug}`)
@@ -247,11 +296,7 @@ function selectModuleAndChapter(mod, mbIdx) {
 function selectModule(mod) {
   selectedModuleOrder.value = mod.id
   activeManualIndex.value = 0
-  if (mod.hasManualBook) {
-    openDropdownId.value = mod.id
-  } else {
-    openDropdownId.value = null
-  }
+  expandedModules.value[mod.id] = true
   const sysSlug = getSystemSlug(selectedSystemId.value)
   const modSlug = slugify(mod.name)
   router.replace(`/system/${sysSlug}/guide/${modSlug}`)
@@ -270,13 +315,27 @@ function goBackToSystemDetail() {
   router.push('/system/' + getSystemSlug(selectedSystemId.value))
 }
 
-function goToPrev() {
+function goToPrevChapter() {
+  if (prevChapter.value) {
+    activeManualIndex.value--
+    window.scrollTo({ top: 120, behavior: 'smooth' })
+  }
+}
+
+function goToNextChapter() {
+  if (nextChapter.value) {
+    activeManualIndex.value++
+    window.scrollTo({ top: 120, behavior: 'smooth' })
+  }
+}
+
+function goToPrevModule() {
   if (prevModule.value) {
     selectModule(prevModule.value)
   }
 }
 
-function goToNext() {
+function goToNextModule() {
   if (nextModule.value) {
     selectModule(nextModule.value)
   }
@@ -302,9 +361,7 @@ watch(
       if (matched && matched.id !== selectedModuleOrder.value) {
         selectedModuleOrder.value = matched.id
         activeManualIndex.value = 0
-        if (matched.hasManualBook) {
-          openDropdownId.value = matched.id
-        }
+        expandedModules.value[matched.id] = true
       }
     }
   }
@@ -322,7 +379,7 @@ watch(
           <span class="text-slate-400 hidden sm:inline">Butuh bantuan cepat?</span>
           <a
             href="tel:+62361256500"
-            class="inline-flex items-center gap-1.5 font-bold text-slate-800 hover:text-sky-600 transition-colors"
+            class="inline-flex items-center gap-1.5 font-bold text-slate-800 hover:text-blue-600 transition-colors"
           >
             <Phone class="w-3.5 h-3.5 text-slate-500" />
             <span>Phone: +62 361 256 500</span>
@@ -332,7 +389,7 @@ watch(
     </header>
 
     <!-- 2. Main Navigation Bar with "Kembali ke Pilihan Modul" Button -->
-    <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-12 xl:px-16 sticky top-0 z-40 shadow-xs">
+    <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-12 xl:px-16 sticky top-0 z-40 shadow-2xs">
       <div class="w-full flex items-center justify-between">
         <!-- Logo & Back Button -->
         <div class="flex items-center gap-2.5 sm:gap-3.5">
@@ -349,7 +406,7 @@ watch(
           <!-- Pill Button: "← Kembali ke Pilihan Modul" -->
           <button
             @click="goBackToSystemDetail"
-            class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold text-xs border border-sky-100 transition-colors shadow-2xs cursor-pointer"
+            class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs border border-blue-100 transition-colors shadow-2xs cursor-pointer"
           >
             <ArrowLeft class="w-3.5 h-3.5" />
             <span class="hidden sm:inline">Kembali ke Pilihan Modul</span>
@@ -359,9 +416,9 @@ watch(
 
         <!-- Desktop Navigation Links -->
         <div class="hidden md:flex items-center gap-8 text-sm font-medium">
-          <router-link to="/" class="text-sky-600 font-semibold hover:text-sky-700 transition-colors relative py-1">
+          <router-link to="/" class="text-blue-600 font-semibold hover:text-blue-700 transition-colors relative py-1">
             Panduan Sistem
-            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-600 rounded-full"></span>
+            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
           </router-link>
           <router-link to="/solutions" class="text-slate-600 hover:text-slate-950 transition-colors">
             Bank Solusi
@@ -393,7 +450,7 @@ watch(
         <router-link
           to="/"
           @click="mobileMenuOpen = false"
-          class="block px-3 py-2 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700"
+          class="block px-3 py-2 rounded-lg text-sm font-semibold bg-blue-50 text-blue-700"
         >
           Panduan Sistem
         </router-link>
@@ -411,33 +468,24 @@ watch(
         >
           Hubungi Implementator
         </router-link>
-        <div class="pt-2 border-t border-slate-100 px-3">
-          <a
-            href="tel:+62361256500"
-            class="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-sky-600"
-          >
-            <Phone class="w-3.5 h-3.5 text-slate-500" />
-            <span>Phone: +62 361 256 500</span>
-          </a>
-        </div>
       </div>
     </nav>
 
     <!-- 3. Subheader: "Tata Cara Penggunaan Sistem" & System Pills Switcher -->
-    <section class="border-b border-slate-200/80 bg-white py-5 sm:py-7 px-4 sm:px-6 lg:px-12 xl:px-16">
+    <section class="border-b border-slate-200/80 bg-white py-5 sm:py-6 px-4 sm:px-6 lg:px-12 xl:px-16">
       <div class="w-full">
         <h1 class="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
           Tata Cara Penggunaan Sistem
         </h1>
         <p class="text-xs sm:text-sm text-slate-500 mt-1">
-          Pilih sistem di bawah, lalu pilih modul di menu kiri untuk mempelajari tata cara penggunaan langkah demi langkah.
+          Pilih sistem di bawah, lalu pilih modul di menu kiri untuk membaca panduan tata cara operasional langkah demi langkah.
         </p>
 
         <!-- "PILIH SISTEM" Label & Pills Row -->
         <div class="mt-4">
           <div class="flex items-center justify-between mb-2.5">
             <div class="flex items-center gap-2">
-              <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
               <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 Pilih Sistem Probus
               </span>
@@ -447,7 +495,7 @@ watch(
             </span>
           </div>
 
-          <!-- Horizontal Scroll Container with Custom Light Blue Scrollbar -->
+          <!-- Horizontal Scroll Container -->
           <div class="custom-sky-scrollbar flex items-center gap-2.5 overflow-x-auto pb-3 pt-1">
             <button
               v-for="sys in availableSystems"
@@ -456,8 +504,8 @@ watch(
               :class="[
                 'group shrink-0 inline-flex items-center gap-2 text-xs px-3.5 sm:px-4 py-2.5 rounded-xl font-bold transition-all duration-200 cursor-pointer select-none',
                 selectedSystemId === sys.id
-                  ? 'bg-gradient-to-r from-sky-600 to-sky-700 text-white shadow-sm shadow-sky-600/30 ring-2 ring-sky-500/30'
-                  : 'bg-white text-slate-700 border border-slate-200/90 hover:border-sky-300 hover:bg-sky-50/60 hover:text-sky-700 shadow-2xs'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 ring-2 ring-blue-500/30'
+                  : 'bg-white text-slate-700 border border-slate-200/90 hover:border-blue-300 hover:bg-blue-50/60 hover:text-blue-700 shadow-2xs'
               ]"
             >
               <!-- System Icon -->
@@ -466,7 +514,7 @@ watch(
                   'w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors',
                   selectedSystemId === sys.id
                     ? 'bg-white/20 text-white'
-                    : 'bg-slate-100 text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-600'
+                    : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'
                 ]"
               >
                 <component :is="detectSystemIcon(sys.name)" class="w-3.5 h-3.5" />
@@ -481,7 +529,7 @@ watch(
                   'text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors',
                   selectedSystemId === sys.id
                     ? 'bg-white/25 text-white'
-                    : 'bg-slate-100 text-slate-500 group-hover:bg-sky-100/80 group-hover:text-sky-700'
+                    : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100/80 group-hover:text-blue-700'
                 ]"
               >
                 {{ sys.modulCount || (sys.name === 'BARONG POS' ? 8 : 10) }} Modul
@@ -492,236 +540,388 @@ watch(
       </div>
     </section>
 
-    <!-- 4. Two-Column Main Body: Left Sidebar (Daftar Modul) + Right Reader Content -->
+    <!-- 4. Two-Column Main Body: Left Sidebar + Right Reader Content Canvas -->
     <main class="flex-1 w-full px-4 sm:px-6 lg:px-12 xl:px-16 py-6 sm:py-8 lg:py-10">
-      <div class="flex flex-col md:flex-row gap-6 lg:gap-8 items-start">
+      <div class="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
         
-        <!-- LEFT COLUMN: Sidebar "DAFTAR MODUL" -->
-        <aside class="w-full md:w-80 lg:w-[340px] shrink-0">
-          <div class="bg-slate-100/70 border border-slate-200/80 rounded-2xl p-4 sm:p-5 sticky top-24">
-            <div class="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider mb-3.5 px-1">
-              <span>DAFTAR MODUL ({{ modulesList.length }})</span>
-              <span class="text-[10px] font-normal text-slate-400 capitalize">
-                {{ currentSystem.name }}
-              </span>
+        <!-- ======================================================== -->
+        <!-- LEFT COLUMN: SIDEBAR DAFTAR MODUL & SUB MENU ACCORDION   -->
+        <!-- Sesuai Desain Probus Implementator manualbook.blade.php  -->
+        <!-- ======================================================== -->
+        <aside class="w-full lg:w-80 xl:w-[340px] shrink-0">
+          <div class="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs sticky top-24">
+            
+            <!-- Sidebar Header -->
+            <div class="flex items-center justify-between mb-3 px-0.5">
+              <div>
+                <div class="text-xs font-black text-slate-800 uppercase tracking-wider">
+                  DAFTAR MODUL &amp; SUB MENU ({{ modulesList.length }})
+                </div>
+                <p class="text-[11px] text-slate-400 mt-0.5">
+                  Pilih modul untuk melihat materi sub menu:
+                </p>
+              </div>
             </div>
 
-            <!-- List of Modules from Database `menu_systems` -->
-            <div class="space-y-2.5 max-h-[calc(100vh-220px)] overflow-y-auto pr-1 custom-sky-scrollbar">
+            <!-- Mini Search Filter for Sub Menus -->
+            <div class="relative mb-3.5">
+              <Search class="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                v-model="tocSearchQuery"
+                type="text"
+                placeholder="Cari dalam daftar sub menu..."
+                class="w-full pl-8 pr-7 py-1.5 bg-slate-50/70 focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+              />
+              <button
+                v-if="tocSearchQuery"
+                @click="tocSearchQuery = ''"
+                class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <!-- Accordion List of Modules and Sub-Menus -->
+            <div class="space-y-2.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1 custom-sky-scrollbar">
               <div
-                v-for="mod in modulesList"
+                v-for="mod in filteredModulesList"
                 :key="mod.id"
-                @click="selectModule(mod)"
                 :class="[
-                  'rounded-xl p-4 border transition-all duration-150 cursor-pointer text-left',
+                  'rounded-2xl border transition-all duration-200 overflow-hidden',
                   currentModule.id === mod.id
-                    ? 'bg-white border-2 border-sky-500 ring-2 ring-sky-100 shadow-sm'
-                    : 'bg-white border-slate-200/90 hover:border-slate-300 hover:shadow-2xs'
+                    ? 'border-blue-500 bg-white shadow-2xs ring-1 ring-blue-500/30'
+                    : 'border-slate-200/90 bg-white hover:border-slate-300'
                 ]"
               >
-                <div class="flex items-center justify-between gap-2">
-                  <h3
-                    :class="[
-                      'text-sm font-bold tracking-tight',
-                      currentModule.id === mod.id ? 'text-sky-700 font-extrabold' : 'text-slate-900'
-                    ]"
-                  >
-                    {{ mod.title }}
-                  </h3>
-                </div>
-
-                <div class="flex items-center justify-between text-[11px] mt-1 font-medium">
-                  <span
-                    :class="currentModule.id === mod.id ? 'text-sky-600 font-semibold' : 'text-slate-400'"
-                  >
-                    <span v-if="currentModule.id === mod.id">Sedang Dibaca</span>
-                    <span v-else>
-                      {{ mod.manualBooks.length > 1 ? `${mod.manualBooks.length} Bab Panduan` : 'Tersedia Panduan' }}
-                    </span>
-                  </span>
-                </div>
-
-                <!-- Dropdown Bab Manual Book di Bagian Bawah Modul -->
+                <!-- Header Modul (Dapat diklik untuk expand / pilih modul) -->
                 <div
-                  v-if="mod.hasManualBook"
-                  class="mt-2.5 pt-2 border-t border-slate-100"
-                  @click.stop
+                  class="p-3.5 flex items-center justify-between gap-2 cursor-pointer select-none group"
+                  @click="toggleModule(mod)"
                 >
-                  <button
-                    type="button"
-                    @click="toggleDropdown(mod.id)"
-                    :class="[
-                      'w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                      currentModule.id === mod.id
-                        ? 'bg-sky-50 text-sky-900 border border-sky-200 hover:bg-sky-100/70'
-                        : 'bg-slate-50 text-slate-700 border border-slate-200/80 hover:bg-slate-100'
-                    ]"
-                  >
-                    <span class="flex items-center gap-1.5 truncate">
-                      <BookOpen class="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                      <span class="truncate">
-                        {{ currentModule.id === mod.id && mod.manualBooks[activeManualIndex] ? `Bab ${activeManualIndex + 1}: ${mod.manualBooks[activeManualIndex].title}` : `Pilih Bab (${mod.manualBooks.length} Bab)` }}
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <div
+                      :class="currentModule.id === mod.id ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-50 text-slate-500 border border-slate-200'"
+                      class="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-colors"
+                    >
+                      <Folder class="w-3.5 h-3.5" />
+                    </div>
+                    <div class="min-w-0">
+                      <h3
+                        class="text-xs sm:text-[13px] font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors"
+                      >
+                        {{ mod.title }}
+                      </h3>
+                      <span
+                        class="text-[10px] font-medium"
+                        :class="currentModule.id === mod.id ? 'text-blue-600 font-semibold' : 'text-slate-400'"
+                      >
+                        {{ currentModule.id === mod.id ? 'Sedang Dibaca' : `${mod.manualBooks.length} Sub Menu` }}
                       </span>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <span
+                      class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      :class="mod.manualBooks.length > 0 ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-400'"
+                    >
+                      {{ mod.manualBooks.length }} Sub Menu
                     </span>
                     <ChevronDown
-                      :class="[
-                        'w-3.5 h-3.5 transition-transform duration-200 shrink-0 ml-1',
-                        openDropdownId === mod.id ? 'rotate-180 text-sky-600' : 'text-slate-400'
-                      ]"
+                      class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"
+                      :class="expandedModules[mod.id] ? 'rotate-180 text-blue-500' : ''"
                     />
-                  </button>
-
-                  <!-- Dropdown Menu / Daftar Bab -->
-                  <div
-                    v-if="openDropdownId === mod.id"
-                    class="mt-1.5 p-1 bg-white rounded-xl shadow-md border border-slate-200 space-y-1 z-20 animate-in fade-in duration-150"
-                  >
-                    <button
-                      v-for="(mb, mbIdx) in mod.manualBooks"
-                      :key="mb.id"
-                      type="button"
-                      @click="selectModuleAndChapter(mod, mbIdx)"
-                      :class="[
-                        'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-start gap-2 cursor-pointer',
-                        currentModule.id === mod.id && activeManualIndex === mbIdx
-                          ? 'bg-sky-600 text-white font-bold shadow-xs'
-                          : 'bg-white hover:bg-sky-50 text-slate-700 hover:text-slate-900'
-                      ]"
-                    >
-                      <FileText
-                        :class="[
-                          'w-3.5 h-3.5 shrink-0 mt-0.5',
-                          currentModule.id === mod.id && activeManualIndex === mbIdx ? 'text-white' : 'text-sky-600'
-                        ]"
-                      />
-                      <span class="line-clamp-2 leading-snug">
-                        Bab {{ mbIdx + 1 }}: {{ mb.title }}
-                      </span>
-                    </button>
                   </div>
                 </div>
+
+                <!-- Daftar Sub Menu di bawah Modul (Inline Accordion) -->
+                <div
+                  v-show="expandedModules[mod.id] || tocSearchQuery.length > 0"
+                  class="border-t border-slate-100 bg-slate-50/70 p-2.5 space-y-1.5"
+                >
+                  <div
+                    v-for="(sub, sIdx) in mod.manualBooks"
+                    :key="sub.id"
+                    @click="selectChapter(mod, sIdx)"
+                    :class="[
+                      'p-2.5 rounded-xl transition-all duration-150 cursor-pointer flex items-center justify-between gap-2 select-none group',
+                      currentModule.id === mod.id && activeManualIndex === sIdx
+                        ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                        : 'bg-white text-slate-700 hover:bg-blue-50/80 border border-slate-200/80'
+                    ]"
+                  >
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span
+                        class="w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-black shrink-0"
+                        :class="currentModule.id === mod.id && activeManualIndex === sIdx ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'"
+                      >
+                        #{{ sub.order || (sIdx + 1) }}
+                      </span>
+                      <span class="text-xs truncate font-medium">
+                        {{ cleanChapterTitle(sub.title) }}
+                      </span>
+                    </div>
+                    <ChevronRight
+                      v-if="currentModule.id === mod.id && activeManualIndex === sIdx"
+                      class="w-3 h-3 text-white/80 shrink-0"
+                    />
+                  </div>
+
+                  <div
+                    v-if="!mod.manualBooks || mod.manualBooks.length === 0"
+                    class="text-xs text-slate-400 italic py-3 text-center"
+                  >
+                    Belum ada sub menu panduan.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Empty state pencarian sidebar -->
+              <div
+                v-if="filteredModulesList.length === 0"
+                class="py-8 text-center text-xs text-slate-400 italic"
+              >
+                Tidak ada sub menu yang cocok.
               </div>
             </div>
           </div>
         </aside>
 
-        <!-- RIGHT COLUMN: Detailed Reader Content Canvas -->
-        <article class="flex-1 min-w-0 bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-10 lg:p-12 shadow-xs">
+        <!-- ======================================================== -->
+        <!-- RIGHT COLUMN: DETAILED READER CONTENT CANVAS             -->
+        <!-- Sesuai Desain manual_book/index.blade.php baris 893-1004 -->
+        <!-- ======================================================== -->
+        <article class="flex-1 min-w-0 bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-10 shadow-xs flex flex-col justify-between">
           
-          <!-- Category Breadcrumb / Subtitle (Always Dynamically Matches Active System) -->
-          <div class="text-xs font-bold text-sky-600 uppercase tracking-wider flex items-center gap-2">
-            <span>{{ currentSystem.shortName }}</span>
-            <span class="text-slate-300">•</span>
-            <span>Modul {{ currentModule.code }} dari {{ String(modulesList.length).padStart(2, '0') }}</span>
-          </div>
+          <div>
+            <!-- CASE 1: Real Published Manual Book Content from Database `manual_books` -->
+            <template v-if="currentManualBook && currentManualBook.content">
+              <div class="space-y-4">
+                
+                <!-- Breadcrumb Hierarki Sub Menu -->
+                <div class="flex items-center flex-wrap gap-1.5 text-xs font-semibold text-slate-400 pb-1">
+                  <span class="hover:text-slate-600 transition-colors uppercase tracking-wider font-bold text-sky-600">
+                    {{ currentSystem.name }}
+                  </span>
+                  <ChevronRight class="w-3 h-3 text-slate-300" />
+                  <span class="text-slate-600 font-medium">
+                    {{ currentModule.title }}
+                  </span>
+                  <ChevronRight class="w-3 h-3 text-slate-300" />
+                  <span class="text-blue-600 font-bold">
+                    Sub Menu #{{ currentManualBook.order || (activeManualIndex + 1) }}
+                  </span>
+                </div>
 
-          <!-- Module Main Title -->
-          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 tracking-tight">
-            {{ currentManualBook ? currentManualBook.title : currentModule.title }}
-          </h2>
+                <!-- Judul Sub Menu Besar (Clean Title) -->
+                <div>
+                  <h1 class="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
+                    {{ cleanChapterTitle(currentManualBook.title) }}
+                  </h1>
 
-          <!-- Active Chapter Indicator (Only show the active chapter, unopened white button removed) -->
-          <div
-            v-if="currentModule.manualBooks && currentModule.manualBooks.length > 1 && currentManualBook"
-            class="mt-2.5 flex items-center"
-          >
-            <span
-              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold bg-sky-600 text-white shadow-2xs"
-            >
-              <FileText class="w-3.5 h-3.5" />
-              <span>Bab {{ activeManualIndex + 1 }}: {{ currentManualBook.title }}</span>
-            </span>
-          </div>
+                  <!-- Informasi Pembuat & Pengedit Sub Menu -->
+                  <div class="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-slate-500 mt-2.5 flex-wrap">
+                    <!-- Pembuat Awal -->
+                    <div class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg">
+                      <User class="w-3 h-3 text-blue-500" />
+                      <span>Dibuat: <strong class="text-slate-700">{{ currentManualBook.created_by_name || 'Superadministrator' }}</strong></span>
+                      <span class="text-slate-400 text-[10px]" v-if="formatDate(currentManualBook.created_at)">
+                        ({{ formatDate(currentManualBook.created_at) }})
+                      </span>
+                    </div>
 
-          <hr class="mt-2.5 mb-3 border-slate-100" />
+                    <!-- Pengedit Terakhir -->
+                    <div
+                      v-if="currentManualBook.updated_at"
+                      class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg"
+                    >
+                      <PenTool class="w-3 h-3 text-amber-500" />
+                      <span>Diedit: <strong class="text-slate-700">{{ currentManualBook.updated_by_name || 'Superadministrator' }}</strong></span>
+                      <span class="text-slate-400 text-[10px]">
+                        ({{ formatDateRelative(currentManualBook.updated_at) }})
+                      </span>
+                    </div>
+                  </div>
 
-          <!-- CASE 1: Real Published Manual Book Content from Database `manual_books` -->
-          <div v-if="currentManualBook && currentManualBook.content" class="manual-book-content">
-            <!-- Render HTML Content directly from `dbprobuscs.manual_books.content` -->
-            <div
-              class="prose prose-slate max-w-none [&>*:first-child]:mt-0 prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-relaxed prose-table:w-full prose-table:border-collapse prose-th:bg-slate-100 prose-th:p-3 prose-td:p-3 prose-img:rounded-xl prose-img:shadow-xs prose-img:border prose-img:border-slate-200"
-              v-html="currentManualBook.content"
-            ></div>
-          </div>
-
-          <!-- CASE 2: Draft / Not Yet Published in Database (Helpful Overview & Contact Support) -->
-          <div v-else class="space-y-6">
-            <!-- Notice Box -->
-            <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-5 sm:p-6 flex items-start gap-4 text-amber-900">
-              <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                <HelpCircle class="w-5 h-5 stroke-[2]" />
-              </div>
-              <div class="flex-1">
-                <h4 class="text-sm font-bold text-amber-950">
-                  Dokumen Panduan Modul Sedang Disusun
-                </h4>
-                <p class="text-xs sm:text-sm text-amber-800/90 mt-1 leading-relaxed">
-                  Buku panduan interaktif resmi untuk modul <strong>{{ currentModule.name }}</strong> pada sistem <strong>{{ currentSystem.name }}</strong> sedang dalam proses kurasi dan publikasi oleh tim implementator Probus.
-                </p>
-                <div class="mt-4 flex flex-wrap items-center gap-3">
-                  <a
-                    href="https://wa.me/62811389211"
-                    target="_blank"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-xs transition-colors"
+                  <!-- Deskripsi Sub Menu (Ringkasan Singkat) -->
+                  <p
+                    v-if="currentManualBook.description && !isWordImportDesc(currentManualBook.description)"
+                    class="text-xs sm:text-sm text-slate-600 italic mt-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 leading-relaxed"
                   >
-                    <MessageSquare class="w-3.5 h-3.5 fill-white/20" />
-                    <span>Tanyakan Penggunaan ke WhatsApp Support</span>
-                  </a>
-                  <button
-                    @click="goBackToSystemDetail"
-                    class="px-4 py-2 rounded-lg bg-white hover:bg-amber-100/50 text-amber-900 font-semibold text-xs border border-amber-300 transition-colors"
-                  >
-                    Kembali ke Daftar Modul
-                  </button>
+                    {{ currentManualBook.description }}
+                  </p>
                 </div>
-              </div>
-            </div>
 
-            <!-- Standard Operational Procedure Outline -->
-            <div class="bg-slate-50 border border-slate-200 rounded-xl p-6">
-              <h3 class="text-base font-bold text-slate-900 mb-2">
-                Ringkasan Fungsi & Prosedur Modul
-              </h3>
-              <p class="text-sm text-slate-600 leading-relaxed">
-                {{ currentModule.desc }}
-              </p>
-              <div class="mt-4 p-4 bg-white rounded-lg border border-slate-200 text-xs text-slate-500 space-y-2">
-                <div class="flex items-center gap-2">
-                  <CheckCircle2 class="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Pastikan akun Anda memiliki hak akses (role permission) untuk membuka modul ini.</span>
+                <hr class="border-slate-100 my-4" />
+
+                <!-- Isi Materi Artikel Panduan (TinyMCE Content) -->
+                <div
+                  class="article-content prose prose-slate max-w-none text-slate-800 text-xs sm:text-sm leading-relaxed overflow-x-auto min-h-[220px]"
+                  v-html="formatArticleContent(currentManualBook.content)"
+                ></div>
+              </div>
+            </template>
+
+            <!-- CASE 2: Draft / Not Yet Published in Database -->
+            <template v-else>
+              <div class="space-y-6">
+                <!-- Notice Box -->
+                <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-5 sm:p-6 flex items-start gap-4 text-amber-900">
+                  <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    <HelpCircle class="w-5 h-5 stroke-[2]" />
+                  </div>
+                  <div class="flex-1">
+                    <h4 class="text-sm font-bold text-amber-950">
+                      Dokumen Panduan Modul Sedang Disusun
+                    </h4>
+                    <p class="text-xs sm:text-sm text-amber-800/90 mt-1 leading-relaxed">
+                      Buku panduan interaktif resmi untuk modul <strong>{{ currentModule.name }}</strong> pada sistem <strong>{{ currentSystem.name }}</strong> sedang dalam proses kurasi dan publikasi oleh tim implementator Probus.
+                    </p>
+                    <div class="mt-4 flex flex-wrap items-center gap-3">
+                      <a
+                        href="https://wa.me/62811389211"
+                        target="_blank"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-xs transition-colors"
+                      >
+                        <MessageSquare class="w-3.5 h-3.5 fill-white/20" />
+                        <span>Tanyakan Penggunaan ke WhatsApp Support</span>
+                      </a>
+                      <button
+                        @click="goBackToSystemDetail"
+                        class="px-4 py-2 rounded-xl bg-white hover:bg-amber-100/50 text-amber-900 font-semibold text-xs border border-amber-300 transition-colors"
+                      >
+                        Kembali ke Daftar Modul
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div class="flex items-center gap-2">
-                  <CheckCircle2 class="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Untuk bantuan konfigurasi awal, hubungi tim implementator resmi Probus System.</span>
+
+                <!-- Standard Operational Procedure Outline -->
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6">
+                  <h3 class="text-base font-bold text-slate-900 mb-2">
+                    Ringkasan Fungsi & Prosedur Modul
+                  </h3>
+                  <p class="text-sm text-slate-600 leading-relaxed">
+                    {{ currentModule.desc }}
+                  </p>
+                  <div class="mt-4 p-4 bg-white rounded-xl border border-slate-200 text-xs text-slate-500 space-y-2">
+                    <div class="flex items-center gap-2">
+                      <CheckCircle2 class="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>Pastikan akun Anda memiliki hak akses (role permission) untuk membuka modul ini.</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <CheckCircle2 class="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>Untuk bantuan konfigurasi awal, hubungi tim implementator resmi Probus System.</span>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </template>
+          </div>
+
+          <!-- ======================================================== -->
+          <!-- BOTTOM SUB MENU NAVIGATION (SEBELUMNYA & SELANJUTNYA)     -->
+          <!-- Sesuai Desain manual_book/index.blade.php baris 952-1004 -->
+          <!-- ======================================================== -->
+          <div class="mt-12 pt-6 border-t border-slate-200 shrink-0">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              
+              <!-- Tombol Sub Menu Sebelumnya -->
+              <button
+                v-if="prevChapter"
+                type="button"
+                @click="goToPrevChapter"
+                class="flex-1 group flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-blue-500/50 bg-slate-50/60 hover:bg-blue-50/40 text-left transition-all cursor-pointer"
+              >
+                <div class="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors shrink-0">
+                  <ArrowLeft class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                </div>
+                <div class="truncate">
+                  <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 group-hover:text-blue-600 transition-colors">
+                    ← Sub Menu Sebelumnya
+                  </div>
+                  <div class="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-blue-600 truncate mt-0.5">
+                    {{ cleanChapterTitle(prevChapter.title) }}
+                  </div>
+                </div>
+              </button>
+              
+              <!-- Jika bab pertama di modul ini, tampilkan tombol kembali ke modul sebelumnya jika ada -->
+              <button
+                v-else-if="prevModule"
+                type="button"
+                @click="goToPrevModule"
+                class="flex-1 group flex items-center gap-2.5 p-3.5 rounded-2xl border border-slate-200 hover:border-slate-300 bg-slate-50/60 hover:bg-slate-100/60 text-left transition-all cursor-pointer"
+              >
+                <div class="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 shrink-0">
+                  <ArrowLeft class="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+                </div>
+                <div class="truncate max-w-[200px]">
+                  <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    ← Modul Sebelumnya
+                  </div>
+                  <div class="text-xs font-bold text-slate-700 truncate mt-0.5">
+                    {{ prevModule.title }}
+                  </div>
+                </div>
+              </button>
+              
+              <div v-else class="flex-1 hidden sm:block"></div>
+
+              <!-- Tombol Sub Menu Selanjutnya -->
+              <button
+                v-if="nextChapter"
+                type="button"
+                @click="goToNextChapter"
+                class="flex-1 group flex items-center justify-end gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-blue-500/50 bg-slate-50/60 hover:bg-blue-50/40 text-right transition-all cursor-pointer"
+              >
+                <div class="truncate">
+                  <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 group-hover:text-blue-600 transition-colors">
+                    Sub Menu Selanjutnya →
+                  </div>
+                  <div class="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-blue-600 truncate mt-0.5">
+                    {{ cleanChapterTitle(nextChapter.title) }}
+                  </div>
+                </div>
+                <div class="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors shrink-0">
+                  <ArrowRight class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </button>
+
+              <!-- Jika sudah di akhir modul, tampilkan banner selesai & tombol lanjut ke modul berikutnya -->
+              <div v-else-if="nextModule" class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div class="flex-1 p-3 rounded-2xl border border-emerald-500/20 bg-emerald-50/50 text-center flex items-center justify-center gap-2">
+                  <CheckCircle2 class="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span class="text-xs font-bold text-emerald-700">Selesai materi modul ini!</span>
+                </div>
+                <button
+                  type="button"
+                  @click="goToNextModule"
+                  class="group flex items-center justify-end gap-2.5 p-3 rounded-2xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-right transition-all cursor-pointer shrink-0"
+                >
+                  <div class="truncate max-w-[150px]">
+                    <div class="text-[10px] font-extrabold uppercase tracking-wider text-blue-500">
+                      Modul Selanjutnya →
+                    </div>
+                    <div class="text-xs font-bold text-blue-700 truncate mt-0.5">
+                      {{ nextModule.title }}
+                    </div>
+                  </div>
+                  <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <ArrowRight class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </button>
+              </div>
+
+              <!-- Selesai seluruh modul pada sistem ini -->
+              <div v-else class="flex-1 p-3.5 rounded-2xl border border-emerald-500/20 bg-emerald-50/50 text-center flex items-center justify-center gap-2">
+                <CheckCircle2 class="w-4 h-4 text-emerald-500" />
+                <span class="text-xs font-bold text-emerald-700">Selesai membaca seluruh materi pada sistem ini!</span>
+              </div>
+
             </div>
           </div>
 
-          <!-- Bottom Navigation Bar: "← Modul Sebelumnya" & "Modul Selanjutnya →" -->
-          <div class="mt-12 pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <!-- Previous Button -->
-            <button
-              v-if="prevModule"
-              @click="goToPrev"
-              class="w-full sm:w-auto inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 px-4 py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              <ArrowLeft class="w-4 h-4 text-slate-400" />
-              <span>Modul Sebelumnya: {{ prevModule.title }}</span>
-            </button>
-            <div v-else class="hidden sm:block"></div>
-
-            <!-- Next Button -->
-            <button
-              v-if="nextModule"
-              @click="goToNext"
-              class="w-full sm:w-auto inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-sky-600 hover:text-sky-700 px-4 py-2.5 rounded-lg border border-sky-200 bg-sky-50/60 hover:bg-sky-50 transition-colors cursor-pointer shadow-2xs"
-            >
-              <span>Modul Selanjutnya: {{ nextModule.title }}</span>
-              <ArrowRight class="w-4 h-4 text-sky-600" />
-            </button>
-            <div v-else class="hidden sm:block"></div>
-          </div>
         </article>
       </div>
     </main>
@@ -736,61 +936,87 @@ watch(
 </template>
 
 <style scoped>
-:deep(.manual-book-content > .prose > :first-child),
-:deep(.manual-book-content .prose > :first-child),
-:deep(.manual-book-content > :first-child) {
+/* Styling Konten Artikel TinyMCE identik dengan Probus Implementator */
+:deep(.article-content) {
+  line-height: 1.8;
+  color: #334155;
+}
+
+:deep(.article-content > :first-child) {
   margin-top: 0 !important;
   padding-top: 0 !important;
 }
 
-/* Ensure database-rendered HTML tables and images look clean */
-:deep(.manual-book-content table) {
+:deep(.article-content h1),
+:deep(.article-content h2),
+:deep(.article-content h3),
+:deep(.article-content h4) {
+  font-weight: 800;
+  color: #0f172a;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.3;
+}
+
+:deep(.article-content h1) { font-size: 1.5rem; }
+:deep(.article-content h2) { font-size: 1.25rem; }
+:deep(.article-content h3) { font-size: 1.125rem; }
+:deep(.article-content h4) { font-size: 1rem; }
+
+:deep(.article-content p) {
+  margin-bottom: 1rem;
+  color: #334155;
+}
+
+:deep(.article-content ul),
+:deep(.article-content ol) {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+:deep(.article-content ul) { list-style-type: disc; }
+:deep(.article-content ol) { list-style-type: decimal; }
+:deep(.article-content li) {
+  margin-bottom: 0.35rem;
+  color: #334155;
+}
+
+/* Tabel TinyMCE & Word Importer */
+:deep(.article-content table) {
   width: 100% !important;
   border-collapse: collapse !important;
   margin: 1.25rem 0 !important;
+  font-size: 0.825rem !important;
   border: 1px solid #cbd5e1 !important;
-  border-radius: 8px !important;
+  border-radius: 0.5rem !important;
   overflow: hidden !important;
 }
 
-:deep(.manual-book-content th) {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
-  font-weight: 700 !important;
-  padding: 10px 14px !important;
+:deep(.article-content table th),
+:deep(.article-content table td) {
   border: 1px solid #e2e8f0 !important;
+  padding: 0.625rem 0.75rem !important;
   text-align: left !important;
-  font-size: 0.875rem !important;
 }
 
-:deep(.manual-book-content td) {
-  padding: 10px 14px !important;
-  border: 1px solid #e2e8f0 !important;
-  font-size: 0.875rem !important;
-  color: #334155 !important;
-  line-height: 1.5 !important;
-}
-
-:deep(.manual-book-content h3) {
-  font-size: 1.125rem !important;
-  font-weight: 700 !important;
+:deep(.article-content table th) {
+  background-color: #f1f5f9 !important;
   color: #0f172a !important;
-  margin-top: 1.5rem !important;
-  margin-bottom: 0.75rem !important;
+  font-weight: 700 !important;
 }
 
-:deep(.manual-book-content p) {
-  font-size: 0.9375rem !important;
-  color: #475569 !important;
-  line-height: 1.625 !important;
-  margin-bottom: 1rem !important;
+:deep(.article-content table th p),
+:deep(.article-content table td p) {
+  margin: 0 !important;
 }
 
-:deep(.manual-book-content img) {
+/* Gambar Panduan */
+:deep(.article-content img) {
   max-width: 100% !important;
   height: auto !important;
-  border-radius: 8px !important;
-  margin: 1rem 0 !important;
+  border-radius: 0.75rem !important;
+  margin: 1.25rem auto !important;
   border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  display: block !important;
 }
 </style>
