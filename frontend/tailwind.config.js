@@ -5,7 +5,13 @@ export default {
     "./src/**/*.{vue,js,ts,jsx,tsx}",
   ],
   theme: {
+    fontFamily: {
+      sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+    },
     extend: {
+      fontFamily: {
+        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+      },
       colors: {
         brand: {
           50: '#f0f9ff',

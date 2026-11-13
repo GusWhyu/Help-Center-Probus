@@ -6,3 +6,4 @@ import FloatingWhatsAppSupport from './components/FloatingWhatsAppSupport.vue'
   <RouterView />
   <FloatingWhatsAppSupport />
 </template>
+

@@ -23,8 +23,10 @@ import {
   Wallet,
   BarChart3,
   TrendingUp,
-  Printer
+  Printer,
+  Phone
 } from 'lucide-vue-next'
+import apiClient from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,6 +37,7 @@ const systemId = computed(() => Number(route.params.id) || 2)
 // Active Tab: 'manual' or 'solusi'
 const activeTab = ref('manual')
 const searchQuery = ref('')
+const selectedCardId = ref(2) // default highlight: card 02 (Transaksi)
 
 // System metadata mapping
 const systemsInfo = {
@@ -270,92 +273,72 @@ const presto10Modules = [
   },
 ]
 
-// Troubleshooting Articles for "Solusi" Tab
-const troubleshootingArticles = [
-  {
-    id: 1,
-    title: 'Cara Menangani Printer Kasir Thermal yang Tidak Mencetak Struk',
-    menuName: '10. Tools',
-    readTime: '4 menit baca',
-    summary: 'Langkah cepat penanganan printer thermal saat struk tidak keluar pada jam operasional kasir.',
-    content: `
-      <div class="space-y-4">
-        <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-sm">
-          <strong>Peringatan Awal:</strong> Jangan mematikan saklar listrik utama kasir saat printer sedang memproses antrian cetak.
-        </div>
-        <h3 class="text-lg font-bold text-slate-900">1. Periksa Fisik Printer & Lampu Indikator (LED)</h3>
-        <ul class="list-disc pl-5 space-y-1 text-slate-600">
-          <li><strong>Lampu Merah (Error) Berkedip</strong>: Kemungkinan kertas struk habis atau penutup printer belum tertutup rapat.</li>
-          <li><strong>Lampu Biru/Hijau Mati</strong>: Periksa kabel adaptor daya di bagian belakang printer apakah terlepas.</li>
-        </ul>
-        <h3 class="text-lg font-bold text-slate-900 mt-6">2. Periksa Posisi Kertas Thermal</h3>
-        <p>Kertas thermal memiliki satu sisi sensitif panas. Pastikan gulungan kertas menghadap ke atas (posisi kertas keluar dari bawah gulungan).</p>
-      </div>
-    `,
-  },
-  {
-    id: 2,
-    title: 'Solusi Laci Uang (Cash Drawer) Tidak Terbuka Otomatis Saat Bayar',
-    menuName: '10. Tools',
-    readTime: '3 menit baca',
-    summary: 'Pengecekan kabel RJ11 dan pengaturan printer driver agar cash drawer memicu tendangan pembuka otomatis.',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">Penyebab Umum & Solusi</h3>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li><strong>Kabel RJ11 Longgar</strong>: Kabel telepon (RJ11) dari laci uang harus terpasang kencang ke port DK.</li>
-          <li><strong>Kunci Manual Terkunci Penuh</strong>: Pastikan lubang kunci laci berada pada posisi vertikal.</li>
-        </ol>
-      </div>
-    `,
-  },
-  {
-    id: 3,
-    title: 'Mengatur IP Address Statis Printer Kitchen (LAN Port 9100)',
-    menuName: '10. Tools',
-    readTime: '5 menit baca',
-    summary: 'Panduan konfigurasi IP Address static pada printer dapur LAN agar cetakan order makanan tidak terputus.',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">Langkah Menetapkan IP Statis via Web Browser</h3>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li>Cetak kertas Self-Test printer dengan menahan tombol FEED sambil menyalakan saklar daya.</li>
-          <li>Buka browser di komputer kasir, ketik IP printer, lalu ubah mode dari DHCP ke Static IP.</li>
-        </ol>
-      </div>
-    `,
-  },
-  {
-    id: 4,
-    title: 'Mengatasi Kertas Struk Macet (Paper Jam) pada Pemotong Otomatis',
-    menuName: '10. Tools',
-    readTime: '3 menit baca',
-    summary: 'Cara mengembalikan pisau auto-cutter yang tersangkut tanpa merusak gear mesin printer.',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">Langkah Menyelamatkan Pisau Auto-Cutter</h3>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li>Matikan saklar printer kasir terlebih dahulu.</li>
-          <li>Buka penutup plastik kecil di bagian depan pemotong (gear cover).</li>
-          <li>Putar roda gerigi (gear) secara perlahan menggunakan jari hingga bilah pisau mundur ke posisi semula.</li>
-        </ol>
-      </div>
-    `,
-  },
-  {
-    id: 5,
-    title: 'Mengalihkan Cetakan Order Dapur Sementara Saat Printer Utama Rusak',
-    menuName: '02. Transaksi',
-    readTime: '4 menit baca',
-    summary: 'Prosedur darurat mengalihkan routing tiket order dapur ke printer kasir saat terjadi gangguan printer kitchen.',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">Fitur Emergency Kitchen Routing</h3>
-        <p class="text-slate-600">Buka menu <strong>10. Tools > Hardware Setup</strong>, ubah target printer sementara ke Printer Kasir.</p>
-      </div>
-    `,
-  },
-]
+function formatArticleContent(html) {
+  if (!html) return ''
+  return html.replace(/http:\/\/(127\.0\.0\.1|localhost):8000\/uploads\//g, '/uploads/')
+}
+
+function cleanSummary(text) {
+  if (!text) return ''
+  return text.replace(/&nbsp;/g, ' ').replace(/<[^>]*>?/gm, '').trim()
+}
+
+// Troubleshooting Articles for "Solusi" Tab loaded dynamically from database
+const troubleshootingArticles = ref([])
+
+async function loadSystemArticles() {
+  try {
+    const res = await apiClient.get('/articles', {
+      params: { kategori_id: systemId.value, limit: 50 }
+    })
+    if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+      troubleshootingArticles.value = res.data.data
+        .filter(item => item.status === 'published' && item.visibility === 'publik')
+        .map(item => {
+        const primaryMenu = item.menu_systems && item.menu_systems.length > 0 ? item.menu_systems[0] : null
+        const menuName = primaryMenu ? primaryMenu.name : 'Tools'
+        const words = (item.content || '').split(/\s+/).length
+        const minutes = Math.max(2, Math.min(10, Math.ceil(words / 150)))
+
+        return {
+          id: item.id,
+          title: item.title,
+          menuName: menuName,
+          readTime: `${minutes} menit baca`,
+          summary: cleanSummary(item.summary) || 'Panduan pemecahan masalah teknis dan operasional sistem Probus.',
+          content: formatArticleContent(item.content),
+        }
+      })
+    } else {
+      const fallbackRes = await apiClient.get('/articles', { params: { limit: 50 } })
+      if (fallbackRes.data && fallbackRes.data.data && Array.isArray(fallbackRes.data.data)) {
+        troubleshootingArticles.value = fallbackRes.data.data
+          .filter(item => item.status === 'published' && item.visibility === 'publik')
+          .map(item => {
+          const primaryMenu = item.menu_systems && item.menu_systems.length > 0 ? item.menu_systems[0] : null
+          const menuName = primaryMenu ? primaryMenu.name : 'Tools'
+          const words = (item.content || '').split(/\s+/).length
+          const minutes = Math.max(2, Math.min(10, Math.ceil(words / 150)))
+
+          return {
+            id: item.id,
+            title: item.title,
+            menuName: menuName,
+            readTime: `${minutes} menit baca`,
+            summary: cleanSummary(item.summary) || 'Panduan pemecahan masalah teknis dan operasional sistem Probus.',
+            content: formatArticleContent(item.content),
+          }
+        })
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load system troubleshooting articles:', err)
+  }
+}
+
+onMounted(() => {
+  loadSystemArticles()
+})
 
 // Dynamic modules from database
 const dynamicModules = ref([])
@@ -399,8 +382,8 @@ const filteredModuleCards = computed(() => {
 
 const filteredTroubleshooting = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return troubleshootingArticles
-  return troubleshootingArticles.filter(a =>
+  if (!q) return troubleshootingArticles.value
+  return troubleshootingArticles.value.filter(a =>
     a.title.toLowerCase().includes(q) || a.summary.toLowerCase().includes(q)
   )
 })
@@ -411,13 +394,12 @@ const activeReaderItem = ref(null)
 const feedbackGiven = ref(false)
 
 function openReader(item, type = 'manual') {
+  selectedCardId.value = item.id
   if (type === 'manual') {
     router.push(`/system/${systemId.value}/guide/${item.id}`)
     return
   }
-  activeReaderItem.value = { ...item, type }
-  feedbackGiven.value = false
-  readerModalOpen.value = true
+  router.push(`/solutions/${item.id}`)
 }
 
 function closeReader() {
@@ -436,13 +418,33 @@ function goBackHome() {
 
 <template>
   <div class="min-h-screen bg-slate-50/40 text-slate-800 font-sans flex flex-col antialiased">
-    <!-- Main Navigation Bar with "Kembali ke Pilihan Sistem" Button -->
+    <!-- 1. Utility Top Bar -->
+    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-6 sm:px-12 lg:px-20 xl:px-28">
+      <div class="max-w-[1600px] mx-auto flex items-center justify-end">
+        <div class="flex items-center gap-2 text-slate-600">
+          <span class="text-slate-400 hidden sm:inline">Butuh bantuan cepat?</span>
+          <a
+            href="tel:+62361256500"
+            class="inline-flex items-center gap-1.5 font-bold text-slate-800 hover:text-sky-600 transition-colors"
+          >
+            <Phone class="w-3.5 h-3.5 text-slate-500" />
+            <span>Phone: +62 361 256 500</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. Main Navigation Bar with "Kembali ke Pilihan Sistem" Button -->
     <nav class="border-b border-slate-200/80 bg-white/95 backdrop-blur-sm py-3.5 px-6 sm:px-12 lg:px-20 xl:px-28 sticky top-0 z-40 shadow-xs">
       <div class="max-w-[1600px] mx-auto flex items-center justify-between">
         <!-- Logo, Title & Back Button -->
         <div class="flex items-center gap-3.5">
-          <div class="flex items-center cursor-pointer" @click="goBackHome">
-            <img src="/img/probus-logo.png" alt="Probus System" class="h-8 sm:h-9 w-auto object-contain" />
+          <div class="flex items-center gap-2.5 cursor-pointer" @click="goBackHome">
+            <img
+              src="/probus-logo.png"
+              alt="Probus System"
+              class="h-8 sm:h-9 w-auto object-contain hover:opacity-90 transition-opacity"
+            />
           </div>
           <span class="text-slate-300 font-light">|</span>
           <span class="text-slate-500 text-sm font-medium hidden sm:inline">Pusat Bantuan Publik</span>
@@ -466,10 +468,7 @@ function goBackHome() {
           <router-link to="/solutions" class="text-slate-600 hover:text-slate-950 transition-colors">
             Bank Solusi
           </router-link>
-          <a href="#" class="text-slate-600 hover:text-slate-950 transition-colors">
-            Status Layanan
-          </a>
-          <a href="#" class="text-slate-600 hover:text-slate-950 transition-colors">
+          <a href="https://wa.me/6281910875514" target="_blank" class="text-slate-600 hover:text-slate-950 transition-colors">
             Hubungi Implementator
           </a>
         </div>
@@ -557,7 +556,7 @@ function goBackHome() {
                 activeTab === 'solusi' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
               ]"
             >
-              12 Artikel
+              {{ troubleshootingArticles.length }} Artikel
             </span>
           </button>
         </div>
@@ -593,17 +592,36 @@ function goBackHome() {
           v-for="card in filteredModuleCards"
           :key="card.id"
           @click="openReader(card, 'manual')"
-          class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 hover:border-sky-500 hover:ring-4 hover:ring-sky-500/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs"
+          :class="[
+            'bg-white rounded-2xl p-6 sm:p-7 border transition-all duration-200 cursor-pointer flex flex-col justify-between group',
+            selectedCardId === card.id
+              ? 'border-2 border-sky-500 shadow-md ring-4 ring-sky-500/10'
+              : 'border-slate-200 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5'
+          ]"
         >
           <div>
             <!-- Card Top: Icon & Count Badge -->
             <div class="flex items-center justify-between">
-              <div class="w-11 h-11 rounded-xl flex items-center justify-center bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600 transition-colors shadow-2xs">
+              <div
+                :class="[
+                  'w-11 h-11 rounded-xl flex items-center justify-center transition-colors',
+                  selectedCardId === card.id
+                    ? 'bg-sky-50 text-sky-600'
+                    : 'bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600'
+                ]"
+              >
                 <component :is="card.icon" class="w-5 h-5 stroke-[1.8]" />
               </div>
 
               <!-- Top Right Badge (Pill) -->
-              <span class="text-xs font-semibold px-2.5 py-1 rounded-md tracking-wide bg-slate-100 text-slate-600 group-hover:bg-sky-50 group-hover:text-sky-700 transition-colors">
+              <span
+                :class="[
+                  'text-xs font-semibold px-2.5 py-1 rounded-md tracking-wide transition-colors',
+                  selectedCardId === card.id
+                    ? 'bg-sky-600 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                ]"
+              >
                 {{ card.countText }}
               </span>
             </div>
@@ -617,11 +635,15 @@ function goBackHome() {
             </p>
           </div>
 
-          <!-- Card Bottom: Action Link -->
-          <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-end text-xs sm:text-sm">
+          <!-- Card Bottom: Est Time & Action Link -->
+          <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm">
+            <span class="text-slate-400 font-normal flex items-center gap-1">
+              <span>⏱</span>
+              <span>{{ card.estTime }}</span>
+            </span>
             <span class="text-sky-600 font-semibold flex items-center gap-1 group-hover:text-sky-700">
               <span>Buka Manual Book</span>
-              <ArrowRight class="w-3.5 h-3.5 group-hover:translate-x-1.5 transition-transform" />
+              <ArrowRight class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </span>
           </div>
         </div>
@@ -664,11 +686,8 @@ function goBackHome() {
         </div>
       </div>
 
-      <!-- 5. Bottom Green Help Banner (Hanya muncul di Tab Manual Book) -->
-      <div
-        v-if="activeTab === 'manual'"
-        class="mt-10 sm:mt-12 bg-emerald-50/70 border border-emerald-200/90 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs"
-      >
+      <!-- 5. Bottom Green Help Banner -->
+      <div class="mt-10 sm:mt-12 bg-emerald-50/70 border border-emerald-200/90 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
         <div class="flex items-start sm:items-center gap-4">
           <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
             <Lightbulb class="w-5 h-5 stroke-[2]" />
@@ -736,7 +755,7 @@ function goBackHome() {
           </h2>
 
           <div
-            class="text-slate-700 text-sm sm:text-base leading-relaxed pt-4 border-t border-slate-100"
+            class="manual-book-content text-slate-700 text-sm sm:text-base leading-relaxed pt-4 border-t border-slate-100"
             v-html="activeReaderItem.content"
           ></div>
         </div>
@@ -770,3 +789,63 @@ function goBackHome() {
     </div>
   </div>
 </template>
+
+<style scoped>
+:deep(.manual-book-content table) {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 1.25rem 0 !important;
+}
+
+:deep(.manual-book-content th) {
+  background-color: #0b1a36 !important;
+  color: #ffffff !important;
+  padding: 10px 14px !important;
+  border: 1px solid #334155 !important;
+  font-weight: 700 !important;
+  font-size: 0.875rem !important;
+}
+
+:deep(.manual-book-content td) {
+  padding: 10px 14px !important;
+  border: 1px solid #cbd5e1 !important;
+  font-size: 0.875rem !important;
+  color: #334155 !important;
+  line-height: 1.5 !important;
+}
+
+:deep(.manual-book-content h2),
+:deep(.manual-book-content h3) {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+:deep(.manual-book-content ol),
+:deep(.manual-book-content ul) {
+  padding-left: 1.5rem !important;
+  margin-bottom: 1rem !important;
+}
+
+:deep(.manual-book-content li) {
+  margin-bottom: 0.5rem !important;
+  line-height: 1.625 !important;
+}
+
+:deep(.manual-book-content p) {
+  font-size: 0.9375rem !important;
+  color: #475569 !important;
+  line-height: 1.625 !important;
+  margin-bottom: 0.75rem !important;
+}
+
+:deep(.manual-book-content img) {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 8px !important;
+  margin: 1rem 0 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+</style>

@@ -9,6 +9,8 @@ import {
   BarChart3,
   Package,
   ArrowRight,
+  Lightbulb,
+  MessageSquare,
   MonitorCheck,
   BookOpen,
   AlertCircle,
@@ -17,13 +19,15 @@ import {
   Smartphone,
   UtensilsCrossed,
   Sparkles,
-  Laptop
+  Laptop,
+  Phone
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { detectSystemIcon } from '../utils/iconResolver'
 
 const router = useRouter()
 const searchQuery = ref('')
+const selectedSystem = ref(2) // default active: PRESTO (ID: 2 in DB)
 const isLoading = ref(false)
 
 // Metadata mapping for the 9 database categories in dbprobuscs
@@ -148,12 +152,15 @@ const searchResults = computed(() => {
 })
 
 function selectCard(id) {
+  selectedSystem.value = id
   router.push('/system/' + id)
 }
 
 function handleSearchItemClick(item) {
   if (item.type === 'manual') {
     router.push(`/system/${item.systemId || 2}/guide/${item.moduleId || 2}`)
+  } else if (item.type === 'article') {
+    router.push(`/solutions/${item.id}`)
   } else {
     router.push('/system/' + (item.systemId || 2))
   }
@@ -167,13 +174,33 @@ function clearSearch() {
 <template>
   <div class="min-h-screen bg-white text-slate-800 font-sans flex flex-col antialiased">
     
-    <!-- Main Navigation Bar -->
+    <!-- 1. Utility Top Bar -->
+    <header class="border-b border-slate-100 bg-white text-xs text-slate-500 py-2.5 px-6 sm:px-12 lg:px-20 xl:px-28">
+      <div class="max-w-[1600px] mx-auto flex items-center justify-end">
+        <div class="flex items-center gap-2 text-slate-600">
+          <span class="text-slate-400 hidden sm:inline">Butuh bantuan cepat?</span>
+          <a
+            href="tel:+62361256500"
+            class="inline-flex items-center gap-1.5 font-bold text-slate-800 hover:text-sky-600 transition-colors"
+          >
+            <Phone class="w-3.5 h-3.5 text-slate-500" />
+            <span>Phone: +62 361 256 500</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. Main Navigation Bar -->
     <nav class="border-b border-slate-200/80 bg-white/95 backdrop-blur-sm py-4 px-6 sm:px-12 lg:px-20 xl:px-28 sticky top-0 z-40 shadow-xs">
       <div class="max-w-[1600px] mx-auto flex items-center justify-between">
         <!-- Logo & Title -->
         <div class="flex items-center gap-4">
-          <div class="flex items-center cursor-pointer" @click="router.push('/')">
-            <img src="/img/probus-logo.png" alt="Probus System" class="h-9 sm:h-10 w-auto object-contain" />
+          <div class="flex items-center gap-2.5 cursor-pointer" @click="router.push('/')">
+            <img
+              src="/probus-logo.png"
+              alt="Probus System"
+              class="h-9 sm:h-10 w-auto object-contain hover:opacity-90 transition-opacity"
+            />
           </div>
           <span class="text-slate-300 font-light">|</span>
           <span class="text-slate-500 text-sm sm:text-base font-medium">Pusat Bantuan Publik</span>
@@ -188,10 +215,7 @@ function clearSearch() {
           <router-link to="/solutions" class="text-slate-600 hover:text-slate-950 transition-colors">
             Bank Solusi
           </router-link>
-          <a href="#" class="text-slate-600 hover:text-slate-950 transition-colors">
-            Status Layanan
-          </a>
-          <a href="#" class="text-slate-600 hover:text-slate-950 transition-colors">
+          <a href="https://wa.me/6281910875514" target="_blank" class="text-slate-600 hover:text-slate-950 transition-colors">
             Hubungi Implementator
           </a>
         </div>
@@ -237,11 +261,10 @@ function clearSearch() {
           <!-- Live Search Results Dropdown -->
           <div
             v-if="searchQuery && searchResults.length > 0"
-            class="absolute left-0 right-0 top-full mt-2.5 bg-white rounded-2xl border border-slate-200/90 shadow-xl overflow-hidden z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150"
+            class="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150"
           >
-            <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
-              <span class="uppercase tracking-wider">Hasil Pencarian</span>
-              <span class="bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full font-bold text-[11px]">{{ searchResults.length }}</span>
+            <div class="p-3 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Hasil Pencarian ({{ searchResults.length }})
             </div>
             <div class="max-h-80 overflow-y-auto divide-y divide-slate-100">
               <div
@@ -252,8 +275,8 @@ function clearSearch() {
               >
                 <div
                   :class="[
-                    'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5',
-                    item.type === 'article' ? 'bg-amber-50 text-amber-600 border border-amber-200/60' : 'bg-sky-50 text-sky-600 border border-sky-200/60'
+                    'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5',
+                    item.type === 'article' ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'
                   ]"
                 >
                   <AlertCircle v-if="item.type === 'article'" class="w-4 h-4" />
@@ -263,7 +286,7 @@ function clearSearch() {
                   <div class="flex items-center gap-2">
                     <span
                       :class="[
-                        'text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider',
+                        'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider',
                         item.type === 'article' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-sky-50 text-sky-700 border border-sky-200'
                       ]"
                     >
@@ -278,15 +301,6 @@ function clearSearch() {
                 <ArrowRight class="w-4 h-4 text-slate-400 shrink-0 self-center" />
               </div>
             </div>
-          </div>
-
-          <!-- Empty State Dropdown -->
-          <div
-            v-else-if="searchQuery && searchResults.length === 0"
-            class="absolute left-0 right-0 top-full mt-2.5 bg-white rounded-2xl border border-slate-200/90 shadow-xl p-6 z-50 text-center animate-in fade-in duration-150"
-          >
-            <p class="text-sm text-slate-600 font-medium">Tidak ada hasil untuk "<span class="text-slate-800 font-semibold">{{ searchQuery }}</span>"</p>
-            <p class="text-xs text-slate-400 mt-1">Coba gunakan kata kunci lain seperti nama fitur, nomor modul, atau topik kendala.</p>
           </div>
         </div>
       </div>
@@ -316,15 +330,32 @@ function clearSearch() {
           v-for="sys in systems"
           :key="sys.id"
           @click="selectCard(sys.id)"
-          class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 hover:border-sky-500 hover:ring-4 hover:ring-sky-500/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs"
+          :class="[
+            'bg-white rounded-2xl p-6 sm:p-7 border transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs',
+            selectedSystem === sys.id
+              ? 'border-2 border-sky-500 shadow-md ring-4 ring-sky-500/10'
+              : 'border-slate-200/90 hover:border-slate-300 hover:shadow-lg hover:-translate-y-1'
+          ]"
         >
           <div>
             <!-- Card Top: Icon & Badge -->
             <div class="flex items-center justify-between">
-              <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600 transition-colors shadow-2xs">
+              <div
+                :class="[
+                  'w-12 h-12 rounded-xl flex items-center justify-center transition-colors shadow-2xs',
+                  selectedSystem === sys.id ? 'bg-sky-50 text-sky-600' : 'bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600'
+                ]"
+              >
                 <component :is="sys.icon" class="w-6 h-6 stroke-[1.8]" />
               </div>
-              <span class="text-xs font-semibold px-3 py-1.5 rounded-lg tracking-wide bg-slate-100 text-slate-600 group-hover:bg-sky-50 group-hover:text-sky-700 transition-colors">
+              <span
+                :class="[
+                  'text-xs font-semibold px-3 py-1.5 rounded-lg tracking-wide transition-colors',
+                  selectedSystem === sys.id
+                    ? 'bg-sky-600 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                ]"
+              >
                 {{ sys.badge }}
               </span>
             </div>
@@ -340,16 +371,22 @@ function clearSearch() {
 
           <!-- Card Bottom: Modul Count & Link -->
           <div class="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between text-sm">
-            <span class="font-medium text-xs sm:text-sm text-slate-500 group-hover:text-slate-700 transition-colors">
+            <span
+              :class="[
+                'font-medium text-xs sm:text-sm',
+                selectedSystem === sys.id ? 'text-sky-600 font-bold' : 'text-slate-500'
+              ]"
+            >
               {{ sys.modulCount }} Modul Penggunaan
             </span>
-            <span class="text-sky-600 font-semibold flex items-center gap-1.5 group-hover:text-sky-700 text-xs sm:text-sm">
+            <span class="text-sky-600 font-semibold flex items-center gap-1.5 hover:text-sky-700 text-xs sm:text-sm">
               <span>Pilih Sistem</span>
-              <ArrowRight class="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
+              <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </span>
           </div>
         </div>
       </div>
+
     </main>
 
     <!-- 5. Footer -->

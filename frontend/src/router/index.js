@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import SystemDetailView from '../views/SystemDetailView.vue'
 import SolutionsView from '../views/SolutionsView.vue'
+import SolutionDetailView from '../views/SolutionDetailView.vue'
 import GuideView from '../views/GuideView.vue'
 
 const routes = [
@@ -29,6 +30,15 @@ const routes = [
     path: '/solutions',
     name: 'solutions',
     component: SolutionsView,
+  },
+  {
+    path: '/solutions/:id',
+    name: 'solution-detail',
+    component: SolutionDetailView,
+  },
+  {
+    path: '/solution/:id',
+    redirect: to => `/solutions/${to.params.id}`,
   },
 ]
 
