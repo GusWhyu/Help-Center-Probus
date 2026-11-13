@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft,
@@ -14,11 +14,12 @@ import {
   Printer
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
+import { slugify, findArticleByParam } from '../utils/slug'
 
 const route = useRoute()
 const router = useRouter()
 
-const articleId = computed(() => Number(route.params.id))
+const articleParam = computed(() => route.params.id)
 const article = ref(null)
 const isLoading = ref(true)
 const errorMessage = ref('')
@@ -56,24 +57,51 @@ function formatArticleContent(html) {
 async function loadArticle() {
   isLoading.value = true
   errorMessage.value = ''
-  try {
-    // 1. Try fetching specific article by ID
-    const res = await apiClient.get(`/articles/${articleId.value}`)
-    if (res.data && res.data.data) {
-      processArticleData(res.data.data)
-      return
-    }
-  } catch (err) {
-    console.warn('Direct article fetch failed, falling back to articles list:', err)
-  }
+  const param = articleParam.value
+  const numId = Number(param)
 
-  // 2. Fallback: fetch from articles list
   try {
+    // 1. If param is numeric, try fetching directly by ID
+    if (!isNaN(numId) && numId > 0) {
+      try {
+        const res = await apiClient.get(`/articles/${numId}`)
+        if (res.data && res.data.data) {
+          processArticleData(res.data.data)
+          // Canonical slug URL synchronization: replace numeric ID in address bar with clean slug
+          const canonicalSlug = slugify(res.data.data.title)
+          if (canonicalSlug && route.params.id !== canonicalSlug) {
+            router.replace(`/solutions/${canonicalSlug}`)
+          }
+          return
+        }
+      } catch (err) {
+        console.warn('Direct numeric article fetch failed, falling back to slug lookup:', err)
+      }
+    }
+
+    // 2. Fetch from articles list and resolve by slug or ID
     const listRes = await apiClient.get('/articles', { params: { limit: 100 } })
     if (listRes.data && listRes.data.data && Array.isArray(listRes.data.data)) {
-      const found = listRes.data.data.find(item => Number(item.id) === articleId.value)
-      if (found) {
-        processArticleData(found)
+      const publicArticles = listRes.data.data.filter(item => item.status === 'published')
+      const matched = findArticleByParam(publicArticles, param) || findArticleByParam(listRes.data.data, param)
+      if (matched) {
+        // Try getting complete article detail by ID
+        try {
+          const detailRes = await apiClient.get(`/articles/${matched.id}`)
+          if (detailRes.data && detailRes.data.data) {
+            processArticleData(detailRes.data.data)
+          } else {
+            processArticleData(matched)
+          }
+        } catch {
+          processArticleData(matched)
+        }
+
+        // Canonical slug URL synchronization
+        const canonicalSlug = slugify(matched.title)
+        if (canonicalSlug && route.params.id !== canonicalSlug) {
+          router.replace(`/solutions/${canonicalSlug}`)
+        }
         return
       }
     }
@@ -119,6 +147,15 @@ onMounted(() => {
   window.scrollTo({ top: 0, behavior: 'instant' })
   loadArticle()
 })
+
+watch(
+  () => route.params.id,
+  (newId, oldId) => {
+    if (newId && newId !== oldId) {
+      loadArticle()
+    }
+  }
+)
 </script>
 
 <template>

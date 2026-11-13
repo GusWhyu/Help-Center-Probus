@@ -32,15 +32,16 @@ import {
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { detectModuleIcon } from '../utils/iconResolver'
+import { slugify, getSystemSlug, getSystemIdFromParam, findModuleByParam } from '../utils/slug'
 
 const route = useRoute()
 const router = useRouter()
 
-// Selected System ID (defaults to 2 for PRESTO)
-const selectedSystemId = ref(Number(route.params.systemId) || 2)
+// Selected System ID (supports slug e.g. 'self-order' and legacy ID e.g. '4')
+const selectedSystemId = ref(getSystemIdFromParam(route.params.systemId, 2))
 
-// Selected Module Order / ID (defaults to 2 for Transaksi / Order Taker)
-const selectedModuleOrder = ref(Number(route.params.moduleId) || 2)
+// Selected Module Order / ID (can be slug e.g. 'setup-master' or ID e.g. '55')
+const selectedModuleOrder = ref(route.params.moduleId || 2)
 
 // Active selected manual book inside the active module (if multiple exist)
 const activeManualIndex = ref(0)
@@ -146,14 +147,28 @@ async function loadSystemData() {
       modulesList.value = []
     }
 
-    // Ensure active module is valid
-    const exists = modulesList.value.some(m => m.order === selectedModuleOrder.value || m.id === selectedModuleOrder.value)
-    if (!exists && modulesList.value.length > 0) {
-      selectedModuleOrder.value = modulesList.value[0].order || 1
+    // Ensure active module is valid via slug or ID
+    const matched = findModuleByParam(modulesList.value, selectedModuleOrder.value || route.params.moduleId)
+    if (matched) {
+      selectedModuleOrder.value = matched.id
+      if (matched.hasManualBook) {
+        openDropdownId.value = matched.id
+      }
+    } else if (modulesList.value.length > 0) {
+      selectedModuleOrder.value = modulesList.value[0].id
+      if (modulesList.value[0].hasManualBook) {
+        openDropdownId.value = modulesList.value[0].id
+      }
     }
-    const current = modulesList.value.find(m => m.order === selectedModuleOrder.value || m.id === selectedModuleOrder.value)
-    if (current && current.hasManualBook) {
-      openDropdownId.value = current.id
+
+    // Canonical slug URL synchronization: replace numeric IDs in browser URL with clean slugs
+    if (modulesList.value.length > 0) {
+      const active = modulesList.value.find(m => m.id === selectedModuleOrder.value) || modulesList.value[0]
+      const sysSlug = getSystemSlug(selectedSystemId.value)
+      const modSlug = slugify(active.name)
+      if (route.params.systemId !== sysSlug || route.params.moduleId !== modSlug) {
+        router.replace(`/system/${sysSlug}/guide/${modSlug}`)
+      }
     }
   } catch (err) {
     console.error('Failed to load system manual book data:', err)
@@ -164,7 +179,7 @@ async function loadSystemData() {
 
 // Current active module
 const currentModule = computed(() => {
-  return modulesList.value.find(m => m.order === selectedModuleOrder.value || m.id === selectedModuleOrder.value) || modulesList.value[0] || {
+  return modulesList.value.find(m => m.id === selectedModuleOrder.value || m.order === selectedModuleOrder.value) || modulesList.value[0] || {
     id: 1,
     order: 1,
     code: '01',
@@ -213,35 +228,39 @@ function toggleDropdown(modId) {
 }
 
 function selectModuleAndChapter(mod, mbIdx) {
-  selectedModuleOrder.value = mod.order || mod.id
+  selectedModuleOrder.value = mod.id
   activeManualIndex.value = mbIdx
   openDropdownId.value = mod.id
-  router.replace({ params: { systemId: selectedSystemId.value, moduleId: mod.order || mod.id } })
+  const sysSlug = getSystemSlug(selectedSystemId.value)
+  const modSlug = slugify(mod.name)
+  router.replace(`/system/${sysSlug}/guide/${modSlug}`)
   window.scrollTo({ top: 120, behavior: 'smooth' })
 }
 
 function selectModule(mod) {
-  selectedModuleOrder.value = mod.order || mod.id
+  selectedModuleOrder.value = mod.id
   activeManualIndex.value = 0
   if (mod.hasManualBook) {
     openDropdownId.value = mod.id
   } else {
     openDropdownId.value = null
   }
-  router.replace({ params: { systemId: selectedSystemId.value, moduleId: mod.order || mod.id } })
+  const sysSlug = getSystemSlug(selectedSystemId.value)
+  const modSlug = slugify(mod.name)
+  router.replace(`/system/${sysSlug}/guide/${modSlug}`)
   window.scrollTo({ top: 120, behavior: 'smooth' })
 }
 
 function switchSystem(sys) {
   selectedSystemId.value = sys.id
-  selectedModuleOrder.value = 1
   activeManualIndex.value = 0
-  router.replace({ params: { systemId: sys.id, moduleId: 1 } })
+  const sysSlug = getSystemSlug(sys.id)
+  router.replace(`/system/${sysSlug}/guide/1`)
   loadSystemData()
 }
 
 function goBackToSystemDetail() {
-  router.push('/system/' + selectedSystemId.value)
+  router.push('/system/' + getSystemSlug(selectedSystemId.value))
 }
 
 function goToPrev() {
@@ -263,13 +282,23 @@ onMounted(() => {
 watch(
   () => route.params,
   newParams => {
-    if (newParams.systemId && Number(newParams.systemId) !== selectedSystemId.value) {
-      selectedSystemId.value = Number(newParams.systemId)
-      loadSystemData()
+    if (newParams.systemId) {
+      const resolvedSysId = getSystemIdFromParam(newParams.systemId, selectedSystemId.value)
+      if (resolvedSysId !== selectedSystemId.value) {
+        selectedSystemId.value = resolvedSysId
+        loadSystemData()
+        return
+      }
     }
-    if (newParams.moduleId) {
-      selectedModuleOrder.value = Number(newParams.moduleId)
-      activeManualIndex.value = 0
+    if (newParams.moduleId && modulesList.value.length > 0) {
+      const matched = findModuleByParam(modulesList.value, newParams.moduleId)
+      if (matched && matched.id !== selectedModuleOrder.value) {
+        selectedModuleOrder.value = matched.id
+        activeManualIndex.value = 0
+        if (matched.hasManualBook) {
+          openDropdownId.value = matched.id
+        }
+      }
     }
   }
 )

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { getSystemIdFromParam, getSystemSlug, slugify } from '../utils/slug'
 import apiClient from '../api/client'
 import { detectModuleIcon } from '../utils/iconResolver'
 import {
@@ -30,8 +31,8 @@ import {
 const route = useRoute()
 const router = useRouter()
 
-// Get system ID from route parameter, default to 2 (PRESTO)
-const systemId = computed(() => Number(route.params.id) || 2)
+// Get system ID from route parameter, supports both slugs ('self-order') and legacy IDs ('4')
+const systemId = computed(() => getSystemIdFromParam(route.params.id, 2))
 
 // Active Tab: 'manual' or 'solusi'
 const activeTab = ref('manual')
@@ -337,6 +338,11 @@ async function loadSystemArticles() {
 
 onMounted(() => {
   loadSystemArticles()
+  const currentParam = route.params.id
+  const canonicalSlug = getSystemSlug(systemId.value)
+  if (currentParam && !isNaN(Number(currentParam))) {
+    router.replace(`/system/${canonicalSlug}`)
+  }
 })
 
 // Dynamic modules from database
@@ -394,11 +400,14 @@ const feedbackGiven = ref(false)
 
 function openReader(item, type = 'manual') {
   selectedCardId.value = item.id
+  const sysSlug = getSystemSlug(systemId.value)
   if (type === 'manual') {
-    router.push(`/system/${systemId.value}/guide/${item.id}`)
+    const modSlug = slugify(item.title || item.name || String(item.id))
+    router.push(`/system/${sysSlug}/guide/${modSlug}`)
     return
   }
-  router.push(`/solutions/${item.id}`)
+  const artSlug = slugify(item.title || String(item.id))
+  router.push(`/solutions/${artSlug}`)
 }
 
 function closeReader() {

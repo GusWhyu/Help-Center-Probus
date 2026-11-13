@@ -22,6 +22,7 @@ import {
   Phone
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
+import { slugify } from '../utils/slug'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -256,7 +257,7 @@ const filteredArticles = computed(() => {
 })
 
 function openArticle(art) {
-  router.push(`/solutions/${art.id}`)
+  router.push(`/solutions/${slugify(art.title)}`)
 }
 
 function goBackHome() {

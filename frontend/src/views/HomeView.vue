@@ -23,6 +23,7 @@ import {
   Phone
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
+import { getSystemSlug, slugify } from '../utils/slug'
 import { detectSystemIcon } from '../utils/iconResolver'
 
 const router = useRouter()
@@ -151,16 +152,16 @@ const searchResults = computed(() => {
 })
 
 function selectCard(id) {
-  router.push('/system/' + id)
+  router.push('/system/' + getSystemSlug(id))
 }
 
 function handleSearchItemClick(item) {
   if (item.type === 'manual') {
-    router.push(`/system/${item.systemId || 2}/guide/${item.moduleId || 2}`)
+    router.push(`/system/${getSystemSlug(item.systemId || 2)}/guide/${item.moduleId || 2}`)
   } else if (item.type === 'article') {
-    router.push(`/solutions/${item.id}`)
+    router.push(`/solutions/${slugify(item.title)}`)
   } else {
-    router.push('/system/' + (item.systemId || 2))
+    router.push('/system/' + getSystemSlug(item.systemId || 2))
   }
 }
 
