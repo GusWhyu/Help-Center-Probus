@@ -198,7 +198,7 @@ function resetForm() {
               </button>
               <button
                 @click="sendViaWhatsApp"
-                class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
               >
                 <span>Lanjutkan ke WhatsApp</span>
                 <ExternalLink class="w-3.5 h-3.5" />
@@ -301,22 +301,22 @@ function resetForm() {
               <button
                 type="submit"
                 :disabled="isSubmitting"
-                class="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
+                class="w-full sm:w-auto px-6 h-11 sm:h-12 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm transition-all duration-200 inline-flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:opacity-50 whitespace-nowrap"
               >
-                <Send class="w-4 h-4" />
-                <span>{{ isSubmitting ? 'Mengirim...' : 'Kirim Pesan' }}</span>
+                <Send class="w-4 h-4 shrink-0" />
+                <span class="whitespace-nowrap">{{ isSubmitting ? 'Mengirim...' : 'Kirim Pesan' }}</span>
               </button>
 
               <button
                 type="button"
                 @click="sendViaWhatsApp"
-                class="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                class="w-full sm:w-auto px-6 h-11 sm:h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all duration-200 inline-flex items-center justify-center gap-2 shadow-xs cursor-pointer whitespace-nowrap"
               >
                 <!-- WhatsApp SVG Icon -->
-                <svg viewBox="0 0 24 24" class="w-4.5 h-4.5 fill-white">
+                <svg viewBox="0 0 24 24" class="w-4.5 h-4.5 fill-white shrink-0">
                   <path d="M12.031 2C6.511 2 2.016 6.496 2.016 12.016c0 1.988.583 3.918 1.688 5.568L2.016 22l4.57-1.636c1.604.996 3.473 1.652 5.445 1.652 5.52 0 10.016-4.496 10.016-10.016 0-5.52-4.496-10-10.016-10zm.016 18.234c-1.745 0-3.414-.492-4.852-1.422l-.348-.225-2.871 1.028.98-2.784-.243-.377c-1.043-1.522-1.6-3.328-1.6-5.454 0-4.524 3.68-8.204 8.203-8.204 4.524 0 8.204 3.68 8.204 8.204 0 4.523-3.68 8.234-8.204 8.234zm4.496-6.148c-.246-.123-1.455-.718-1.68-.8-.225-.082-.389-.123-.553.123-.164.246-.635.8-.779.963-.143.164-.287.184-.533.061-.246-.123-1.037-.383-1.977-1.221-.73-.652-1.223-1.457-1.367-1.703-.143-.246-.015-.379.108-.502.111-.111.246-.287.369-.43.123-.144.164-.246.246-.41.082-.164.041-.308-.02-.43-.062-.124-.554-1.334-.759-1.826-.2-.48-.403-.414-.554-.422-.143-.008-.307-.01-.471-.01-.164 0-.43.061-.656.307-.225.246-.86.84-.86 2.05s.88 2.378 1.004 2.542c.123.164 1.733 2.646 4.198 3.71.586.253 1.044.405 1.4.518.589.187 1.125.161 1.549.098.472-.07 1.455-.594 1.66-1.168.205-.574.205-1.066.144-1.168-.062-.103-.225-.164-.471-.287z"/>
                 </svg>
-                <span>Chat via WhatsApp</span>
+                <span class="whitespace-nowrap">Chat via WhatsApp</span>
               </button>
             </div>
           </form>
@@ -441,3 +441,4 @@ function resetForm() {
     </footer>
   </div>
 </template>
+
