@@ -366,9 +366,7 @@ function openReader(item, type = 'manual') {
     router.push(`/system/${systemId.value}/guide/${item.id}`)
     return
   }
-  activeReaderItem.value = { ...item, type }
-  feedbackGiven.value = false
-  readerModalOpen.value = true
+  router.push(`/solutions/${item.id}`)
 }
 
 function closeReader() {

@@ -159,6 +159,8 @@ function selectCard(id) {
 function handleSearchItemClick(item) {
   if (item.type === 'manual') {
     router.push(`/system/${item.systemId || 2}/guide/${item.moduleId || 2}`)
+  } else if (item.type === 'article') {
+    router.push(`/solutions/${item.id}`)
   } else {
     router.push('/system/' + (item.systemId || 2))
   }

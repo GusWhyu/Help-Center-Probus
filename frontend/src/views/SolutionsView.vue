@@ -255,24 +255,8 @@ const filteredArticles = computed(() => {
   })
 })
 
-// Reader Modal
-const readerModalOpen = ref(false)
-const activeArticle = ref(null)
-const feedbackGiven = ref(false)
-
 function openArticle(art) {
-  activeArticle.value = art
-  feedbackGiven.value = false
-  readerModalOpen.value = true
-}
-
-function closeReader() {
-  readerModalOpen.value = false
-  activeArticle.value = null
-}
-
-function giveFeedback() {
-  feedbackGiven.value = true
+  router.push(`/solutions/${art.id}`)
 }
 
 function goBackHome() {
@@ -540,66 +524,6 @@ function goBackHome() {
         </p>
       </div>
     </footer>
-
-    <!-- 6. Interactive Reader Modal -->
-    <div
-      v-if="readerModalOpen && activeArticle"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4 sm:p-6"
-    >
-      <div class="bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in duration-200">
-        <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-          <div class="flex items-center gap-2.5">
-            <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider bg-amber-100 text-amber-800">
-              Artikel Solusi
-            </span>
-            <span class="text-xs text-slate-500 font-medium">• {{ activeArticle.system }} ({{ activeArticle.categoryName }})</span>
-          </div>
-          <button
-            @click="closeReader"
-            class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
-          >
-            <X class="w-4 h-4" />
-          </button>
-        </div>
-
-        <div class="p-6 sm:p-8 overflow-y-auto space-y-4">
-          <h2 class="text-xl sm:text-2xl font-black text-slate-900 leading-snug">
-            {{ activeArticle.title }}
-          </h2>
-
-          <div
-            class="manual-book-content text-slate-700 text-sm sm:text-base leading-relaxed pt-4 border-t border-slate-100"
-            v-html="activeArticle.content"
-          ></div>
-        </div>
-
-        <div class="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <div class="text-slate-500">
-            Apakah artikel troubleshooting ini membantu Anda?
-          </div>
-          <div class="flex items-center gap-2">
-            <button
-              v-if="!feedbackGiven"
-              @click="giveFeedback"
-              class="px-3.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <ThumbsUp class="w-3.5 h-3.5" />
-              <span>Ya, Berhasil</span>
-            </button>
-            <div v-else class="text-emerald-600 font-bold inline-flex items-center gap-1">
-              <CheckCircle2 class="w-4 h-4" />
-              <span>Terima kasih! Masukan Anda tercatat.</span>
-            </div>
-            <button
-              @click="closeReader"
-              class="px-4 py-1.5 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              Tutup
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
