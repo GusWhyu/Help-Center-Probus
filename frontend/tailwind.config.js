@@ -5,6 +5,9 @@ export default {
     "./src/**/*.{vue,js,ts,jsx,tsx}",
   ],
   theme: {
+    fontFamily: {
+      sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+    },
     extend: {
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
