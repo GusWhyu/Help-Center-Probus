@@ -162,6 +162,10 @@ async function loadSystemData() {
     if (!exists && modulesList.value.length > 0) {
       selectedModuleOrder.value = modulesList.value[0].order || 1
     }
+    const current = modulesList.value.find(m => m.order === selectedModuleOrder.value || m.id === selectedModuleOrder.value)
+    if (current && current.hasManualBook) {
+      openDropdownId.value = current.id
+    }
   } catch (err) {
     console.error('Failed to load system manual book data:', err)
   } finally {
@@ -209,9 +213,32 @@ const nextModule = computed(() => {
   return null
 })
 
+const openDropdownId = ref(null)
+
+function toggleDropdown(modId) {
+  if (openDropdownId.value === modId) {
+    openDropdownId.value = null
+  } else {
+    openDropdownId.value = modId
+  }
+}
+
+function selectModuleAndChapter(mod, mbIdx) {
+  selectedModuleOrder.value = mod.order || mod.id
+  activeManualIndex.value = mbIdx
+  openDropdownId.value = mod.id
+  router.replace({ params: { systemId: selectedSystemId.value, moduleId: mod.order || mod.id } })
+  window.scrollTo({ top: 120, behavior: 'smooth' })
+}
+
 function selectModule(mod) {
   selectedModuleOrder.value = mod.order || mod.id
   activeManualIndex.value = 0
+  if (mod.hasManualBook) {
+    openDropdownId.value = mod.id
+  } else {
+    openDropdownId.value = null
+  }
   router.replace({ params: { systemId: selectedSystemId.value, moduleId: mod.order || mod.id } })
   window.scrollTo({ top: 120, behavior: 'smooth' })
 }
@@ -407,6 +434,66 @@ watch(
                   <span v-if="mod.hasManualBook" class="text-[10px] text-emerald-600 font-bold px-1.5 py-0.5 rounded bg-emerald-50">
                     Published
                   </span>
+                </div>
+
+                <!-- Dropdown Bab Manual Book di Bagian Bawah Modul -->
+                <div
+                  v-if="mod.hasManualBook"
+                  class="mt-2.5 pt-2 border-t border-slate-100"
+                  @click.stop
+                >
+                  <button
+                    type="button"
+                    @click="toggleDropdown(mod.id)"
+                    :class="[
+                      'w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
+                      currentModule.id === mod.id
+                        ? 'bg-sky-50 text-sky-900 border border-sky-200 hover:bg-sky-100/70'
+                        : 'bg-slate-50 text-slate-700 border border-slate-200/80 hover:bg-slate-100'
+                    ]"
+                  >
+                    <span class="flex items-center gap-1.5 truncate">
+                      <BookOpen class="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                      <span class="truncate">
+                        {{ currentModule.id === mod.id && mod.manualBooks[activeManualIndex] ? `Bab ${activeManualIndex + 1}: ${mod.manualBooks[activeManualIndex].title}` : `Pilih Bab (${mod.manualBooks.length} Bab)` }}
+                      </span>
+                    </span>
+                    <ChevronDown
+                      :class="[
+                        'w-3.5 h-3.5 transition-transform duration-200 shrink-0 ml-1',
+                        openDropdownId === mod.id ? 'rotate-180 text-sky-600' : 'text-slate-400'
+                      ]"
+                    />
+                  </button>
+
+                  <!-- Dropdown Menu / Daftar Bab -->
+                  <div
+                    v-if="openDropdownId === mod.id"
+                    class="mt-1.5 p-1 bg-white rounded-xl shadow-md border border-slate-200 space-y-1 z-20 animate-in fade-in duration-150"
+                  >
+                    <button
+                      v-for="(mb, mbIdx) in mod.manualBooks"
+                      :key="mb.id"
+                      type="button"
+                      @click="selectModuleAndChapter(mod, mbIdx)"
+                      :class="[
+                        'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-start gap-2 cursor-pointer',
+                        currentModule.id === mod.id && activeManualIndex === mbIdx
+                          ? 'bg-sky-600 text-white font-bold shadow-xs'
+                          : 'bg-white hover:bg-sky-50 text-slate-700 hover:text-slate-900'
+                      ]"
+                    >
+                      <FileText
+                        :class="[
+                          'w-3.5 h-3.5 shrink-0 mt-0.5',
+                          currentModule.id === mod.id && activeManualIndex === mbIdx ? 'text-white' : 'text-sky-600'
+                        ]"
+                      />
+                      <span class="line-clamp-2 leading-snug">
+                        Bab {{ mbIdx + 1 }}: {{ mb.title }}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
