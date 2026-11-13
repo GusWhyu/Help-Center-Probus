@@ -20,10 +20,10 @@ import {
   Smartphone,
   UtensilsCrossed,
   Sparkles,
-  Laptop
+  Laptop,
+  Phone
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import WhatsAppSupportDropdown from '../components/WhatsAppSupportDropdown.vue'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -181,7 +181,16 @@ function clearSearch() {
           <span class="font-medium text-slate-600">Bahasa Indonesia</span>
           <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
         </div>
-        <WhatsAppSupportDropdown />
+        <div class="flex items-center gap-2 text-slate-600">
+          <span class="text-slate-400 hidden sm:inline">Butuh bantuan cepat?</span>
+          <a
+            href="tel:+62361256500"
+            class="inline-flex items-center gap-1.5 font-bold text-slate-800 hover:text-sky-600 transition-colors"
+          >
+            <Phone class="w-3.5 h-3.5 text-slate-500" />
+            <span>Phone: +62 361 256 500</span>
+          </a>
+        </div>
       </div>
     </header>
 
