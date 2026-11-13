@@ -275,16 +275,16 @@ watch(
     </nav>
 
     <!-- 3. Article Content Section -->
-    <main class="flex-1 bg-white">
+    <main class="flex-1 w-full px-4 sm:px-6 lg:px-12 xl:px-16 py-8 sm:py-12 bg-white">
       <!-- Loading State -->
-      <div v-if="isLoading" class="max-w-4xl mx-auto px-6 py-20 text-center">
+      <div v-if="isLoading" class="w-full py-20 text-center">
         <Loader2 class="w-10 h-10 animate-spin text-sky-600 mx-auto mb-4" />
         <h3 class="text-base font-bold text-slate-800">Memuat artikel solusi...</h3>
         <p class="text-xs text-slate-500 mt-1">Mengambil data panduan pemecahan masalah dari basis data.</p>
       </div>
 
       <!-- Error State -->
-      <div v-else-if="errorMessage || !article" class="max-w-xl mx-auto px-6 py-20 text-center">
+      <div v-else-if="errorMessage || !article" class="w-full max-w-xl mx-auto py-20 text-center">
         <div class="w-14 h-14 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-4 border border-rose-100">
           <AlertCircle class="w-7 h-7" />
         </div>
@@ -299,8 +299,8 @@ watch(
         </button>
       </div>
 
-      <!-- Article View (Matching Screenshot media_1794537273140_24a23ca4.png) -->
-      <article v-else class="w-full max-w-4xl xl:max-w-5xl mx-auto px-6 sm:px-8 py-10 sm:py-14">
+      <!-- Article View (Fluid Responsive Width) -->
+      <article v-else class="w-full">
         <!-- Breadcrumb / Category Metadata -->
         <div class="flex items-center gap-2 text-xs sm:text-sm font-semibold tracking-wide text-sky-600 mb-2.5">
           <span>{{ article.systemTitle }}</span>
