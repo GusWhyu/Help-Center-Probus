@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import apiClient from '../api/client'
+import { detectModuleIcon } from '../utils/iconResolver'
 import {
   ArrowLeft,
   ArrowRight,
@@ -24,7 +26,6 @@ import {
   Printer,
   Phone
 } from 'lucide-vue-next'
-import apiClient from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -338,11 +339,42 @@ onMounted(() => {
   loadSystemArticles()
 })
 
+// Dynamic modules from database
+const dynamicModules = ref([])
+
+onMounted(async () => {
+  try {
+    const res = await apiClient.get(`/categories/${systemId.value}`)
+    if (res.data && res.data.data && res.data.data.menus && res.data.data.menus.length > 0) {
+      dynamicModules.value = res.data.data.menus.map((menu, idx) => {
+        const orderNum = menu.order || (idx + 1)
+        const code = String(orderNum).padStart(2, '0')
+        return {
+          id: menu.id,
+          order: orderNum,
+          title: `${code}. ${menu.name}`,
+          desc: menu.description || 'Panduan operasional dan tata cara penggunaan fitur modul.',
+          icon: detectModuleIcon(menu.name, orderNum),
+          countText: `${menu.manual_books ? menu.manual_books.length : 1} Panduan`,
+          estTime: 'Est. 5 menit',
+        }
+      })
+    }
+  } catch (err) {
+    console.warn('API /categories/:id failed, using fallback modules:', err)
+  }
+})
+
+const activeModuleCards = computed(() => {
+  return dynamicModules.value.length > 0 ? dynamicModules.value : presto10Modules
+})
+
 // Filtered lists
 const filteredModuleCards = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return presto10Modules
-  return presto10Modules.filter(c =>
+  const base = activeModuleCards.value
+  if (!q) return base
+  return base.filter(c =>
     c.title.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q)
   )
 })
@@ -559,35 +591,20 @@ function goBackHome() {
           v-for="card in filteredModuleCards"
           :key="card.id"
           @click="openReader(card, 'manual')"
-          :class="[
-            'bg-white rounded-2xl p-6 sm:p-7 border transition-all duration-200 cursor-pointer flex flex-col justify-between group',
-            selectedCardId === card.id
-              ? 'border-2 border-sky-500 shadow-md ring-4 ring-sky-500/10'
-              : 'border-slate-200 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5'
-          ]"
+          class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 hover:border-sky-500 hover:ring-4 hover:ring-sky-500/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs"
         >
           <div>
             <!-- Card Top: Icon & Count Badge -->
             <div class="flex items-center justify-between">
               <div
-                :class="[
-                  'w-11 h-11 rounded-xl flex items-center justify-center transition-colors',
-                  selectedCardId === card.id
-                    ? 'bg-sky-50 text-sky-600'
-                    : 'bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600'
-                ]"
+                class="w-11 h-11 rounded-xl flex items-center justify-center bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600 transition-colors"
               >
                 <component :is="card.icon" class="w-5 h-5 stroke-[1.8]" />
               </div>
 
               <!-- Top Right Badge (Pill) -->
               <span
-                :class="[
-                  'text-xs font-semibold px-2.5 py-1 rounded-md tracking-wide transition-colors',
-                  selectedCardId === card.id
-                    ? 'bg-sky-600 text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
-                ]"
+                class="text-xs font-semibold px-2.5 py-1 rounded-md tracking-wide bg-slate-100 text-slate-600 group-hover:bg-sky-100/70 group-hover:text-sky-700 transition-colors"
               >
                 {{ card.countText }}
               </span>
@@ -602,12 +619,8 @@ function goBackHome() {
             </p>
           </div>
 
-          <!-- Card Bottom: Est Time & Action Link -->
-          <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm">
-            <span class="text-slate-400 font-normal flex items-center gap-1">
-              <span>⏱</span>
-              <span>{{ card.estTime }}</span>
-            </span>
+          <!-- Card Bottom: Action Link -->
+          <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-end text-xs sm:text-sm">
             <span class="text-sky-600 font-semibold flex items-center gap-1 group-hover:text-sky-700">
               <span>Buka Manual Book</span>
               <ArrowRight class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -654,7 +667,7 @@ function goBackHome() {
       </div>
 
       <!-- 5. Bottom Green Help Banner -->
-      <div class="mt-10 sm:mt-12 bg-emerald-50/70 border border-emerald-200/90 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+      <div v-if="activeTab === 'manual'" class="mt-10 sm:mt-12 bg-emerald-50/70 border border-emerald-200/90 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
         <div class="flex items-start sm:items-center gap-4">
           <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
             <Lightbulb class="w-5 h-5 stroke-[2]" />

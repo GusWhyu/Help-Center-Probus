@@ -31,6 +31,7 @@ import {
   Phone
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
+import { detectModuleIcon } from '../utils/iconResolver'
 
 const route = useRoute()
 const router = useRouter()
@@ -111,7 +112,7 @@ async function loadSystemData() {
 
     // 4. Build module list combining database `menu_systems` and preloaded `manual_books`
     if (menusFromDb.length > 0) {
-      modulesList.value = menusFromDb.map((menu, idx) => {
+      const allModules = menusFromDb.map((menu, idx) => {
         const orderNum = menu.order || (idx + 1)
         const meta = defaultModuleMeta[orderNum] || {
           code: String(orderNum).padStart(2, '0'),
@@ -133,28 +134,16 @@ async function loadSystemData() {
           name: menu.name,
           title: `${meta.code}. ${menu.name}`,
           desc: menu.description || meta.lead,
-          icon: meta.icon,
+          icon: detectModuleIcon(menu.name, orderNum),
           manualBooks: linkedManuals,
           hasManualBook: linkedManuals.length > 0,
         }
       })
+
+      // Hanya tampilkan modul yang sudah memiliki buku panduan (published)
+      modulesList.value = allModules.filter(m => m.hasManualBook)
     } else {
-      // Fallback to default 10 PRESTO modules if database returns empty
-      modulesList.value = Object.keys(defaultModuleMeta).map(key => {
-        const num = Number(key)
-        const meta = defaultModuleMeta[num]
-        return {
-          id: num,
-          order: num,
-          code: meta.code,
-          name: meta.defaultTitle.replace(/^\d+\.\s*/, ''),
-          title: meta.defaultTitle,
-          desc: meta.lead,
-          icon: meta.icon,
-          manualBooks: [],
-          hasManualBook: false,
-        }
-      })
+      modulesList.value = []
     }
 
     // Ensure active module is valid
@@ -416,28 +405,16 @@ watch(
                   >
                     {{ mod.title }}
                   </h3>
-
-                  <!-- Indicator: Published Manual in DB -->
-                  <span
-                    v-if="mod.hasManualBook"
-                    title="Buku panduan resmi telah dipublish"
-                    class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"
-                  ></span>
                 </div>
 
                 <div class="flex items-center justify-between text-[11px] mt-1 font-medium">
                   <span
                     :class="currentModule.id === mod.id ? 'text-sky-600 font-semibold' : 'text-slate-400'"
                   >
-                    <span v-if="currentModule.id === mod.id">Sedang Dibaca • Aktif</span>
-                    <span v-else-if="mod.hasManualBook">
+                    <span v-if="currentModule.id === mod.id">Sedang Dibaca</span>
+                    <span v-else>
                       {{ mod.manualBooks.length > 1 ? `${mod.manualBooks.length} Bab Panduan` : 'Tersedia Panduan' }}
                     </span>
-                    <span v-else>Panduan Modul</span>
-                  </span>
-
-                  <span v-if="mod.hasManualBook" class="text-[10px] text-emerald-600 font-bold px-1.5 py-0.5 rounded bg-emerald-50">
-                    Published
                   </span>
                 </div>
 
