@@ -111,7 +111,11 @@ async function loadSystemData() {
     const manualRes = await apiClient.get('/manual-books', {
       params: { kategori_id: selectedSystemId.value }
     })
-    systemManualBooks.value = (manualRes.data && manualRes.data.data) ? manualRes.data.data : []
+    const rawManuals = (manualRes.data && manualRes.data.data) ? manualRes.data.data : []
+    systemManualBooks.value = rawManuals.map(mb => ({
+      ...mb,
+      description: (mb.description && (mb.description.toLowerCase().includes('diimpor dari file word') || mb.description.toLowerCase().includes('.docx'))) ? '' : mb.description
+    }))
 
     // 4. Build module list combining database `menu_systems` and preloaded `manual_books`
     if (menusFromDb.length > 0) {
@@ -579,11 +583,6 @@ watch(
           <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 tracking-tight">
             {{ currentManualBook ? currentManualBook.title : currentModule.title }}
           </h2>
-
-          <!-- Module Lead Text / Description -->
-          <p class="mt-4 text-slate-600 text-sm sm:text-base leading-relaxed">
-            {{ currentManualBook ? (currentManualBook.description || currentModule.desc) : currentModule.desc }}
-          </p>
 
           <!-- Chapter / Section Tabs Switcher (If multiple manual books exist for this menu) -->
           <div
