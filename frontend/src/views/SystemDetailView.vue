@@ -1,6 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import apiClient from '../api/client'
+import { resolveIcon } from '../utils/iconResolver'
 import {
   ArrowLeft,
   ArrowRight,
@@ -355,11 +357,42 @@ const troubleshootingArticles = [
   },
 ]
 
+// Dynamic modules from database
+const dynamicModules = ref([])
+
+onMounted(async () => {
+  try {
+    const res = await apiClient.get(`/categories/${systemId.value}`)
+    if (res.data && res.data.data && res.data.data.menus && res.data.data.menus.length > 0) {
+      dynamicModules.value = res.data.data.menus.map((menu, idx) => {
+        const orderNum = menu.order || (idx + 1)
+        const code = String(orderNum).padStart(2, '0')
+        return {
+          id: menu.id,
+          order: orderNum,
+          title: `${code}. ${menu.name}`,
+          desc: menu.description || 'Panduan operasional dan tata cara penggunaan fitur modul.',
+          icon: resolveIcon(menu.icon, menu.name, 'module'),
+          countText: `${menu.manual_books ? menu.manual_books.length : 1} Panduan`,
+          estTime: 'Est. 5 menit',
+        }
+      })
+    }
+  } catch (err) {
+    console.warn('API /categories/:id failed, using fallback modules:', err)
+  }
+})
+
+const activeModuleCards = computed(() => {
+  return dynamicModules.value.length > 0 ? dynamicModules.value : presto10Modules
+})
+
 // Filtered lists
 const filteredModuleCards = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return presto10Modules
-  return presto10Modules.filter(c =>
+  const base = activeModuleCards.value
+  if (!q) return base
+  return base.filter(c =>
     c.title.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q)
   )
 })

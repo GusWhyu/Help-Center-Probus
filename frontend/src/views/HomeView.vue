@@ -20,6 +20,7 @@ import {
   Laptop
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
+import { resolveIcon } from '../utils/iconResolver'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -106,7 +107,6 @@ onMounted(async () => {
         const meta = categoryMetaMap[cat.name] || {
           badge: 'Sistem Probus',
           desc: cat.description || `Panduan operasional dan solusi kendala sistem ${cat.name}.`,
-          icon: MonitorCheck,
           displayTitle: `${cat.name} System`,
         }
         return {
@@ -115,8 +115,8 @@ onMounted(async () => {
           title: meta.displayTitle || cat.name,
           badge: meta.badge,
           desc: cat.description || meta.desc,
-          modulCount: cat.modul_count || (cat.name === 'BARONG POS' ? 8 : 10),
-          icon: meta.icon,
+          modulCount: cat.total_menus || cat.modul_count || (cat.name === 'BARONG POS' ? 8 : 10),
+          icon: resolveIcon(cat.icon, cat.name, 'system'),
         }
       })
     }
