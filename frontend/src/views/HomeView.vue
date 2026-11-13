@@ -191,10 +191,11 @@ function clearSearch() {
         <!-- Logo & Title -->
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2.5 cursor-pointer" @click="router.push('/')">
-            <div class="w-9 h-9 rounded-lg bg-slate-950 flex items-center justify-center text-white font-extrabold text-lg tracking-wider shadow-sm">
-              P
-            </div>
-            <span class="font-black text-xl tracking-wider text-slate-950">PROBUS</span>
+            <img
+              src="/probus-logo.png"
+              alt="Probus System"
+              class="h-9 sm:h-10 w-auto object-contain hover:opacity-90 transition-opacity"
+            />
           </div>
           <span class="text-slate-300 font-light">|</span>
           <span class="text-slate-500 text-sm sm:text-base font-medium">Pusat Bantuan Publik</span>

@@ -307,10 +307,11 @@ watch(
         <!-- Logo & Back Button -->
         <div class="flex items-center gap-3.5">
           <div class="flex items-center gap-2.5 cursor-pointer" @click="router.push('/')">
-            <div class="w-8 h-8 rounded-lg bg-slate-950 flex items-center justify-center text-white font-extrabold text-base tracking-wider shadow-sm">
-              P
-            </div>
-            <span class="font-black text-lg tracking-wider text-slate-950">PROBUS</span>
+            <img
+              src="/probus-logo.png"
+              alt="Probus System"
+              class="h-8 sm:h-9 w-auto object-contain hover:opacity-90 transition-opacity"
+            />
           </div>
           <span class="text-slate-300 font-light">|</span>
           <span class="text-slate-500 text-sm font-medium hidden sm:inline">Pusat Bantuan Publik</span>
