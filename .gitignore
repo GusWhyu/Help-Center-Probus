@@ -25,6 +25,7 @@ Thumbs.db
 # Storage / uploads
 storage/
 public/uploads/
+frontend/public/uploads/
 
 # Frontend
 frontend/node_modules/

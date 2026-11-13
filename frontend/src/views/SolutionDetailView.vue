@@ -10,9 +10,12 @@ import {
   AlertCircle,
   Loader2,
   ChevronRight,
-  Share2,
   Printer,
-  Menu
+  Globe,
+  Lock,
+  Calendar,
+  Menu,
+  X
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { slugify, findArticleByParam } from '../utils/slug'
@@ -23,6 +26,7 @@ const mobileMenuOpen = ref(false)
 
 const articleParam = computed(() => route.params.id)
 const article = ref(null)
+const relatedArticles = ref([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 const feedbackGiven = ref(false)
@@ -53,7 +57,56 @@ const systemFullTitleMap = {
 
 function formatArticleContent(html) {
   if (!html) return ''
-  return html.replace(/http:\/\/(127\.0\.0\.1|localhost):8000\/uploads\//g, '/uploads/')
+  return html.replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, '/uploads/')
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '09 Nov 2026'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return '09 Nov 2026'
+  return d.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  })
+}
+
+function formatDateTime(dateStr) {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return '-'
+  return d.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+async function loadRelatedArticles(currentId, katId) {
+  try {
+    const listRes = await apiClient.get('/articles', { params: { limit: 100 } })
+    if (listRes.data && listRes.data.data && Array.isArray(listRes.data.data)) {
+      const publicArticles = listRes.data.data.filter(item => 
+        item.status === 'published' && 
+        item.id !== currentId
+      )
+      const sameCategory = publicArticles.filter(item => {
+        const pMenu = item.menu_systems && item.menu_systems.length > 0 ? item.menu_systems[0] : null
+        return pMenu && pMenu.kategori_id === katId
+      })
+      const candidates = sameCategory.length > 0 ? sameCategory : publicArticles
+      relatedArticles.value = candidates.slice(0, 2).map(item => ({
+        id: item.id,
+        title: item.title,
+        slug: slugify(item.title),
+        visibility: item.visibility || 'publik',
+      }))
+    }
+  } catch (err) {
+    console.warn('Failed to load related articles:', err)
+  }
 }
 
 async function loadArticle() {
@@ -69,7 +122,6 @@ async function loadArticle() {
         const res = await apiClient.get(`/articles/${numId}`)
         if (res.data && res.data.data) {
           processArticleData(res.data.data)
-          // Canonical slug URL synchronization: replace numeric ID in address bar with clean slug
           const canonicalSlug = slugify(res.data.data.title)
           if (canonicalSlug && route.params.id !== canonicalSlug) {
             router.replace(`/solutions/${canonicalSlug}`)
@@ -87,7 +139,6 @@ async function loadArticle() {
       const publicArticles = listRes.data.data.filter(item => item.status === 'published')
       const matched = findArticleByParam(publicArticles, param) || findArticleByParam(listRes.data.data, param)
       if (matched) {
-        // Try getting complete article detail by ID
         try {
           const detailRes = await apiClient.get(`/articles/${matched.id}`)
           if (detailRes.data && detailRes.data.data) {
@@ -99,7 +150,6 @@ async function loadArticle() {
           processArticleData(matched)
         }
 
-        // Canonical slug URL synchronization
         const canonicalSlug = slugify(matched.title)
         if (canonicalSlug && route.params.id !== canonicalSlug) {
           router.replace(`/solutions/${canonicalSlug}`)
@@ -118,10 +168,10 @@ async function loadArticle() {
 
 function processArticleData(raw) {
   const primaryMenu = raw.menu_systems && raw.menu_systems.length > 0 ? raw.menu_systems[0] : null
-  const katId = primaryMenu ? primaryMenu.kategori_id : 2
-  const sysShort = systemNameMap[katId] || 'PRESTO'
+  const katId = primaryMenu ? primaryMenu.kategori_id : 1
+  const sysShort = systemNameMap[katId] || 'PHIS'
   const sysFull = systemFullTitleMap[katId] || sysShort
-  const menuName = primaryMenu ? primaryMenu.name : 'Hardware & Printer'
+  const menuName = primaryMenu ? primaryMenu.name : 'Setup Master'
 
   const words = (raw.content || '').split(/\s+/).length
   const minutes = Math.max(2, Math.min(10, Math.ceil(words / 150)))
@@ -132,6 +182,11 @@ function processArticleData(raw) {
     systemShort: sysShort,
     systemTitle: sysFull,
     moduleName: menuName,
+    visibility: raw.visibility || 'publik',
+    status: raw.status || 'published',
+    authorName: (raw.user && raw.user.name) || 'Superadministrator',
+    formattedDate: formatDate(raw.created_at),
+    formattedUpdated: formatDateTime(raw.updated_at || raw.created_at),
     readTime: `${minutes} menit baca`,
     content: formatArticleContent(raw.content),
     summary: raw.summary || '',
@@ -139,6 +194,7 @@ function processArticleData(raw) {
     raw
   }
   isLoading.value = false
+  loadRelatedArticles(raw.id, katId)
 }
 
 function printArticle() {
@@ -274,8 +330,8 @@ watch(
       </div>
     </nav>
 
-    <!-- 3. Article Content Section -->
-    <main class="flex-1 w-full px-4 sm:px-6 lg:px-12 xl:px-16 py-8 sm:py-12 bg-white">
+    <!-- 3. Article Content Section (Identik dengan Desain Bank Solusi Probus Implementator) -->
+    <main class="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 bg-slate-50/50">
       <!-- Loading State -->
       <div v-if="isLoading" class="w-full py-20 text-center">
         <Loader2 class="w-10 h-10 animate-spin text-sky-600 mx-auto mb-4" />
@@ -299,51 +355,138 @@ watch(
         </button>
       </div>
 
-      <!-- Article View (Fluid Responsive Width) -->
-      <article v-else class="w-full">
-        <!-- Breadcrumb / Category Metadata -->
-        <div class="flex items-center gap-2 text-xs sm:text-sm font-semibold tracking-wide text-sky-600 mb-2.5">
-          <span>{{ article.systemTitle }}</span>
-          <span class="text-slate-300">•</span>
-          <span>{{ article.moduleName }}</span>
-        </div>
-
-        <!-- Article Title -->
-        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
-          {{ article.title }}
-        </h1>
-
-        <!-- Reading Metadata & Status Bar -->
-        <div class="flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500 pb-5 border-b border-slate-200/80 mb-8">
-          <div class="flex items-center gap-4">
-            <span class="flex items-center gap-1.5">
-              <Clock class="w-3.5 h-3.5 text-slate-400" />
-              <span>{{ article.readTime }}</span>
-            </span>
-            <span class="flex items-center gap-1.5 text-emerald-600 font-semibold">
-              <CheckCircle2 class="w-3.5 h-3.5" />
-              <span>Terverifikasi Tim Teknis Probus</span>
+      <!-- Article View (Identik Desain Probus Implementator) -->
+      <div v-else class="w-full max-w-5xl mx-auto">
+        <!-- TOP BAR: BREADCRUMB & ACTION BUTTONS -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
+          <!-- Breadcrumb -->
+          <div class="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-500 overflow-hidden">
+            <span class="hover:text-slate-700 transition-colors shrink-0">Knowledge Base</span>
+            <ChevronRight class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <router-link to="/solutions" class="hover:text-sky-600 transition-colors shrink-0">Bank Solusi</router-link>
+            <ChevronRight class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span class="text-slate-800 font-bold truncate max-w-xs sm:max-w-md lg:max-w-lg">
+              {{ article.title }}
             </span>
           </div>
 
-          <button
-            @click="printArticle"
-            class="text-slate-400 hover:text-slate-700 transition-colors inline-flex items-center gap-1 cursor-pointer"
-            title="Cetak panduan ini"
-          >
-            <Printer class="w-3.5 h-3.5" />
-            <span class="hidden sm:inline">Cetak Solusi</span>
-          </button>
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-2.5 shrink-0">
+            <router-link
+              to="/solutions"
+              class="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-2xs"
+            >
+              <ArrowLeft class="w-3.5 h-3.5" />
+              <span>Kembali ke Bank Solusi</span>
+            </router-link>
+
+            <button
+              @click="printArticle"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-sky-500/20 transition-all hover:scale-[1.02] cursor-pointer"
+            >
+              <Printer class="w-3.5 h-3.5" />
+              <span>Cetak Solusi</span>
+            </button>
+          </div>
         </div>
 
-        <!-- Article Rich HTML Content -->
-        <div
-          class="solution-article-content text-slate-700 text-sm sm:text-base leading-relaxed"
-          v-html="article.content"
-        ></div>
+        <!-- MAIN ARTICLE CARD CONTAINER (Identik Bank Solusi Probus Implementator) -->
+        <article class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-sm space-y-8">
+          <!-- Header Artikel -->
+          <div class="space-y-4 pb-6 border-b border-slate-100">
+            <!-- Kategori Sistem & Modul + Badge Visibilitas & Status -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-2 text-xs sm:text-sm font-extrabold uppercase tracking-wider text-sky-600">
+                <span>{{ article.systemShort }}</span>
+                <span class="text-slate-300">•</span>
+                <span>{{ article.moduleName }}</span>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <!-- Badge Visibilitas -->
+                <span
+                  v-if="article.visibility === 'publik'"
+                  class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs"
+                >
+                  <Globe class="w-3 h-3 text-emerald-500 shrink-0" />
+                  <span>BLOG KLIEN</span>
+                </span>
+                <span
+                  v-else
+                  class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs"
+                >
+                  <Lock class="w-3 h-3 text-amber-500 shrink-0" />
+                  <span>INTERNAL</span>
+                </span>
+
+                <!-- Status Badge -->
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
+                  <CheckCircle2 class="w-3 h-3 text-blue-600" />
+                  <span>Diterbitkan</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Judul Utama -->
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+              {{ article.title }}
+            </h1>
+
+            <!-- Metadata: Penulis, Tanggal, dan Read Time -->
+            <div class="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-500 pt-1">
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
+                  {{ (article.authorName || 'Superadministrator').charAt(0).toUpperCase() }}
+                </div>
+                <span class="text-slate-700">{{ article.authorName || 'Superadministrator' }}</span>
+              </div>
+
+              <span class="text-slate-300">•</span>
+
+              <div class="flex items-center gap-1.5">
+                <Calendar class="w-3.5 h-3.5 text-slate-400" />
+                <span>{{ article.formattedDate }}</span>
+              </div>
+
+              <span class="text-slate-300">•</span>
+
+              <div class="flex items-center gap-1.5">
+                <Clock class="w-3.5 h-3.5 text-slate-400" />
+                <span>{{ article.readTime }}</span>
+              </div>
+            </div>
+
+            <!-- Ringkasan Pengantar (Callout Biru Garis Kiri Identik Probus Implementator) -->
+            <div
+              v-if="article.summary"
+              class="pt-2 text-sm sm:text-base text-slate-600 font-medium leading-relaxed italic border-l-4 border-blue-500 pl-4 py-2 bg-blue-50/30 rounded-r-xl"
+            >
+              {{ article.summary }}
+            </div>
+          </div>
+
+          <!-- ISI DOKUMEN / KONTEN ARTIKEL (TINYMCE RENDER) -->
+          <div
+            class="article-content prose prose-slate max-w-none text-slate-800 text-sm sm:text-base leading-relaxed"
+            v-html="article.content"
+          ></div>
+
+          <!-- Card Footer: Terakhir Diperbarui & Navigasi -->
+          <div class="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+            <div>
+              Terakhir diperbarui: <span class="font-bold text-slate-700">{{ article.formattedUpdated }}</span>
+            </div>
+            <router-link
+              to="/solutions"
+              class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
+            >
+              Semua Solusi
+            </router-link>
+          </div>
+        </article>
 
         <!-- Interactive Feedback Card -->
-        <div class="mt-14 p-6 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="mt-8 p-6 sm:p-7 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <h4 class="text-sm font-bold text-slate-900">Apakah artikel pemecahan masalah ini membantu Anda?</h4>
             <p class="text-xs text-slate-500 mt-0.5">Masukan Anda membantu kami meningkatkan kualitas dokumentasi sistem Probus.</p>
@@ -368,26 +511,35 @@ watch(
           </div>
         </div>
 
-        <!-- Back Link Navigation -->
-        <div class="mt-10 pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <button
-            @click="router.push('/solutions')"
-            class="inline-flex items-center gap-1.5 font-semibold text-slate-700 hover:text-sky-600 transition-colors cursor-pointer"
-          >
-            <ArrowLeft class="w-4 h-4" />
-            <span>Kembali ke Daftar Bank Solusi</span>
-          </button>
+        <!-- Related Articles Section (Solusi Terkait Lainnya di Modul ...) -->
+        <div v-if="relatedArticles.length > 0" class="mt-8 space-y-4">
+          <h3 class="text-base sm:text-lg font-black text-slate-800 tracking-tight">
+            Solusi Terkait Lainnya di Modul <span class="text-sky-600">{{ article.moduleName }}</span>
+          </h3>
 
-          <a
-            href="https://wa.me/6281910875514"
-            target="_blank"
-            class="font-semibold text-emerald-600 hover:text-emerald-700 transition-colors inline-flex items-center gap-1"
-          >
-            <span>Masih ada kendala? Chat WhatsApp Tim Support</span>
-            <ChevronRight class="w-3.5 h-3.5" />
-          </a>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <router-link
+              v-for="rel in relatedArticles"
+              :key="rel.id"
+              :to="`/solutions/${rel.slug}`"
+              class="p-5 bg-white border border-slate-200 rounded-2xl hover:border-sky-500 hover:shadow-md transition-all duration-200 group flex flex-col justify-between shadow-xs"
+            >
+              <div>
+                <div class="text-[10px] font-black uppercase tracking-wider text-sky-600 mb-1.5">
+                  {{ rel.visibility === 'publik' ? 'BLOG KLIEN' : 'INTERNAL' }}
+                </div>
+                <h4 class="text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2">
+                  {{ rel.title }}
+                </h4>
+              </div>
+              <div class="mt-4 pt-3 flex items-center justify-between border-t border-slate-100 text-xs font-bold text-sky-600">
+                <span>Baca panduan</span>
+                <ChevronRight class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </router-link>
+          </div>
         </div>
-      </article>
+      </div>
     </main>
 
     <!-- 4. Footer -->
@@ -400,111 +552,85 @@ watch(
 </template>
 
 <style scoped>
-:deep(.solution-article-content) {
-  color: #334155;
-  font-size: 0.95rem;
+/* Styling Khusus Format Konten TinyMCE (Identik Sama Persis dengan Probus Implementator) */
+:deep(.article-content h1), 
+:deep(.article-content h2), 
+:deep(.article-content h3), 
+:deep(.article-content h4) {
+  color: inherit;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  margin-top: 1.75em;
+  margin-bottom: 0.75em;
+  line-height: 1.3;
+}
+:deep(.article-content h1) { font-size: 1.75rem; }
+:deep(.article-content h2) { font-size: 1.35rem; }
+:deep(.article-content h3) { font-size: 1.15rem; }
+
+:deep(.article-content p) {
+  margin-bottom: 1.25em;
   line-height: 1.75;
-}
-
-:deep(.solution-article-content p) {
-  margin-bottom: 1.25rem;
   color: #334155;
 }
 
-:deep(.solution-article-content h1),
-:deep(.solution-article-content h2),
-:deep(.solution-article-content h3),
-:deep(.solution-article-content h4) {
-  color: #0f172a;
-  font-weight: 700;
-  margin-top: 2rem;
-  margin-bottom: 0.75rem;
-  line-height: 1.4;
+:deep(.article-content ul), 
+:deep(.article-content ol) {
+  margin-top: 0.75em;
+  margin-bottom: 1.25em;
+  padding-left: 1.5em;
+}
+:deep(.article-content ul) { list-style-type: disc; }
+:deep(.article-content ol) { list-style-type: decimal; }
+:deep(.article-content li) {
+  margin-bottom: 0.5em;
+  line-height: 1.6;
 }
 
-:deep(.solution-article-content h2) {
-  font-size: 1.15rem;
-}
-
-:deep(.solution-article-content h3) {
-  font-size: 1.05rem;
-}
-
-:deep(.solution-article-content ul),
-:deep(.solution-article-content ol) {
-  padding-left: 1.5rem;
-  margin-bottom: 1.25rem;
-}
-
-:deep(.solution-article-content ol) {
-  list-style-type: decimal;
-}
-
-:deep(.solution-article-content ul) {
-  list-style-type: disc;
-}
-
-:deep(.solution-article-content li) {
-  margin-bottom: 0.5rem;
-  line-height: 1.65;
-}
-
-:deep(.solution-article-content table) {
+/* Tabel Responsif & Indikator (Identik Probus Implementator) */
+:deep(.article-content table) {
   width: 100% !important;
   border-collapse: collapse !important;
-  margin: 1.5rem 0 !important;
-  border: 1px solid #cbd5e1 !important;
-  border-radius: 8px !important;
-  overflow: hidden !important;
-}
-
-:deep(.solution-article-content th) {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
-  font-weight: 700 !important;
-  font-size: 0.875rem !important;
-  text-align: left !important;
-  padding: 10px 14px !important;
+  margin: 1.5em 0 !important;
   border: 1px solid #cbd5e1 !important;
 }
 
-:deep(.solution-article-content td) {
-  padding: 10px 14px !important;
-  border: 1px solid #e2e8f0 !important;
+:deep(.article-content th), 
+:deep(.article-content td) {
+  padding: 0.75rem 1rem !important;
+  border: 1px solid #cbd5e1 !important;
   font-size: 0.875rem !important;
   color: #334155 !important;
-  line-height: 1.5 !important;
 }
 
-:deep(.solution-article-content tr:nth-child(even) td) {
-  background-color: #fafbfc !important;
+:deep(.article-content thead th),
+:deep(.article-content th) {
+  background-color: #f8fafc !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  text-align: left !important;
 }
 
-:deep(.solution-article-content img) {
-  max-width: 100% !important;
-  height: auto !important;
-  border-radius: 8px !important;
-  margin: 1.25rem 0 !important;
-  border: 1px solid #e2e8f0 !important;
+/* Gambar Konten (Identik Probus Implementator) */
+:deep(.article-content img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 1.5em auto;
+  display: block;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-:deep(.solution-article-content code) {
-  background-color: #f1f5f9;
-  color: #0f172a;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 0.875rem;
-  font-family: monospace;
-}
-
-:deep(.solution-article-content pre) {
-  background-color: #0f172a;
-  color: #f8fafc;
-  padding: 1rem;
-  border-radius: 8px;
-  overflow-x: auto;
-  margin: 1.25rem 0;
-  font-size: 0.875rem;
+/* Callout Box Wireframe / Screenshot (Identik Probus Implementator) */
+:deep(.article-content .mockup-box),
+:deep(.article-content div[style*="border: 1px solid #ef4444"]),
+:deep(.article-content div[style*="border: 1px solid red"]) {
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin: 1.25em 0;
+  background-color: rgba(239, 68, 68, 0.05);
 }
 </style>
 
