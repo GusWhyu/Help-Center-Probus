@@ -22,3 +22,31 @@ pre {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
 }
 
+/* Custom Light Blue Scrollbar */
+.custom-sky-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #7dd3fc #f0f9ff;
+}
+
+.custom-sky-scrollbar::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.custom-sky-scrollbar::-webkit-scrollbar-track {
+  background: #f0f9ff;
+  border-radius: 9999px;
+  margin: 0 4px;
+}
+
+.custom-sky-scrollbar::-webkit-scrollbar-thumb {
+  background: #7dd3fc;
+  border-radius: 9999px;
+  border: 1px solid #f0f9ff;
+  transition: background-color 0.2s ease;
+}
+
+.custom-sky-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
+}
+

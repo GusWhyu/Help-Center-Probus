@@ -32,7 +32,7 @@ import {
   Menu
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import { detectModuleIcon } from '../utils/iconResolver'
+import { detectModuleIcon, detectSystemIcon } from '../utils/iconResolver'
 import { slugify, getSystemSlug, getSystemIdFromParam, findModuleByParam } from '../utils/slug'
 
 const route = useRoute()
@@ -50,15 +50,15 @@ const activeManualIndex = ref(0)
 
 const isLoading = ref(false)
 const availableSystems = ref([
-  { id: 2, name: 'PRESTO', title: 'PRESTO Resto POS (10 Modul)', shortName: 'PRESTO Resto POS' },
-  { id: 1, name: 'PHIS', title: 'Probus Hotel PMS (10 Modul)', shortName: 'Probus Hotel PMS' },
-  { id: 8, name: 'PPE', title: 'PPE 2.0 Management (10 Modul)', shortName: 'PPE 2.0 Management' },
-  { id: 3, name: 'PPOS', title: 'PPOS Point of Sales (10 Modul)', shortName: 'PPOS Point of Sales' },
-  { id: 4, name: 'SELF ORDER', title: 'Probus Self Order (10 Modul)', shortName: 'Probus Self Order' },
-  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO Online & Purchasing (10 Modul)', shortName: 'PR-PO Online' },
-  { id: 6, name: 'ORDER TAKER', title: 'Order Taker Mobile (10 Modul)', shortName: 'Order Taker Mobile' },
-  { id: 7, name: 'VRESTROPICAL', title: 'Vrestropical POS (10 Modul)', shortName: 'Vrestropical POS' },
-  { id: 9, name: 'BARONG POS', title: 'Barong POS Cloud (8 Modul)', shortName: 'Barong POS Cloud' },
+  { id: 2, name: 'PRESTO', title: 'PRESTO (10 Modul)', modulCount: 10, shortName: 'PRESTO Resto POS' },
+  { id: 1, name: 'PHIS', title: 'PHIS (10 Modul)', modulCount: 10, shortName: 'Probus Hotel PMS' },
+  { id: 8, name: 'PPE', title: 'PPE (10 Modul)', modulCount: 10, shortName: 'PPE 2.0 Management' },
+  { id: 3, name: 'PPOS', title: 'PPOS (10 Modul)', modulCount: 10, shortName: 'PPOS Point of Sales' },
+  { id: 4, name: 'SELF ORDER', title: 'SELF ORDER (10 Modul)', modulCount: 10, shortName: 'Probus Self Order' },
+  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO ONLINE (10 Modul)', modulCount: 10, shortName: 'PR-PO Online' },
+  { id: 6, name: 'ORDER TAKER', title: 'ORDER TAKER (10 Modul)', modulCount: 10, shortName: 'Order Taker Mobile' },
+  { id: 7, name: 'VRESTROPICAL', title: 'VRESTROPICAL (10 Modul)', modulCount: 10, shortName: 'Vrestropical POS' },
+  { id: 9, name: 'BARONG POS', title: 'BARONG POS (8 Modul)', modulCount: 8, shortName: 'Barong POS Cloud' },
 ])
 
 const currentSystem = computed(() => {
@@ -96,6 +96,7 @@ async function loadSystemData() {
         id: cat.id,
         name: cat.name,
         title: `${cat.name} (${cat.total_menus || 10} Modul)`,
+        modulCount: cat.total_menus || (cat.name === 'BARONG POS' ? 8 : 10),
         shortName: cat.name === 'PRESTO' ? 'PRESTO Resto POS' : (cat.name === 'PHIS' ? 'Probus Hotel PMS' : `${cat.name} System`),
       }))
     }
@@ -434,22 +435,57 @@ watch(
 
         <!-- "PILIH SISTEM" Label & Pills Row -->
         <div class="mt-4">
-          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-            PILIH SISTEM
+          <div class="flex items-center justify-between mb-2.5">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                Pilih Sistem Probus
+              </span>
+            </div>
+            <span class="text-[11px] text-slate-400 hidden sm:inline">
+              Geser untuk melihat sistem lainnya →
+            </span>
           </div>
-          <div class="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-1.5 no-scrollbar">
+
+          <!-- Horizontal Scroll Container with Custom Light Blue Scrollbar -->
+          <div class="custom-sky-scrollbar flex items-center gap-2.5 overflow-x-auto pb-3 pt-1">
             <button
               v-for="sys in availableSystems"
               :key="sys.id"
               @click="switchSystem(sys)"
               :class="[
-                'shrink-0 text-xs px-3.5 sm:px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer',
+                'group shrink-0 inline-flex items-center gap-2 text-xs px-3.5 sm:px-4 py-2.5 rounded-xl font-bold transition-all duration-200 cursor-pointer select-none',
                 selectedSystemId === sys.id
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                  ? 'bg-gradient-to-r from-sky-600 to-sky-700 text-white shadow-sm shadow-sky-600/30 ring-2 ring-sky-500/30'
+                  : 'bg-white text-slate-700 border border-slate-200/90 hover:border-sky-300 hover:bg-sky-50/60 hover:text-sky-700 shadow-2xs'
               ]"
             >
-              {{ sys.title }}
+              <!-- System Icon -->
+              <div
+                :class="[
+                  'w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors',
+                  selectedSystemId === sys.id
+                    ? 'bg-white/20 text-white'
+                    : 'bg-slate-100 text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-600'
+                ]"
+              >
+                <component :is="detectSystemIcon(sys.name)" class="w-3.5 h-3.5" />
+              </div>
+
+              <!-- System Name -->
+              <span class="tracking-tight">{{ sys.name }}</span>
+
+              <!-- Modul Count Badge -->
+              <span
+                :class="[
+                  'text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors',
+                  selectedSystemId === sys.id
+                    ? 'bg-white/25 text-white'
+                    : 'bg-slate-100 text-slate-500 group-hover:bg-sky-100/80 group-hover:text-sky-700'
+                ]"
+              >
+                {{ sys.modulCount || (sys.name === 'BARONG POS' ? 8 : 10) }} Modul
+              </span>
             </button>
           </div>
         </div>
@@ -471,7 +507,7 @@ watch(
             </div>
 
             <!-- List of Modules from Database `menu_systems` -->
-            <div class="space-y-2.5 max-h-[calc(100vh-220px)] overflow-y-auto pr-1">
+            <div class="space-y-2.5 max-h-[calc(100vh-220px)] overflow-y-auto pr-1 custom-sky-scrollbar">
               <div
                 v-for="mod in modulesList"
                 :key="mod.id"
