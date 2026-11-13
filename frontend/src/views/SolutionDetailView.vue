@@ -467,7 +467,7 @@ watch(
 
           <!-- ISI DOKUMEN / KONTEN ARTIKEL (TINYMCE RENDER) -->
           <div
-            class="article-content prose prose-slate max-w-none text-slate-800 text-sm sm:text-base leading-relaxed"
+            class="article-content max-w-none text-slate-800 text-sm sm:text-base leading-relaxed"
             v-html="article.content"
           ></div>
 
@@ -593,23 +593,52 @@ watch(
   border-collapse: collapse !important;
   margin: 1.5em 0 !important;
   border: 1px solid #cbd5e1 !important;
+  border-radius: 0.5rem !important;
+  overflow: hidden !important;
+  font-size: 0.825rem !important;
 }
 
-:deep(.article-content th), 
-:deep(.article-content td) {
-  padding: 0.75rem 1rem !important;
+:deep(.article-content table th),
+:deep(.article-content table td),
+:deep(.article-content table tr th),
+:deep(.article-content table tr td),
+:deep(.article-content table tbody tr th),
+:deep(.article-content table tbody tr td),
+:deep(.article-content table thead tr th) {
   border: 1px solid #cbd5e1 !important;
-  font-size: 0.875rem !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: #cbd5e1 !important;
+  padding: 0.625rem 0.75rem !important;
+  text-align: left !important;
+  vertical-align: top !important;
   color: #334155 !important;
+  font-size: 0.875rem !important;
 }
 
-:deep(.article-content thead th),
-:deep(.article-content th) {
-  background-color: #f8fafc !important;
+:deep(.article-content table th),
+:deep(.article-content table thead th),
+:deep(.article-content table tbody tr:first-child th),
+:deep(.article-content table tr:first-child th) {
+  background-color: #f1f5f9 !important;
   font-weight: 700 !important;
   color: #0f172a !important;
-  border-color: #cbd5e1 !important;
-  text-align: left !important;
+}
+
+/* Preserve dark navy header from TinyMCE Word importer (bg #0b1a36) */
+:deep(.article-content table th[style*="background-color"]),
+:deep(.article-content table td[style*="background-color"]) {
+  color: inherit !important;
+}
+
+:deep(.article-content table th p),
+:deep(.article-content table td p) {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+:deep(.article-content table tbody tr) {
+  border-bottom: 1px solid #cbd5e1 !important;
 }
 
 /* Gambar Konten (Identik Probus Implementator) */

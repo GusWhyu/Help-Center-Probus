@@ -756,7 +756,7 @@ watch(
 
                 <!-- Isi Materi Artikel Panduan (TinyMCE Content) -->
                 <div
-                  class="article-content prose prose-slate max-w-none text-slate-800 text-xs sm:text-sm leading-relaxed overflow-x-auto min-h-[220px]"
+                  class="article-content max-w-none text-slate-800 text-xs sm:text-sm leading-relaxed overflow-x-auto min-h-[220px]"
                   v-html="formatArticleContent(currentManualBook.content)"
                 ></div>
               </div>
@@ -980,7 +980,7 @@ watch(
   color: #334155;
 }
 
-/* Tabel TinyMCE & Word Importer */
+/* Tabel TinyMCE & Word Importer (Identik Probus Implementator) */
 :deep(.article-content table) {
   width: 100% !important;
   border-collapse: collapse !important;
@@ -992,21 +992,44 @@ watch(
 }
 
 :deep(.article-content table th),
-:deep(.article-content table td) {
-  border: 1px solid #e2e8f0 !important;
+:deep(.article-content table td),
+:deep(.article-content table tr th),
+:deep(.article-content table tr td),
+:deep(.article-content table tbody tr th),
+:deep(.article-content table tbody tr td),
+:deep(.article-content table thead tr th) {
+  border: 1px solid #cbd5e1 !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: #cbd5e1 !important;
   padding: 0.625rem 0.75rem !important;
   text-align: left !important;
+  vertical-align: top !important;
 }
 
-:deep(.article-content table th) {
+:deep(.article-content table th),
+:deep(.article-content table thead th),
+:deep(.article-content table tbody tr:first-child th),
+:deep(.article-content table tr:first-child th) {
   background-color: #f1f5f9 !important;
   color: #0f172a !important;
   font-weight: 700 !important;
 }
 
+/* Preserve dark navy header from TinyMCE Word importer (bg #0b1a36) */
+:deep(.article-content table th[style*="background-color"]),
+:deep(.article-content table td[style*="background-color"]) {
+  color: inherit !important;
+}
+
 :deep(.article-content table th p),
 :deep(.article-content table td p) {
   margin: 0 !important;
+  padding: 0 !important;
+}
+
+:deep(.article-content table tbody tr) {
+  border-bottom: 1px solid #cbd5e1 !important;
 }
 
 /* Gambar Panduan */
