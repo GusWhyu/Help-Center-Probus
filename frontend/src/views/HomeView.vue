@@ -27,7 +27,6 @@ import { detectSystemIcon } from '../utils/iconResolver'
 
 const router = useRouter()
 const searchQuery = ref('')
-const selectedSystem = ref(2) // default active: PRESTO (ID: 2 in DB)
 const isLoading = ref(false)
 
 // Metadata mapping for the 9 database categories in dbprobuscs
@@ -152,7 +151,6 @@ const searchResults = computed(() => {
 })
 
 function selectCard(id) {
-  selectedSystem.value = id
   router.push('/system/' + id)
 }
 
@@ -330,31 +328,18 @@ function clearSearch() {
           v-for="sys in systems"
           :key="sys.id"
           @click="selectCard(sys.id)"
-          :class="[
-            'bg-white rounded-2xl p-6 sm:p-7 border transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs',
-            selectedSystem === sys.id
-              ? 'border-2 border-sky-500 shadow-md ring-4 ring-sky-500/10'
-              : 'border-slate-200/90 hover:border-slate-300 hover:shadow-lg hover:-translate-y-1'
-          ]"
+          class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 hover:border-sky-500 hover:ring-4 hover:ring-sky-500/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs"
         >
           <div>
             <!-- Card Top: Icon & Badge -->
             <div class="flex items-center justify-between">
               <div
-                :class="[
-                  'w-12 h-12 rounded-xl flex items-center justify-center transition-colors shadow-2xs',
-                  selectedSystem === sys.id ? 'bg-sky-50 text-sky-600' : 'bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600'
-                ]"
+                class="w-12 h-12 rounded-xl flex items-center justify-center bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600 transition-colors shadow-2xs"
               >
                 <component :is="sys.icon" class="w-6 h-6 stroke-[1.8]" />
               </div>
               <span
-                :class="[
-                  'text-xs font-semibold px-3 py-1.5 rounded-lg tracking-wide transition-colors',
-                  selectedSystem === sys.id
-                    ? 'bg-sky-600 text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
-                ]"
+                class="text-xs font-semibold px-3 py-1.5 rounded-lg tracking-wide bg-slate-100 text-slate-600 group-hover:bg-sky-100/70 group-hover:text-sky-700 transition-colors"
               >
                 {{ sys.badge }}
               </span>
@@ -371,15 +356,10 @@ function clearSearch() {
 
           <!-- Card Bottom: Modul Count & Link -->
           <div class="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between text-sm">
-            <span
-              :class="[
-                'font-medium text-xs sm:text-sm',
-                selectedSystem === sys.id ? 'text-sky-600 font-bold' : 'text-slate-500'
-              ]"
-            >
+            <span class="font-medium text-xs sm:text-sm text-slate-500">
               {{ sys.modulCount }} Modul Penggunaan
             </span>
-            <span class="text-sky-600 font-semibold flex items-center gap-1.5 hover:text-sky-700 text-xs sm:text-sm">
+            <span class="text-sky-600 font-semibold flex items-center gap-1.5 group-hover:text-sky-700 text-xs sm:text-sm">
               <span>Pilih Sistem</span>
               <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </span>
