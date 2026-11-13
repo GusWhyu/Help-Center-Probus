@@ -163,8 +163,8 @@ watch(
 <template>
   <div class="min-h-screen bg-slate-50/50 text-slate-800 font-sans flex flex-col antialiased">
     <!-- 1. Utility Top Bar -->
-    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-7xl mx-auto flex items-center justify-between sm:justify-end">
+    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-4 sm:px-6 lg:px-12 xl:px-16">
+      <div class="w-full flex items-center justify-between sm:justify-end">
         <span class="text-slate-400 text-[11px] sm:hidden">Pusat Bantuan Resmi</span>
         <div class="flex items-center gap-2 text-slate-600">
           <span class="text-slate-400 hidden sm:inline">Butuh bantuan cepat?</span>
@@ -180,8 +180,8 @@ watch(
     </header>
 
     <!-- 2. Main Navigation Bar with "Kembali ke Bank Solusi" Button -->
-    <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-8 sticky top-0 z-40 shadow-xs">
-      <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-12 xl:px-16 sticky top-0 z-40 shadow-xs">
+      <div class="w-full flex items-center justify-between">
         <!-- Logo & Back Button -->
         <div class="flex items-center gap-2.5 sm:gap-3.5">
           <div class="flex items-center cursor-pointer" @click="router.push('/')">
@@ -300,7 +300,7 @@ watch(
       </div>
 
       <!-- Article View (Matching Screenshot media_1794537273140_24a23ca4.png) -->
-      <article v-else class="max-w-4xl mx-auto px-6 sm:px-8 py-10 sm:py-14">
+      <article v-else class="w-full max-w-4xl xl:max-w-5xl mx-auto px-6 sm:px-8 py-10 sm:py-14">
         <!-- Breadcrumb / Category Metadata -->
         <div class="flex items-center gap-2 text-xs sm:text-sm font-semibold tracking-wide text-sky-600 mb-2.5">
           <span>{{ article.systemTitle }}</span>
@@ -391,8 +391,8 @@ watch(
     </main>
 
     <!-- 4. Footer -->
-    <footer class="border-t border-slate-200 bg-white py-6 px-4 sm:px-6 lg:px-8 text-xs text-slate-500">
-      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+    <footer class="border-t border-slate-200 bg-white py-6 px-4 sm:px-6 lg:px-12 xl:px-16 text-xs text-slate-500">
+      <div class="w-full flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
         <p>© 2026 CV Mitra Solusi Mandiri • Bank Solusi Resmi</p>
       </div>
     </footer>

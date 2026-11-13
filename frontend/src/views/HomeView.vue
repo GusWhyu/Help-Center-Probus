@@ -176,8 +176,8 @@ function clearSearch() {
   <div class="min-h-screen bg-white text-slate-800 font-sans flex flex-col antialiased">
     
     <!-- 1. Utility Top Bar -->
-    <header class="border-b border-slate-100 bg-white text-xs text-slate-500 py-2.5 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-7xl mx-auto flex items-center justify-between sm:justify-end">
+    <header class="border-b border-slate-100 bg-white text-xs text-slate-500 py-2.5 px-4 sm:px-6 lg:px-12 xl:px-16">
+      <div class="w-full flex items-center justify-between sm:justify-end">
         <span class="text-slate-400 text-[11px] sm:hidden">Pusat Bantuan Resmi</span>
         <div class="flex items-center gap-2 text-slate-600">
           <span class="text-slate-400 hidden sm:inline">Butuh bantuan cepat?</span>
@@ -193,8 +193,8 @@ function clearSearch() {
     </header>
 
     <!-- 2. Main Navigation Bar -->
-    <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-8 sticky top-0 z-40 shadow-xs">
-      <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-12 xl:px-16 sticky top-0 z-40 shadow-xs">
+      <div class="w-full flex items-center justify-between">
         <!-- Logo & Title -->
         <div class="flex items-center gap-3">
           <div class="flex items-center cursor-pointer" @click="router.push('/')">
@@ -275,17 +275,17 @@ function clearSearch() {
     </nav>
 
     <!-- 3. Clean Hero & Search Omnibox Section -->
-    <section class="pt-10 pb-8 sm:pt-16 sm:pb-12 lg:pt-20 lg:pb-16 px-4 sm:px-6 lg:px-8 text-center bg-gradient-to-b from-white via-sky-50/20 to-transparent">
-      <div class="max-w-4xl mx-auto">
-        <h1 class="text-2xl sm:text-3xl lg:text-4xl xl:text-[2.75rem] font-extrabold text-slate-900 tracking-tight leading-tight">
+    <section class="pt-10 pb-8 sm:pt-16 sm:pb-12 lg:pt-20 lg:pb-16 px-4 sm:px-6 lg:px-12 xl:px-16 text-center bg-gradient-to-b from-white via-sky-50/20 to-transparent">
+      <div class="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
           Pusat Bantuan & Panduan Sistem Probus
         </h1>
-        <p class="mt-3 sm:mt-4 text-slate-500 text-sm sm:text-base lg:text-lg leading-relaxed max-w-2xl mx-auto">
+        <p class="mt-3 sm:mt-4 text-slate-500 text-sm sm:text-base lg:text-lg leading-relaxed max-w-3xl mx-auto">
           Pilih sistem atau produk yang Anda gunakan untuk melihat manual book dan solusi kendala teknis.
         </p>
 
         <!-- Search Omnibox -->
-        <div class="mt-7 sm:mt-8 max-w-2xl mx-auto relative group">
+        <div class="mt-7 sm:mt-8 w-full max-w-2xl sm:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto relative group">
           <!-- Search Icon with Centering & Focus Effect -->
           <div class="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center transition-colors duration-200 text-slate-400 group-focus-within:text-sky-600">
             <Search class="w-5 h-5" />
@@ -296,7 +296,7 @@ function clearSearch() {
             v-model="searchQuery"
             type="text"
             placeholder="Ketik kendala, fitur, atau nama modul yang Anda cari..."
-            class="w-full pl-12 sm:pl-14 pr-12 sm:pr-14 py-3 sm:py-3.5 lg:py-4 rounded-2xl text-sm sm:text-base bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:shadow-md transition-all duration-200"
+            class="w-full pl-12 sm:pl-14 pr-12 sm:pr-14 py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:shadow-md transition-all duration-200"
           />
 
           <!-- Clear Search Button -->
@@ -369,7 +369,7 @@ function clearSearch() {
     </section>
 
     <!-- 4. Section: Pilih Produk / Sistem Probus -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+    <main class="flex-1 w-full px-4 sm:px-6 lg:px-12 xl:px-16 pb-16">
       
       <!-- Section Header -->
       <div class="mb-6 sm:mb-7 flex flex-col sm:flex-row sm:items-end justify-between gap-2 sm:gap-3">
@@ -387,12 +387,12 @@ function clearSearch() {
       </div>
 
       <!-- 9 Cards Grid (3 Columns on Large Screens, 2 on Tablet, 1 on Mobile) -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 xl:gap-8">
         <div
           v-for="sys in systems"
           :key="sys.id"
           @click="selectCard(sys.id)"
-          class="bg-white rounded-2xl p-5 sm:p-6 lg:p-7 border border-slate-200/90 hover:border-sky-500 hover:ring-4 hover:ring-sky-500/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs"
+          class="bg-white rounded-2xl p-5 sm:p-6 lg:p-7 xl:p-8 border border-slate-200/90 hover:border-sky-500 hover:ring-4 hover:ring-sky-500/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs"
         >
           <div>
             <!-- Card Top: Icon & Badge -->
@@ -434,8 +434,8 @@ function clearSearch() {
     </main>
 
     <!-- 5. Footer -->
-    <footer class="border-t border-slate-200 bg-white py-6 px-4 sm:px-6 lg:px-8 text-xs sm:text-sm text-slate-500">
-      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+    <footer class="border-t border-slate-200 bg-white py-6 px-4 sm:px-6 lg:px-12 xl:px-16 text-xs sm:text-sm text-slate-500">
+      <div class="w-full flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
         <p class="font-normal">© 2026 CV Mitra Solusi Mandiri</p>
       </div>
     </footer>

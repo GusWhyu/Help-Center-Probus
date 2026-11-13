@@ -314,8 +314,8 @@ watch(
   <div class="min-h-screen bg-slate-50/50 text-slate-800 font-sans flex flex-col antialiased">
     
     <!-- 1. Utility Top Bar -->
-    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-7xl mx-auto flex items-center justify-between sm:justify-end">
+    <header class="border-b border-slate-200/70 bg-white text-xs text-slate-500 py-2.5 px-4 sm:px-6 lg:px-12 xl:px-16">
+      <div class="w-full flex items-center justify-between sm:justify-end">
         <span class="text-slate-400 text-[11px] sm:hidden">Pusat Bantuan Resmi</span>
         <div class="flex items-center gap-2 text-slate-600">
           <span class="text-slate-400 hidden sm:inline">Butuh bantuan cepat?</span>
@@ -331,8 +331,8 @@ watch(
     </header>
 
     <!-- 2. Main Navigation Bar with "Kembali ke Pilihan Modul" Button -->
-    <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-8 sticky top-0 z-40 shadow-xs">
-      <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-12 xl:px-16 sticky top-0 z-40 shadow-xs">
+      <div class="w-full flex items-center justify-between">
         <!-- Logo & Back Button -->
         <div class="flex items-center gap-2.5 sm:gap-3.5">
           <div class="flex items-center cursor-pointer" @click="router.push('/')">
@@ -423,8 +423,8 @@ watch(
     </nav>
 
     <!-- 3. Subheader: "Tata Cara Penggunaan Sistem" & System Pills Switcher -->
-    <section class="border-b border-slate-200/80 bg-white py-5 sm:py-7 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-7xl mx-auto">
+    <section class="border-b border-slate-200/80 bg-white py-5 sm:py-7 px-4 sm:px-6 lg:px-12 xl:px-16">
+      <div class="w-full">
         <h1 class="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
           Tata Cara Penggunaan Sistem
         </h1>
@@ -457,7 +457,7 @@ watch(
     </section>
 
     <!-- 4. Two-Column Main Body: Left Sidebar (Daftar Modul) + Right Reader Content -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
+    <main class="flex-1 w-full px-4 sm:px-6 lg:px-12 xl:px-16 py-6 sm:py-8 lg:py-10">
       <div class="flex flex-col md:flex-row gap-6 lg:gap-8 items-start">
         
         <!-- LEFT COLUMN: Sidebar "DAFTAR MODUL" -->
@@ -699,8 +699,8 @@ watch(
     </main>
 
     <!-- 5. Footer -->
-    <footer class="border-t border-slate-200 bg-white py-6 px-4 sm:px-6 lg:px-8 text-xs sm:text-sm text-slate-500 mt-auto">
-      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+    <footer class="border-t border-slate-200 bg-white py-6 px-4 sm:px-6 lg:px-12 xl:px-16 text-xs sm:text-sm text-slate-500 mt-auto">
+      <div class="w-full flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
         <p class="font-normal">© 2026 CV Mitra Solusi Mandiri</p>
       </div>
     </footer>
