@@ -3,7 +3,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft,
-  Clock,
   CheckCircle2,
   ThumbsUp,
   Phone,
@@ -432,28 +431,10 @@ watch(
               {{ article.title }}
             </h1>
 
-            <!-- Metadata: Penulis, Tanggal, dan Read Time -->
-            <div class="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-500 pt-1">
-              <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
-                  {{ (article.authorName || 'Superadministrator').charAt(0).toUpperCase() }}
-                </div>
-                <span class="text-slate-700">{{ article.authorName || 'Superadministrator' }}</span>
-              </div>
-
-              <span class="text-slate-300">•</span>
-
-              <div class="flex items-center gap-1.5">
-                <Calendar class="w-3.5 h-3.5 text-slate-400" />
-                <span>{{ article.formattedDate }}</span>
-              </div>
-
-              <span class="text-slate-300">•</span>
-
-              <div class="flex items-center gap-1.5">
-                <Clock class="w-3.5 h-3.5 text-slate-400" />
-                <span>{{ article.readTime }}</span>
-              </div>
+            <!-- Metadata: Tanggal Saja -->
+            <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 pt-1">
+              <Calendar class="w-3.5 h-3.5 text-slate-400" />
+              <span>{{ article.formattedDate }}</span>
             </div>
 
             <!-- Ringkasan Pengantar (Callout Biru Garis Kiri Identik Probus Implementator) -->
