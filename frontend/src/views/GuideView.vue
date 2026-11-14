@@ -1003,8 +1003,6 @@ watch(
   border-style: solid !important;
   border-color: #cbd5e1 !important;
   padding: 0.625rem 0.75rem !important;
-  text-align: left !important;
-  vertical-align: top !important;
 }
 
 :deep(.article-content table th),
@@ -1016,7 +1014,7 @@ watch(
   font-weight: 700 !important;
 }
 
-/* Preserve dark navy header from TinyMCE Word importer (bg #0b1a36) */
+/* Preserve dark navy header from TinyMCE Word importer if present */
 :deep(.article-content table th[style*="background-color"]),
 :deep(.article-content table td[style*="background-color"]) {
   color: inherit !important;
@@ -1032,7 +1030,21 @@ watch(
   border-bottom: 1px solid #cbd5e1 !important;
 }
 
-/* Gambar Panduan */
+/* Gambar Panduan Dalam Tabel (Icon / Tombol) */
+:deep(.article-content table td img),
+:deep(.article-content table th img) {
+  max-height: 48px !important;
+  width: auto !important;
+  max-width: 100% !important;
+  margin: 2px auto !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 4px !important;
+}
+
+/* Gambar Panduan Utama */
 :deep(.article-content img) {
   max-width: 100% !important;
   height: auto !important;
