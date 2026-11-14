@@ -13,8 +13,6 @@ import {
   Phone,
   Menu,
   X,
-  User,
-  PenTool,
   HelpCircle,
   MessageSquare
 } from 'lucide-vue-next'
@@ -169,31 +167,32 @@ async function loadSystemData() {
         }
       })
 
-      // Hanya tampilkan modul yang sudah memiliki buku panduan (published), fallback ke allModules jika belum ada
-      const withDocs = allModules.filter(m => m.hasManualBook)
-      modulesList.value = withDocs.length > 0 ? withDocs : allModules
+      // Hanya tampilkan modul yang memiliki buku panduan di web client (modul kosong tidak ditampilkan)
+      modulesList.value = allModules.filter(m => m.hasManualBook && m.manualBooks.length > 0)
     } else {
       modulesList.value = []
     }
 
     // Ensure active module is valid via slug or ID
-    const matched = findModuleByParam(modulesList.value, selectedModuleOrder.value || route.params.moduleId)
-    if (matched) {
-      selectedModuleOrder.value = matched.id
-      expandedModules.value[matched.id] = true
-    } else if (modulesList.value.length > 0) {
-      selectedModuleOrder.value = modulesList.value[0].id
-      expandedModules.value[modulesList.value[0].id] = true
-    }
-
-    // Synchronize canonical URL
     if (modulesList.value.length > 0) {
+      const matched = findModuleByParam(modulesList.value, selectedModuleOrder.value || route.params.moduleId)
+      if (matched) {
+        selectedModuleOrder.value = matched.id
+        expandedModules.value[matched.id] = true
+      } else {
+        selectedModuleOrder.value = modulesList.value[0].id
+        expandedModules.value[modulesList.value[0].id] = true
+      }
+
+      // Synchronize canonical URL
       const active = modulesList.value.find(m => m.id === selectedModuleOrder.value) || modulesList.value[0]
       const sysSlug = getSystemSlug(selectedSystemId.value)
       const modSlug = slugify(active.name)
       if (route.params.systemId !== sysSlug || route.params.moduleId !== modSlug) {
         router.replace(`/system/${sysSlug}/guide/${modSlug}`)
       }
+    } else {
+      selectedModuleOrder.value = null
     }
   } catch (err) {
     console.error('Failed to load system manual book data:', err)
@@ -219,14 +218,8 @@ const filteredModulesList = computed(() => {
 
 // Current active module
 const currentModule = computed(() => {
-  return modulesList.value.find(m => m.id === selectedModuleOrder.value || m.order === selectedModuleOrder.value) || modulesList.value[0] || {
-    id: 1,
-    order: 1,
-    code: '01',
-    title: '01. Setup Master',
-    desc: 'Panduan modul sistem.',
-    manualBooks: [],
-  }
+  if (modulesList.value.length === 0) return null
+  return modulesList.value.find(m => m.id === selectedModuleOrder.value || m.order === selectedModuleOrder.value) || modulesList.value[0] || null
 })
 
 // Current active manual book (sub menu)
@@ -240,7 +233,7 @@ const currentManualBook = computed(() => {
 
 // Sub-Menu Navigation inside current module
 const prevChapter = computed(() => {
-  if (!currentModule.value || !currentModule.value.manualBooks) return null
+  if (!currentModule.value || !currentModule.value.manualBooks || currentModule.value.manualBooks.length === 0) return null
   if (activeManualIndex.value > 0) {
     return currentModule.value.manualBooks[activeManualIndex.value - 1]
   }
@@ -248,7 +241,7 @@ const prevChapter = computed(() => {
 })
 
 const nextChapter = computed(() => {
-  if (!currentModule.value || !currentModule.value.manualBooks) return null
+  if (!currentModule.value || !currentModule.value.manualBooks || currentModule.value.manualBooks.length === 0) return null
   if (activeManualIndex.value < currentModule.value.manualBooks.length - 1) {
     return currentModule.value.manualBooks[activeManualIndex.value + 1]
   }
@@ -257,6 +250,7 @@ const nextChapter = computed(() => {
 
 // Module Navigation in current system
 const currentIndex = computed(() => {
+  if (!currentModule.value) return -1
   return modulesList.value.findIndex(m => m.id === currentModule.value.id)
 })
 
@@ -273,6 +267,8 @@ const nextModule = computed(() => {
   }
   return null
 })
+
+
 
 // User interactions
 function toggleModule(mod) {
@@ -676,9 +672,23 @@ watch(
                 </div>
               </div>
 
+              <!-- Empty state jika belum ada modul dengan panduan sama sekali -->
+              <div
+                v-if="modulesList.length === 0"
+                class="py-10 px-2 text-center text-xs text-slate-400"
+              >
+                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mx-auto mb-2.5">
+                  <BookOpen class="w-5 h-5" />
+                </div>
+                <p class="font-bold text-slate-700">Belum Ada Panduan</p>
+                <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                  Modul panduan untuk sistem ini sedang disiapkan.
+                </p>
+              </div>
+
               <!-- Empty state pencarian sidebar -->
               <div
-                v-if="filteredModulesList.length === 0"
+                v-else-if="filteredModulesList.length === 0"
                 class="py-8 text-center text-xs text-slate-400 italic"
               >
                 Tidak ada sub menu yang cocok.
@@ -719,30 +729,6 @@ watch(
                     {{ cleanChapterTitle(currentManualBook.title) }}
                   </h1>
 
-                  <!-- Informasi Pembuat & Pengedit Sub Menu -->
-                  <div class="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-slate-500 mt-2.5 flex-wrap">
-                    <!-- Pembuat Awal -->
-                    <div class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg">
-                      <User class="w-3 h-3 text-blue-500" />
-                      <span>Dibuat: <strong class="text-slate-700">{{ currentManualBook.created_by_name || 'Superadministrator' }}</strong></span>
-                      <span class="text-slate-400 text-[10px]" v-if="formatDate(currentManualBook.created_at)">
-                        ({{ formatDate(currentManualBook.created_at) }})
-                      </span>
-                    </div>
-
-                    <!-- Pengedit Terakhir -->
-                    <div
-                      v-if="currentManualBook.updated_at"
-                      class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg"
-                    >
-                      <PenTool class="w-3 h-3 text-amber-500" />
-                      <span>Diedit: <strong class="text-slate-700">{{ currentManualBook.updated_by_name || 'Superadministrator' }}</strong></span>
-                      <span class="text-slate-400 text-[10px]">
-                        ({{ formatDateRelative(currentManualBook.updated_at) }})
-                      </span>
-                    </div>
-                  </div>
-
                   <!-- Deskripsi Sub Menu (Ringkasan Singkat) -->
                   <p
                     v-if="currentManualBook.description && !isWordImportDesc(currentManualBook.description)"
@@ -762,58 +748,33 @@ watch(
               </div>
             </template>
 
-            <!-- CASE 2: Draft / Not Yet Published in Database -->
+            <!-- CASE 2: Modul Belum Ada Panduan atau Sistem Kosong -->
             <template v-else>
-              <div class="space-y-6">
-                <!-- Notice Box -->
-                <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-5 sm:p-6 flex items-start gap-4 text-amber-900">
-                  <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                    <HelpCircle class="w-5 h-5 stroke-[2]" />
-                  </div>
-                  <div class="flex-1">
-                    <h4 class="text-sm font-bold text-amber-950">
-                      Dokumen Panduan Modul Sedang Disusun
-                    </h4>
-                    <p class="text-xs sm:text-sm text-amber-800/90 mt-1 leading-relaxed">
-                      Buku panduan interaktif resmi untuk modul <strong>{{ currentModule.name }}</strong> pada sistem <strong>{{ currentSystem.name }}</strong> sedang dalam proses kurasi dan publikasi oleh tim implementator Probus.
-                    </p>
-                    <div class="mt-4 flex flex-wrap items-center gap-3">
-                      <a
-                        href="https://wa.me/62811389211"
-                        target="_blank"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-xs transition-colors"
-                      >
-                        <MessageSquare class="w-3.5 h-3.5 fill-white/20" />
-                        <span>Tanyakan Penggunaan ke WhatsApp Support</span>
-                      </a>
-                      <button
-                        @click="goBackToSystemDetail"
-                        class="px-4 py-2 rounded-xl bg-white hover:bg-amber-100/50 text-amber-900 font-semibold text-xs border border-amber-300 transition-colors"
-                      >
-                        Kembali ke Daftar Modul
-                      </button>
-                    </div>
-                  </div>
+              <div class="py-16 px-4 text-center">
+                <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <BookOpen class="w-7 h-7" />
                 </div>
-
-                <!-- Standard Operational Procedure Outline -->
-                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6">
-                  <h3 class="text-base font-bold text-slate-900 mb-2">
-                    Ringkasan Fungsi & Prosedur Modul
-                  </h3>
-                  <p class="text-sm text-slate-600 leading-relaxed">
-                    {{ currentModule.desc }}
-                  </p>
-                  <div class="mt-4 p-4 bg-white rounded-xl border border-slate-200 text-xs text-slate-500 space-y-2">
-                    <div class="flex items-center gap-2">
-                      <CheckCircle2 class="w-4 h-4 text-emerald-500 shrink-0" />
-                      <span>Pastikan akun Anda memiliki hak akses (role permission) untuk membuka modul ini.</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <CheckCircle2 class="w-4 h-4 text-emerald-500 shrink-0" />
-                      <span>Untuk bantuan konfigurasi awal, hubungi tim implementator resmi Probus System.</span>
-                    </div>
-                  </div>
+                <h3 class="text-base sm:text-lg font-bold text-slate-900">
+                  Buku Panduan Belum Tersedia
+                </h3>
+                <p class="text-xs sm:text-sm text-slate-500 mt-2 max-w-md mx-auto leading-relaxed">
+                  Buku panduan resmi untuk <strong v-if="currentModule">{{ currentModule.name }}</strong><span v-else>sistem <strong>{{ currentSystem.name }}</strong></span> sedang dalam proses kurasi dan publikasi oleh tim implementator Probus.
+                </p>
+                <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  <a
+                    href="https://wa.me/62811389211"
+                    target="_blank"
+                    class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs transition-colors"
+                  >
+                    <MessageSquare class="w-3.5 h-3.5 fill-white/20" />
+                    <span>Tanyakan Penggunaan ke WhatsApp Support</span>
+                  </a>
+                  <button
+                    @click="goBackToSystemDetail"
+                    class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs border border-slate-200 transition-colors shadow-2xs cursor-pointer"
+                  >
+                    Kembali ke Pilihan Modul
+                  </button>
                 </div>
               </div>
             </template>
@@ -823,7 +784,7 @@ watch(
           <!-- BOTTOM SUB MENU NAVIGATION (SEBELUMNYA & SELANJUTNYA)     -->
           <!-- Sesuai Desain manual_book/index.blade.php baris 952-1004 -->
           <!-- ======================================================== -->
-          <div class="mt-12 pt-6 border-t border-slate-200 shrink-0">
+          <div v-if="modulesList.length > 0 && currentManualBook" class="mt-12 pt-6 border-t border-slate-200 shrink-0">
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               
               <!-- Tombol Sub Menu Sebelumnya -->
