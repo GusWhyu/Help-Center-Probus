@@ -299,9 +299,14 @@ function clearSearch() {
           <router-link to="/solutions" class="text-slate-600 hover:text-slate-950 transition-colors">
             Bank Solusi
           </router-link>
-          <router-link to="/contact" class="text-slate-600 hover:text-slate-950 transition-colors">
+          <a
+            href="https://probussystem.com/contact"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-slate-600 hover:text-slate-950 transition-colors"
+          >
             Hubungi Implementator
-          </router-link>
+          </a>
         </div>
 
         <!-- Mobile Hamburger Button -->
@@ -337,13 +342,15 @@ function clearSearch() {
         >
           Bank Solusi
         </router-link>
-        <router-link
-          to="/contact"
+        <a
+          href="https://probussystem.com/contact"
+          target="_blank"
+          rel="noopener noreferrer"
           @click="mobileMenuOpen = false"
           class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
         >
           Hubungi Implementator
-        </router-link>
+        </a>
         <div class="pt-2 border-t border-slate-100 px-3">
           <a
             href="tel:+62361256500"

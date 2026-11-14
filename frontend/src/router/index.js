@@ -4,7 +4,6 @@ import SystemDetailView from '../views/SystemDetailView.vue'
 import SolutionsView from '../views/SolutionsView.vue'
 import SolutionDetailView from '../views/SolutionDetailView.vue'
 import GuideView from '../views/GuideView.vue'
-import ContactView from '../views/ContactView.vue'
 
 const routes = [
   {
@@ -44,15 +43,21 @@ const routes = [
   {
     path: '/contact',
     name: 'contact',
-    component: ContactView,
+    beforeEnter() {
+      window.location.href = 'https://probussystem.com/contact'
+    },
   },
   {
     path: '/hubungi-kami',
-    redirect: '/contact',
+    beforeEnter() {
+      window.location.href = 'https://probussystem.com/contact'
+    },
   },
   {
     path: '/contact-us',
-    redirect: '/contact',
+    beforeEnter() {
+      window.location.href = 'https://probussystem.com/contact'
+    },
   },
 ]
 
