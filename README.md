@@ -1,6 +1,28 @@
-# Layrd Framework (Go Universal Backend Chassis)
+# Layrd Framework (Help Center Probus)
 
-> **Layrd** (/ˈleɪ.əd/) adalah starter framework backend modular berbasis **Golang** untuk membangun REST API dengan arsitektur berlapis dan module yang dapat diperluas. Evaluasi performa dan kesiapan production bergantung pada aplikasi yang dibangun di atasnya.
+> **Help Center Probus** adalah portal panduan sistem dan bank solusi berbasis **Golang REST API** dan **Vue.js + Vite** frontend.
+
+---
+
+## ⚡ Cara Menjalankan Project (1 Command)
+
+Cukup jalankan salah satu perintah berikut di root folder project (`Help-Center-Probus`):
+
+```bash
+# Pilihan 1: Melalui file batch (Paling mudah di Windows)
+.\run.bat
+# atau
+.\dev.bat
+
+# Pilihan 2: Melalui NPM
+npm run dev
+```
+
+Perintah di atas akan secara otomatis menjalankan:
+- **Backend Golang** → `http://localhost:8088/api/v1`
+- **Frontend Vite** → `http://localhost:5173`
+
+Keduanya berjalan berdampingan secara otomatis dalam **satu jendela terminal**. Tekan `Ctrl + C` kapan saja untuk mematikan kedua service secara bersamaan.
 
 ---
 

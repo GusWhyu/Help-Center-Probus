@@ -1,0 +1,15 @@
+{
+  "name": "help-center-probus",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pusat Bantuan & Panduan Sistem Probus - All-in-one Runner",
+  "scripts": {
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue.bold,green.bold\" --kill-others \"go run ./cmd/server\" \"npm.cmd --prefix frontend run dev\"",
+    "dev:backend": "go run ./cmd/server",
+    "dev:frontend": "npm.cmd --prefix frontend run dev",
+    "build": "npm.cmd --prefix frontend run build && go build -o bin/server.exe ./cmd/server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
