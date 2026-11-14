@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getSystemIdFromParam, getSystemSlug, slugify } from '../utils/slug'
 import apiClient from '../api/client'
@@ -10,6 +10,7 @@ import {
   Search,
   BookOpen,
   Lightbulb,
+  HelpCircle,
   X,
   ThumbsUp,
   CheckCircle2,
@@ -293,7 +294,7 @@ async function loadSystemArticles() {
     const res = await apiClient.get('/articles', {
       params: { kategori_id: systemId.value, limit: 50 }
     })
-    if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+    if (res.data && res.data.data && Array.isArray(res.data.data)) {
       troubleshootingArticles.value = res.data.data
         .filter(item => item.status === 'published' && item.visibility === 'publik')
         .map(item => {
@@ -312,45 +313,18 @@ async function loadSystemArticles() {
         }
       })
     } else {
-      const fallbackRes = await apiClient.get('/articles', { params: { limit: 50 } })
-      if (fallbackRes.data && fallbackRes.data.data && Array.isArray(fallbackRes.data.data)) {
-        troubleshootingArticles.value = fallbackRes.data.data
-          .filter(item => item.status === 'published' && item.visibility === 'publik')
-          .map(item => {
-          const primaryMenu = item.menu_systems && item.menu_systems.length > 0 ? item.menu_systems[0] : null
-          const menuName = primaryMenu ? primaryMenu.name : 'Tools'
-          const words = (item.content || '').split(/\s+/).length
-          const minutes = Math.max(2, Math.min(10, Math.ceil(words / 150)))
-
-          return {
-            id: item.id,
-            title: item.title,
-            menuName: menuName,
-            readTime: `${minutes} menit baca`,
-            summary: cleanSummary(item.summary) || 'Panduan pemecahan masalah teknis dan operasional sistem Probus.',
-            content: formatArticleContent(item.content),
-          }
-        })
-      }
+      troubleshootingArticles.value = []
     }
   } catch (err) {
     console.error('Failed to load system troubleshooting articles:', err)
+    troubleshootingArticles.value = []
   }
 }
-
-onMounted(() => {
-  loadSystemArticles()
-  const currentParam = route.params.id
-  const canonicalSlug = getSystemSlug(systemId.value)
-  if (currentParam && !isNaN(Number(currentParam))) {
-    router.replace(`/system/${canonicalSlug}`)
-  }
-})
 
 // Dynamic modules from database
 const dynamicModules = ref([])
 
-onMounted(async () => {
+async function loadSystemModules() {
   try {
     const res = await apiClient.get(`/categories/${systemId.value}`)
     if (res.data && res.data.data && res.data.data.menus && res.data.data.menus.length > 0) {
@@ -367,11 +341,36 @@ onMounted(async () => {
           estTime: 'Est. 5 menit',
         }
       })
+    } else {
+      dynamicModules.value = []
     }
   } catch (err) {
     console.warn('API /categories/:id failed, using fallback modules:', err)
   }
+}
+
+onMounted(() => {
+  loadSystemArticles()
+  loadSystemModules()
+  const currentParam = route.params.id
+  const canonicalSlug = getSystemSlug(systemId.value)
+  if (currentParam && !isNaN(Number(currentParam))) {
+    router.replace(`/system/${canonicalSlug}`)
+  }
 })
+
+watch(
+  () => route.params.id,
+  () => {
+    loadSystemArticles()
+    loadSystemModules()
+    const currentParam = route.params.id
+    const canonicalSlug = getSystemSlug(systemId.value)
+    if (currentParam && !isNaN(Number(currentParam))) {
+      router.replace(`/system/${canonicalSlug}`)
+    }
+  }
+)
 
 const activeModuleCards = computed(() => {
   return dynamicModules.value.length > 0 ? dynamicModules.value : presto10Modules
@@ -694,37 +693,70 @@ function goBackHome() {
 
       <!-- TAB 2: Troubleshooting Articles List (Solusi Tab) -->
       <div v-else class="space-y-4">
-        <div
-          v-for="art in filteredTroubleshooting"
-          :key="art.id"
-          @click="openReader(art, 'article')"
-          class="bg-white p-6 rounded-2xl border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-        >
-          <div class="flex items-start gap-4">
-            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-              <Lightbulb class="w-5 h-5" />
-            </div>
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  {{ art.menuName }}
-                </span>
-                <span class="text-xs text-slate-400 flex items-center gap-1">
-                  <Clock class="w-3 h-3" /> {{ art.readTime }}
-                </span>
+        <!-- If articles exist -->
+        <div v-if="filteredTroubleshooting.length > 0" class="space-y-4">
+          <div
+            v-for="art in filteredTroubleshooting"
+            :key="art.id"
+            @click="openReader(art, 'article')"
+            class="bg-white p-6 rounded-2xl border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          >
+            <div class="flex items-start gap-4">
+              <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                <Lightbulb class="w-5 h-5" />
               </div>
-              <h3 class="text-base sm:text-lg font-bold text-slate-900 mt-1.5 group-hover:text-emerald-600 transition-colors">
-                {{ art.title }}
-              </h3>
-              <p class="text-xs sm:text-sm text-slate-500 mt-1">
-                {{ art.summary }}
-              </p>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {{ art.menuName }}
+                  </span>
+                  <span class="text-xs text-slate-400 flex items-center gap-1">
+                    <Clock class="w-3 h-3" /> {{ art.readTime }}
+                  </span>
+                </div>
+                <h3 class="text-base sm:text-lg font-bold text-slate-900 mt-1.5 group-hover:text-emerald-600 transition-colors">
+                  {{ art.title }}
+                </h3>
+                <p class="text-xs sm:text-sm text-slate-500 mt-1">
+                  {{ art.summary }}
+                </p>
+              </div>
+            </div>
+
+            <div class="shrink-0 flex items-center gap-2 text-emerald-600 font-semibold text-xs sm:text-sm">
+              <span>Baca Solusi Lengkap</span>
+              <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
+        </div>
 
-          <div class="shrink-0 flex items-center gap-2 text-emerald-600 font-semibold text-xs sm:text-sm">
-            <span>Baca Solusi Lengkap</span>
-            <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        <!-- Empty State for Solusi Tab (When system has no articles yet) -->
+        <div v-else class="bg-white rounded-2xl border border-slate-200/90 p-8 sm:p-12 text-center shadow-xs">
+          <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-200/60 shadow-2xs">
+            <HelpCircle class="w-7 h-7 stroke-[1.8]" />
+          </div>
+          <h3 class="text-base sm:text-lg font-bold text-slate-900">
+            Belum Ada Artikel Solusi untuk Sistem {{ currentSystem.name }}
+          </h3>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1.5 max-w-lg mx-auto leading-relaxed">
+            Artikel pemecahan masalah teknis untuk {{ currentSystem.title }} sedang dalam proses kurasi oleh tim teknis Probus. Anda dapat membaca Buku Panduan operasional modul atau berkonsultasi langsung melalui WhatsApp Support.
+          </p>
+          <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <button
+              @click="activeTab = 'manual'"
+              class="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
+            >
+              <BookOpen class="w-4 h-4" />
+              <span>Buka Buku Panduan {{ currentSystem.name }}</span>
+            </button>
+            <a
+              href="https://wa.me/62811389211"
+              target="_blank"
+              class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors inline-flex items-center gap-2"
+            >
+              <Phone class="w-4 h-4" />
+              <span>Hubungi Tim Support</span>
+            </a>
           </div>
         </div>
       </div>
