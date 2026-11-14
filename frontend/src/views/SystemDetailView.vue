@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getSystemIdFromParam, getSystemSlug, slugify } from '../utils/slug'
+import { getSystemIdFromParam, getSystemSlug, slugify, highlightKeyword } from '../utils/slug'
 import apiClient from '../api/client'
 import { detectModuleIcon } from '../utils/iconResolver'
 import {
@@ -394,6 +394,10 @@ const filteredTroubleshooting = computed(() => {
   )
 })
 
+const currentMatchesCount = computed(() => {
+  return activeTab.value === 'manual' ? filteredModuleCards.value.length : filteredTroubleshooting.value.length
+})
+
 // Reader Modal
 const readerModalOpen = ref(false)
 const activeReaderItem = ref(null)
@@ -562,17 +566,35 @@ function goBackHome() {
             v-model="searchQuery"
             type="text"
             :placeholder="`Ketik fitur, nomor modul, atau topik panduan ${currentSystem.name}...`"
-            class="w-full pl-11 sm:pl-12 pr-11 sm:pr-12 py-3 sm:py-3.5 rounded-2xl text-sm bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:shadow-md transition-all duration-200"
+            class="w-full pl-11 sm:pl-12 pr-32 sm:pr-40 py-3 sm:py-3.5 rounded-2xl text-sm bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:shadow-md transition-all duration-200"
           />
-          <button
-            v-if="searchQuery"
-            @click="searchQuery = ''"
-            type="button"
-            class="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none"
-            title="Hapus pencarian"
-          >
-            <X class="w-4 h-4" />
-          </button>
+
+          <!-- Right Side Indicators (Tanda Cocok & Clear Button) -->
+          <div class="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+            <span
+              v-if="searchQuery.trim() && currentMatchesCount > 0"
+              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-300 shadow-2xs pointer-events-none animate-in fade-in"
+            >
+              <CheckCircle2 class="w-3 h-3 text-sky-600" />
+              <span>{{ currentMatchesCount }} cocok</span>
+            </span>
+            <span
+              v-else-if="searchQuery.trim() && currentMatchesCount === 0"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-rose-50 text-rose-600 border border-rose-200 pointer-events-none"
+            >
+              <span class="hidden sm:inline">Tidak ada</span> cocok
+            </span>
+
+            <button
+              v-if="searchQuery"
+              @click="searchQuery = ''"
+              type="button"
+              class="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none cursor-pointer"
+              title="Hapus pencarian"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <!-- Segmented Tab Switcher (Matching Design) -->
@@ -673,12 +695,14 @@ function goBackHome() {
             </div>
 
             <!-- Card Title & Description -->
-            <h3 class="font-bold text-slate-900 text-base sm:text-lg mt-5 group-hover:text-sky-600 transition-colors">
-              {{ card.title }}
-            </h3>
-            <p class="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed line-clamp-3">
-              {{ card.desc }}
-            </p>
+            <h3
+              class="font-bold text-slate-900 text-base sm:text-lg mt-5 group-hover:text-sky-600 transition-colors"
+              v-html="highlightKeyword(card.title, searchQuery)"
+            ></h3>
+            <p
+              class="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed line-clamp-3"
+              v-html="highlightKeyword(card.desc, searchQuery)"
+            ></p>
           </div>
 
           <!-- Card Bottom: Action Link -->
@@ -714,12 +738,14 @@ function goBackHome() {
                     <Clock class="w-3 h-3" /> {{ art.readTime }}
                   </span>
                 </div>
-                <h3 class="text-base sm:text-lg font-bold text-slate-900 mt-1.5 group-hover:text-emerald-600 transition-colors">
-                  {{ art.title }}
-                </h3>
-                <p class="text-xs sm:text-sm text-slate-500 mt-1">
-                  {{ art.summary }}
-                </p>
+                <h3
+                  class="text-base sm:text-lg font-bold text-slate-900 mt-1.5 group-hover:text-emerald-600 transition-colors"
+                  v-html="highlightKeyword(art.title, searchQuery)"
+                ></h3>
+                <p
+                  class="text-xs sm:text-sm text-slate-500 mt-1"
+                  v-html="highlightKeyword(art.summary, searchQuery)"
+                ></p>
               </div>
             </div>
 

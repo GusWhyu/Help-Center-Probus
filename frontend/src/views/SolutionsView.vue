@@ -23,7 +23,7 @@ import {
   Menu
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import { slugify } from '../utils/slug'
+import { slugify, highlightKeyword } from '../utils/slug'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -235,6 +235,9 @@ const totalArticlesCount = computed(() => {
 
 // Filtered articles list
 const filteredArticles = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  const queryWords = q ? q.split(/\s+/).filter(Boolean) : []
+
   return articles.value.filter(art => {
     // 1. System Filter
     const matchSystem = selectedSystemFilter.value === 'all' ||
@@ -246,13 +249,16 @@ const filteredArticles = computed(() => {
       art.menuSystemId === selectedModuleFilter.value ||
       (art.menuName && art.menuName.toLowerCase() === String(selectedModuleFilter.value).toLowerCase())
 
-    // 3. Search Query
-    const q = searchQuery.value.trim().toLowerCase()
-    const matchQuery = !q ||
-      (art.title && art.title.toLowerCase().includes(q)) ||
-      (art.summary && art.summary.toLowerCase().includes(q)) ||
-      (art.categoryName && art.categoryName.toLowerCase().includes(q)) ||
-      (art.system && art.system.toLowerCase().includes(q))
+    // 3. Search Query (matches all keyword tokens across title, summary, category, system, and content)
+    const matchQuery = queryWords.length === 0 || queryWords.every(word => {
+      return (
+        (art.title && art.title.toLowerCase().includes(word)) ||
+        (art.summary && art.summary.toLowerCase().includes(word)) ||
+        (art.categoryName && art.categoryName.toLowerCase().includes(word)) ||
+        (art.system && art.system.toLowerCase().includes(word)) ||
+        (art.content && art.content.toLowerCase().includes(word))
+      )
+    })
 
     return matchSystem && matchModule && matchQuery
   })
@@ -400,17 +406,36 @@ function goBackHome() {
             v-model="searchQuery"
             type="text"
             placeholder="Cari solusi kendala (contoh: printer, cash drawer, paper jam, IP address)..."
-            class="w-full pl-11 sm:pl-12 pr-11 sm:pr-12 py-3.5 rounded-2xl text-sm bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:shadow-md transition-all duration-200"
+            class="w-full pl-11 sm:pl-12 pr-32 sm:pr-40 py-3.5 rounded-2xl text-sm bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:shadow-md transition-all duration-200"
           />
-          <button
-            v-if="searchQuery"
-            @click="searchQuery = ''"
-            type="button"
-            class="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none"
-            title="Hapus pencarian"
-          >
-            <X class="w-4 h-4" />
-          </button>
+
+          <!-- Right Side Indicators (Tanda Cocok & Clear Button) -->
+          <div class="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+            <!-- Match indicator badge inside search bar -->
+            <span
+              v-if="searchQuery.trim() && filteredArticles.length > 0"
+              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs pointer-events-none animate-in fade-in"
+            >
+              <CheckCircle2 class="w-3 h-3 text-amber-700" />
+              <span>{{ filteredArticles.length }} cocok</span>
+            </span>
+            <span
+              v-else-if="searchQuery.trim() && filteredArticles.length === 0"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-rose-50 text-rose-600 border border-rose-200 pointer-events-none"
+            >
+              <span class="hidden sm:inline">Tidak ada</span> cocok
+            </span>
+
+            <button
+              v-if="searchQuery"
+              @click="searchQuery = ''"
+              type="button"
+              class="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none cursor-pointer"
+              title="Hapus pencarian"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <!-- 1. PILIH SISTEM ROW (9 Kategori Produk Probus + Semua Sistem) -->
@@ -496,11 +521,26 @@ function goBackHome() {
     <main class="flex-1 w-full px-4 sm:px-6 lg:px-12 xl:px-16 pb-20">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
         <div>
-          <h2 class="text-xl font-bold text-slate-900">
-            Daftar Artikel Solusi Masalah
-          </h2>
-          <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Menampilkan {{ filteredArticles.length }} artikel pemecahan masalah teknis dari basis data
+          <div class="flex items-center gap-2.5">
+            <h2 class="text-xl font-bold text-slate-900">
+              Daftar Artikel Solusi Masalah
+            </h2>
+            <span
+              v-if="searchQuery.trim() && filteredArticles.length > 0"
+              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs"
+            >
+              <CheckCircle2 class="w-3.5 h-3.5 text-amber-700" />
+              {{ filteredArticles.length }} Ditemukan
+            </span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1">
+            <span v-if="searchQuery.trim()">
+              Menampilkan {{ filteredArticles.length }} artikel yang cocok dengan kata kunci 
+              <strong class="text-slate-900 bg-amber-100/90 text-amber-950 font-bold px-1.5 py-0.5 rounded border border-amber-200/80">"{{ searchQuery.trim() }}"</strong>
+            </span>
+            <span v-else>
+              Menampilkan {{ filteredArticles.length }} artikel pemecahan masalah teknis dari basis data
+            </span>
           </p>
         </div>
 
@@ -528,13 +568,15 @@ function goBackHome() {
               </span>
             </div>
 
-            <h3 class="font-bold text-slate-900 text-base group-hover:text-amber-600 transition-colors leading-snug">
-              {{ art.title }}
-            </h3>
+            <h3
+              class="font-bold text-slate-900 text-base group-hover:text-amber-600 transition-colors leading-snug"
+              v-html="highlightKeyword(art.title, searchQuery)"
+            ></h3>
 
-            <p class="text-xs sm:text-sm text-slate-500 mt-2.5 line-clamp-3 leading-relaxed">
-              {{ art.summary }}
-            </p>
+            <p
+              class="text-xs sm:text-sm text-slate-500 mt-2.5 line-clamp-3 leading-relaxed"
+              v-html="highlightKeyword(art.summary, searchQuery)"
+            ></p>
           </div>
 
           <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between text-xs">
@@ -550,16 +592,31 @@ function goBackHome() {
       <!-- Empty State -->
       <div v-if="!isLoading && filteredArticles.length === 0" class="text-center py-16 bg-white rounded-2xl border border-slate-200">
         <AlertCircle class="w-12 h-12 text-slate-300 mx-auto mb-3" />
-        <h3 class="text-base font-bold text-slate-800">Tidak ada artikel solusi yang sesuai</h3>
+        <h3 class="text-base font-bold text-slate-800">
+          <span v-if="searchQuery.trim()">Tidak ada artikel yang cocok dengan "{{ searchQuery.trim() }}"</span>
+          <span v-else>Tidak ada artikel solusi yang sesuai</span>
+        </h3>
         <p class="text-xs sm:text-sm text-slate-500 mt-1 max-w-md mx-auto">
-          Belum ada artikel yang dipublikasikan untuk modul atau filter ini. Hubungi tim implementator Probus untuk bantuan langsung.
+          <span v-if="searchQuery.trim()">
+            Coba gunakan kata kunci lain seperti nama perangkat (printer, drawer, lan) atau reset pencarian.
+          </span>
+          <span v-else>
+            Belum ada artikel yang dipublikasikan untuk modul atau filter ini. Hubungi tim implementator Probus untuk bantuan langsung.
+          </span>
         </p>
         <div class="mt-4 flex flex-wrap items-center justify-center gap-2.5">
           <button
-            @click="selectedModuleFilter = 'all'; searchQuery = ''"
+            v-if="searchQuery.trim()"
+            @click="searchQuery = ''"
+            class="px-4 py-2 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 transition-colors cursor-pointer"
+          >
+            Hapus Kata Kunci
+          </button>
+          <button
+            @click="selectedModuleFilter = 'all'; selectedSystemFilter = 'all'; searchQuery = ''"
             class="px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
           >
-            Tampilkan Semua Modul
+            Tampilkan Semua Modul & Sistem
           </button>
           <a
             href="https://wa.me/6281910875514"

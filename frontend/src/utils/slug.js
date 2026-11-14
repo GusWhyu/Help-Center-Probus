@@ -180,3 +180,46 @@ export function findArticleByParam(articles, param) {
 
   return null
 }
+
+/**
+ * Safely highlight search keyword matches inside text using HTML <mark> tags.
+ * Supports multi-word matching, escapes regex metacharacters, and escapes HTML
+ * entities to prevent XSS.
+ *
+ * @param {string} text - Raw input text to search and highlight within
+ * @param {string} keyword - Search term entered by user
+ * @param {string} markClass - Tailwind CSS classes for the <mark> element
+ * @returns {string} Text containing safely highlighted <mark> tags
+ */
+export function highlightKeyword(
+  text,
+  keyword,
+  markClass = 'bg-amber-200 text-amber-950 font-bold px-1 py-0.5 rounded shadow-2xs'
+) {
+  if (!text) return ''
+  if (!keyword || !String(keyword).trim()) {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+  }
+
+  const cleanKeyword = String(keyword).trim()
+  const words = cleanKeyword.split(/\s+/).filter(w => w.length > 0)
+  if (words.length === 0) {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+  }
+
+  const escapedWords = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const regex = new RegExp(`(${escapedWords.join('|')})`, 'gi')
+
+  const safeText = String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  return safeText.replace(regex, `<mark class="${markClass}">$1</mark>`)
+}
