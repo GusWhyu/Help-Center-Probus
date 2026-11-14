@@ -941,29 +941,49 @@ watch(
   color: #334155;
 }
 
-/* Tabel TinyMCE & Word Importer (Identik Probus Implementator) */
+/* Tabel TinyMCE & Word Importer (Border Penutup Keliling & Sel Penuh) */
 :deep(.article-content table) {
   width: 100% !important;
   border-collapse: collapse !important;
-  margin: 1.25rem 0 !important;
+  margin: 1.5rem 0 !important;
   font-size: 0.825rem !important;
   border: 1px solid #cbd5e1 !important;
-  border-radius: 0.5rem !important;
-  overflow: hidden !important;
 }
 
 :deep(.article-content table th),
-:deep(.article-content table td),
-:deep(.article-content table tr th),
-:deep(.article-content table tr td),
-:deep(.article-content table tbody tr th),
-:deep(.article-content table tbody tr td),
-:deep(.article-content table thead tr th) {
+:deep(.article-content table td) {
   border: 1px solid #cbd5e1 !important;
-  border-width: 1px !important;
-  border-style: solid !important;
-  border-color: #cbd5e1 !important;
   padding: 0.625rem 0.75rem !important;
+  text-align: left !important;
+  vertical-align: middle !important;
+  color: #334155 !important;
+}
+
+/* Garis Penutup Luar Tabel (Atas, Bawah, Kiri, Kanan Sesuai Kolom) */
+:deep(.article-content table > thead > tr:first-child > th),
+:deep(.article-content table > thead > tr:first-child > td),
+:deep(.article-content table > tbody > tr:first-child > th),
+:deep(.article-content table > tbody > tr:first-child > td),
+:deep(.article-content table tr:first-child > th),
+:deep(.article-content table tr:first-child > td) {
+  border-top: 1px solid #cbd5e1 !important;
+}
+
+:deep(.article-content table > tbody > tr:last-child > th),
+:deep(.article-content table > tbody > tr:last-child > td),
+:deep(.article-content table tr:last-child > th),
+:deep(.article-content table tr:last-child > td) {
+  border-bottom: 1px solid #cbd5e1 !important;
+}
+
+:deep(.article-content table tr > th:first-child),
+:deep(.article-content table tr > td:first-child) {
+  border-left: 1px solid #cbd5e1 !important;
+}
+
+:deep(.article-content table tr > th:last-child),
+:deep(.article-content table tr > td:last-child) {
+  border-right: 1px solid #cbd5e1 !important;
 }
 
 :deep(.article-content table th),
@@ -985,10 +1005,6 @@ watch(
 :deep(.article-content table td p) {
   margin: 0 !important;
   padding: 0 !important;
-}
-
-:deep(.article-content table tbody tr) {
-  border-bottom: 1px solid #cbd5e1 !important;
 }
 
 /* Gambar Panduan Dalam Tabel (Icon / Tombol) */
