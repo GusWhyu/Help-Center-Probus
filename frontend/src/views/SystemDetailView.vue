@@ -739,7 +739,7 @@ function goBackHome() {
             Belum Ada Artikel Solusi untuk Sistem {{ currentSystem.name }}
           </h3>
           <p class="text-xs sm:text-sm text-slate-500 mt-1.5 max-w-lg mx-auto leading-relaxed">
-            Artikel pemecahan masalah teknis untuk {{ currentSystem.title }} sedang dalam proses kurasi oleh tim teknis Probus. Anda dapat membaca Buku Panduan operasional modul atau berkonsultasi langsung melalui WhatsApp Support.
+            Artikel pemecahan masalah teknis untuk {{ currentSystem.title }} sedang dalam proses kurasi oleh tim teknis Probus. Anda dapat membaca Buku Panduan operasional modul.
           </p>
           <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
             <button
@@ -749,14 +749,6 @@ function goBackHome() {
               <BookOpen class="w-4 h-4" />
               <span>Buka Buku Panduan {{ currentSystem.name }}</span>
             </button>
-            <a
-              href="https://wa.me/62811389211"
-              target="_blank"
-              class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors inline-flex items-center gap-2"
-            >
-              <Phone class="w-4 h-4" />
-              <span>Hubungi Tim Support</span>
-            </a>
           </div>
         </div>
       </div>
