@@ -327,7 +327,7 @@ function clearSearch() {
             rel="noopener noreferrer"
             class="text-slate-600 hover:text-slate-950 transition-colors"
           >
-            Hubungi Implementator
+            Hubungi Kami
           </a>
         </div>
 
@@ -371,7 +371,7 @@ function clearSearch() {
           @click="mobileMenuOpen = false"
           class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
         >
-          Hubungi Implementator
+          Hubungi Kami
         </a>
         <div class="pt-2 border-t border-slate-100 px-3">
           <a

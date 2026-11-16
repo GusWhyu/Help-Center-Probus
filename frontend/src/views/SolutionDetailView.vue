@@ -292,7 +292,7 @@ watch(
           <!-- Pill Button: "← Kembali ke Bank Solusi" -->
           <button
             @click="router.push('/solutions')"
-            class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold text-xs border border-sky-100 transition-colors shadow-2xs cursor-pointer"
+            class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs border border-emerald-100 transition-colors shadow-2xs cursor-pointer"
           >
             <ArrowLeft class="w-3.5 h-3.5" />
             <span class="hidden sm:inline">Kembali ke Bank Solusi</span>
@@ -305,9 +305,9 @@ watch(
           <router-link to="/" class="text-slate-600 hover:text-slate-950 transition-colors">
             Panduan Sistem
           </router-link>
-          <router-link to="/solutions" class="text-sky-600 font-semibold hover:text-sky-700 transition-colors relative py-1">
+          <router-link to="/solutions" class="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors relative py-1">
             Bank Solusi
-            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-600 rounded-full"></span>
+            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 rounded-full"></span>
           </router-link>
           <a
             href="https://probussystem.com/contact"
@@ -315,7 +315,7 @@ watch(
             rel="noopener noreferrer"
             class="text-slate-600 hover:text-slate-950 transition-colors"
           >
-            Hubungi Implementator
+            Hubungi Kami
           </a>
         </div>
 
@@ -348,7 +348,7 @@ watch(
         <router-link
           to="/solutions"
           @click="mobileMenuOpen = false"
-          class="block px-3 py-2 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700"
+          class="block px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-50 text-emerald-700"
         >
           Bank Solusi
         </router-link>
@@ -359,12 +359,12 @@ watch(
           @click="mobileMenuOpen = false"
           class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
         >
-          Hubungi Implementator
+          Hubungi Kami
         </a>
         <div class="pt-2 border-t border-slate-100 px-3">
           <a
             href="tel:+62361256500"
-            class="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-sky-600"
+            class="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-emerald-600"
           >
             <Phone class="w-3.5 h-3.5 text-slate-500" />
             <span>Phone: +62 361 256 500</span>
@@ -377,7 +377,7 @@ watch(
     <main class="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 bg-slate-50/50">
       <!-- Loading State -->
       <div v-if="isLoading" class="w-full py-20 text-center">
-        <Loader2 class="w-10 h-10 animate-spin text-sky-600 mx-auto mb-4" />
+        <Loader2 class="w-10 h-10 animate-spin text-emerald-600 mx-auto mb-4" />
         <h3 class="text-base font-bold text-slate-800">Memuat artikel solusi...</h3>
         <p class="text-xs text-slate-500 mt-1">Mengambil data panduan pemecahan masalah dari basis data.</p>
       </div>
@@ -406,7 +406,7 @@ watch(
           <div class="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-500 overflow-hidden">
             <span class="hover:text-slate-700 transition-colors shrink-0">Knowledge Base</span>
             <ChevronRight class="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <router-link to="/solutions" class="hover:text-sky-600 transition-colors shrink-0">Bank Solusi</router-link>
+            <router-link to="/solutions" class="hover:text-emerald-600 transition-colors shrink-0">Bank Solusi</router-link>
             <ChevronRight class="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span class="text-slate-800 font-bold truncate max-w-xs sm:max-w-md lg:max-w-lg">
               {{ article.title }}
@@ -432,17 +432,17 @@ watch(
                 'inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 border select-none shadow-2xs active:scale-95 cursor-pointer',
                 copiedShareLink
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-2 ring-emerald-500/20'
-                  : 'bg-white hover:bg-slate-50 text-slate-700 hover:text-sky-600 border-slate-200 hover:border-sky-300'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 hover:text-emerald-600 border-slate-200 hover:border-emerald-300'
               ]"
             >
               <Check v-if="copiedShareLink" class="w-3.5 h-3.5 text-emerald-600 animate-in zoom-in" />
-              <Share2 v-else class="w-3.5 h-3.5 text-slate-500 group-hover:text-sky-600" />
+              <Share2 v-else class="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-600" />
               <span>{{ copiedShareLink ? 'Link Tersalin!' : 'Bagikan' }}</span>
             </button>
 
             <button
               @click="printArticle"
-              class="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-sky-500/20 transition-all hover:scale-[1.02] cursor-pointer"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-emerald-500/20 transition-all hover:scale-[1.02] cursor-pointer"
             >
               <Printer class="w-3.5 h-3.5" />
               <span>Cetak Solusi</span>
@@ -456,7 +456,7 @@ watch(
           <div class="space-y-4 pb-6 border-b border-slate-100">
             <!-- Kategori Sistem & Modul + Badge Visibilitas & Status -->
             <div class="flex flex-wrap items-center justify-between gap-3">
-              <div class="flex items-center gap-2 text-xs sm:text-sm font-extrabold uppercase tracking-wider text-sky-600">
+              <div class="flex items-center gap-2 text-xs sm:text-sm font-extrabold uppercase tracking-wider text-emerald-600">
                 <span>{{ article.systemShort }}</span>
                 <span class="text-slate-300">•</span>
                 <span>{{ article.moduleName }}</span>
@@ -480,8 +480,8 @@ watch(
                 </span>
 
                 <!-- Status Badge -->
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
-                  <CheckCircle2 class="w-3 h-3 text-blue-600" />
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <CheckCircle2 class="w-3 h-3 text-emerald-600" />
                   <span>Diterbitkan</span>
                 </span>
               </div>
@@ -498,10 +498,10 @@ watch(
               <span>{{ article.formattedDate }}</span>
             </div>
 
-            <!-- Ringkasan Pengantar (Callout Biru Garis Kiri Identik Probus Implementator) -->
+            <!-- Ringkasan Pengantar (Callout Garis Kiri Identik Probus Implementator) -->
             <div
               v-if="article.summary"
-              class="pt-2 text-sm sm:text-base text-slate-600 font-medium leading-relaxed italic border-l-4 border-blue-500 pl-4 py-2 bg-blue-50/30 rounded-r-xl"
+              class="pt-2 text-sm sm:text-base text-slate-600 font-medium leading-relaxed italic border-l-4 border-emerald-500 pl-4 py-2 bg-emerald-50/30 rounded-r-xl"
             >
               {{ article.summary }}
             </div>
@@ -526,7 +526,7 @@ watch(
                   'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border shadow-2xs cursor-pointer',
                   copiedShareLink
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                    : 'bg-white hover:bg-slate-50 text-slate-700 hover:text-sky-600 border-slate-200'
+                    : 'bg-white hover:bg-slate-50 text-slate-700 hover:text-emerald-600 border-slate-200'
                 ]"
               >
                 <Check v-if="copiedShareLink" class="w-3.5 h-3.5 text-emerald-600" />
@@ -556,7 +556,7 @@ watch(
               @click="feedbackGiven = true"
               class="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs inline-flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
             >
-              <ThumbsUp class="w-3.5 h-3.5 text-sky-600" />
+              <ThumbsUp class="w-3.5 h-3.5 text-emerald-600" />
               <span>Ya, Berhasil</span>
             </button>
             <div
@@ -572,7 +572,7 @@ watch(
         <!-- Related Articles Section (Solusi Terkait Lainnya di Modul ...) -->
         <div v-if="relatedArticles.length > 0" class="mt-8 space-y-4">
           <h3 class="text-base sm:text-lg font-black text-slate-800 tracking-tight">
-            Solusi Terkait Lainnya di Modul <span class="text-sky-600">{{ article.moduleName }}</span>
+            Solusi Terkait Lainnya di Modul <span class="text-emerald-600">{{ article.moduleName }}</span>
           </h3>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -580,17 +580,17 @@ watch(
               v-for="rel in relatedArticles"
               :key="rel.id"
               :to="`/solutions/${rel.slug}`"
-              class="p-5 bg-white border border-slate-200 rounded-2xl hover:border-sky-500 hover:shadow-md transition-all duration-200 group flex flex-col justify-between shadow-xs"
+              class="p-5 bg-white border border-slate-200 rounded-2xl hover:border-emerald-500 hover:shadow-md transition-all duration-200 group flex flex-col justify-between shadow-xs"
             >
               <div>
-                <div class="text-[10px] font-black uppercase tracking-wider text-sky-600 mb-1.5">
+                <div class="text-[10px] font-black uppercase tracking-wider text-emerald-600 mb-1.5">
                   {{ rel.visibility === 'publik' ? 'BLOG KLIEN' : 'INTERNAL' }}
                 </div>
-                <h4 class="text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2">
+                <h4 class="text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition-colors line-clamp-2">
                   {{ rel.title }}
                 </h4>
               </div>
-              <div class="mt-4 pt-3 flex items-center justify-between border-t border-slate-100 text-xs font-bold text-sky-600">
+              <div class="mt-4 pt-3 flex items-center justify-between border-t border-slate-100 text-xs font-bold text-emerald-600">
                 <span>Baca panduan</span>
                 <ChevronRight class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </div>

@@ -335,9 +335,9 @@ function goBackHome() {
           <router-link to="/" class="text-slate-600 hover:text-slate-950 transition-colors">
             Panduan Sistem
           </router-link>
-          <router-link to="/solutions" class="text-sky-600 font-semibold hover:text-sky-700 transition-colors relative py-1">
+          <router-link to="/solutions" class="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors relative py-1">
             Bank Solusi
-            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-600 rounded-full"></span>
+            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 rounded-full"></span>
           </router-link>
           <a
             href="https://probussystem.com/contact"
@@ -345,7 +345,7 @@ function goBackHome() {
             rel="noopener noreferrer"
             class="text-slate-600 hover:text-slate-950 transition-colors"
           >
-            Hubungi Implementator
+            Hubungi Kami
           </a>
         </div>
 
@@ -378,7 +378,7 @@ function goBackHome() {
         <router-link
           to="/solutions"
           @click="mobileMenuOpen = false"
-          class="block px-3 py-2 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700"
+          class="block px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-50 text-emerald-700"
         >
           Bank Solusi
         </router-link>
@@ -389,12 +389,12 @@ function goBackHome() {
           @click="mobileMenuOpen = false"
           class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
         >
-          Hubungi Implementator
+          Hubungi Kami
         </a>
         <div class="pt-2 border-t border-slate-100 px-3">
           <a
             href="tel:+62361256500"
-            class="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-sky-600"
+            class="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-emerald-600"
           >
             <Phone class="w-3.5 h-3.5 text-slate-500" />
             <span>Phone: +62 361 256 500</span>
@@ -404,7 +404,7 @@ function goBackHome() {
     </nav>
 
     <!-- 3. Hero Section (Bank Solusi) -->
-    <section class="pt-10 pb-8 sm:pt-16 sm:pb-12 lg:pt-20 lg:pb-16 px-4 sm:px-6 lg:px-12 xl:px-16 text-center bg-gradient-to-b from-white via-sky-50/20 to-transparent">
+    <section class="pt-10 pb-8 sm:pt-16 sm:pb-12 lg:pt-20 lg:pb-16 px-4 sm:px-6 lg:px-12 xl:px-16 text-center bg-gradient-to-b from-white via-emerald-50/20 to-transparent">
       <div class="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
         <h1 class="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
           Pusat Bantuan & Solusi Klien
@@ -415,14 +415,14 @@ function goBackHome() {
 
         <!-- Search Omnibox -->
         <div class="mt-7 sm:mt-8 w-full max-w-2xl sm:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto relative group">
-          <div class="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center transition-colors duration-200 text-slate-400 group-focus-within:text-blue-600">
+          <div class="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center transition-colors duration-200 text-slate-400 group-focus-within:text-emerald-600">
             <Search class="w-5 h-5" />
           </div>
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Cari kendala (contoh: printer tidak cetak, laci kasir macet, gagal QRIS)..."
-            class="w-full pl-12 sm:pl-14 pr-32 sm:pr-40 py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15 focus:shadow-md transition-all duration-200"
+            class="w-full pl-12 sm:pl-14 pr-32 sm:pr-40 py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 focus:shadow-md transition-all duration-200"
           />
 
           <!-- Right Side Indicators (Tanda Cocok & Clear Button) -->
@@ -430,9 +430,9 @@ function goBackHome() {
             <!-- Match indicator badge inside search bar -->
             <span
               v-if="searchQuery.trim() && filteredArticles.length > 0"
-              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200 shadow-2xs pointer-events-none animate-in fade-in"
+              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs pointer-events-none animate-in fade-in"
             >
-              <CheckCircle2 class="w-3.5 h-3.5 text-blue-600" />
+              <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600" />
               <span>{{ filteredArticles.length }} cocok</span>
             </span>
             <span
@@ -454,63 +454,65 @@ function goBackHome() {
           </div>
         </div>
 
-        <!-- 1. PILIH SISTEM ROW (Semua Sistem + 9 Kategori Produk Probus) -->
+        <!-- 1. PILIH SISTEM ROW (Grid 5x2 Simetris Tanpa Scrollbar) -->
         <div class="mt-8 text-left">
-          <div class="flex items-center justify-between mb-2.5">
+          <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
-              <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
               <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 Pilih Sistem Probus
               </span>
             </div>
-            <span class="text-[11px] text-slate-400 hidden sm:inline">
-              Geser untuk melihat sistem lainnya →
+            <span class="text-[11px] text-slate-400">
+              10 Pilihan Sistem
             </span>
           </div>
 
-          <!-- Horizontal Scroll Container -->
-          <div class="custom-sky-scrollbar flex items-center gap-2.5 overflow-x-auto pb-3 pt-1">
+          <!-- Grid 5 Kolom x 2 Baris Simetris -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
             <button
               v-for="opt in systemOptions"
               :key="opt.value"
               @click="selectSystem(opt.value)"
               :class="[
-                'group shrink-0 inline-flex items-center gap-2 text-xs px-3.5 sm:px-4 py-2.5 rounded-xl font-bold transition-all duration-200 cursor-pointer select-none',
+                'group w-full flex items-center justify-between gap-2 text-xs px-3 py-2.5 rounded-xl font-bold transition-all duration-200 cursor-pointer select-none text-left',
                 selectedSystemFilter === opt.value
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 ring-2 ring-blue-500/30'
-                  : 'bg-white text-slate-700 border border-slate-200/90 hover:border-blue-300 hover:bg-blue-50/60 hover:text-blue-700 shadow-2xs'
+                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/25 ring-2 ring-emerald-500/30'
+                  : 'bg-white text-slate-700 border border-slate-200/90 hover:border-emerald-300 hover:bg-emerald-50/60 hover:text-emerald-700 shadow-2xs'
               ]"
             >
-              <!-- System Icon -->
-              <div
-                :class="[
-                  'w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors',
-                  selectedSystemFilter === opt.value
-                    ? 'bg-white/20 text-white'
-                    : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'
-                ]"
-              >
-                <component
-                  :is="opt.value === 'all' ? Layers : detectSystemIcon(opt.code)"
-                  class="w-3.5 h-3.5"
-                />
-              </div>
+              <div class="flex items-center gap-2 min-w-0 truncate">
+                <!-- System Icon -->
+                <div
+                  :class="[
+                    'w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors',
+                    selectedSystemFilter === opt.value
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-100 text-slate-500 group-hover:bg-emerald-100 group-hover:text-emerald-600'
+                  ]"
+                >
+                  <component
+                    :is="opt.value === 'all' ? Layers : detectSystemIcon(opt.code)"
+                    class="w-3.5 h-3.5"
+                  />
+                </div>
 
-              <!-- System Name -->
-              <span class="tracking-tight">{{ opt.label }}</span>
+                <!-- System Name -->
+                <span class="tracking-tight truncate">{{ opt.label }}</span>
+              </div>
 
               <!-- Solusi Count Badge -->
               <span
                 :class="[
-                  'text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors',
+                  'text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 transition-colors',
                   selectedSystemFilter === opt.value
                     ? 'bg-white/25 text-white'
                     : (opt.articleCount > 0
-                        ? 'bg-blue-50 text-blue-700 border border-blue-100/80 group-hover:bg-blue-100'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100/80 group-hover:bg-emerald-100'
                         : 'bg-slate-100 text-slate-400')
                 ]"
               >
-                {{ opt.articleCount }} Solusi
+                {{ opt.articleCount }} <span class="hidden xl:inline">Solusi</span>
               </span>
             </button>
           </div>
@@ -531,8 +533,8 @@ function goBackHome() {
             :class="[
               'px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5',
               selectedModuleFilter === 'all'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white text-slate-700 border border-slate-200/90 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 shadow-2xs'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200/90 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 shadow-2xs'
             ]"
           >
             <span>Semua Modul</span>
@@ -540,7 +542,7 @@ function goBackHome() {
               :class="[
                 'text-[10px] px-1.5 py-0.5 rounded-full font-bold',
                 selectedModuleFilter === 'all'
-                  ? 'bg-blue-700/80 text-white'
+                  ? 'bg-emerald-700/80 text-white'
                   : 'bg-slate-100 text-slate-600'
               ]"
             >
@@ -556,8 +558,8 @@ function goBackHome() {
             :class="[
               'px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5',
               selectedModuleFilter === mod.id
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white text-slate-700 border border-slate-200/90 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 shadow-2xs'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200/90 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 shadow-2xs'
             ]"
           >
             <span>{{ mod.displayName }}</span>
@@ -565,8 +567,8 @@ function goBackHome() {
               :class="[
                 'text-[10px] px-1.5 py-0.5 rounded-full font-bold',
                 selectedModuleFilter === mod.id
-                  ? 'bg-blue-700/80 text-white'
-                  : 'bg-blue-50 text-blue-700 border border-blue-100'
+                  ? 'bg-emerald-700/80 text-white'
+                  : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
               ]"
             >
               {{ mod.count }}
@@ -586,16 +588,16 @@ function goBackHome() {
             </h2>
             <span
               v-if="searchQuery.trim() && filteredArticles.length > 0"
-              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs"
+              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-2xs"
             >
-              <CheckCircle2 class="w-3.5 h-3.5 text-amber-700" />
+              <CheckCircle2 class="w-3.5 h-3.5 text-emerald-700" />
               {{ filteredArticles.length }} Ditemukan
             </span>
           </div>
           <p class="text-xs sm:text-sm text-slate-500 mt-1">
             <span v-if="searchQuery.trim()">
               Menampilkan {{ filteredArticles.length }} artikel yang cocok dengan kata kunci 
-              <strong class="text-slate-900 bg-amber-100/90 text-amber-950 font-bold px-1.5 py-0.5 rounded border border-amber-200/80">"{{ searchQuery.trim() }}"</strong>
+              <strong class="text-slate-900 bg-emerald-100/90 text-emerald-950 font-bold px-1.5 py-0.5 rounded border border-emerald-200/80">"{{ searchQuery.trim() }}"</strong>
             </span>
             <span v-else>
               Menampilkan {{ filteredArticles.length }} artikel pemecahan masalah teknis dari basis data
@@ -604,7 +606,7 @@ function goBackHome() {
         </div>
 
         <div v-if="isLoading" class="flex items-center gap-2 text-xs text-slate-400">
-          <Loader2 class="w-4 h-4 animate-spin text-amber-500" />
+          <Loader2 class="w-4 h-4 animate-spin text-emerald-500" />
           <span>Memuat artikel...</span>
         </div>
       </div>
@@ -615,11 +617,11 @@ function goBackHome() {
           v-for="art in filteredArticles"
           :key="art.id"
           @click="openArticle(art)"
-          class="bg-white rounded-2xl p-6 border border-slate-200 hover:border-amber-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
+          class="bg-white rounded-2xl p-6 border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
         >
           <div>
             <div class="flex items-center justify-between gap-2 mb-3.5">
-              <span class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60">
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60">
                 {{ art.system }} • {{ art.categoryName }}
               </span>
               <span class="text-xs text-slate-400 flex items-center gap-1">
@@ -628,7 +630,7 @@ function goBackHome() {
             </div>
 
             <h3
-              class="font-bold text-slate-900 text-base group-hover:text-amber-600 transition-colors leading-snug"
+              class="font-bold text-slate-900 text-base group-hover:text-emerald-600 transition-colors leading-snug"
               v-html="highlightKeyword(art.title, searchQuery)"
             ></h3>
 
@@ -640,7 +642,7 @@ function goBackHome() {
 
           <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between text-xs">
             <span class="text-slate-400">Terverifikasi Tim Teknis</span>
-            <span class="text-amber-600 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+            <span class="text-emerald-600 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
               <span>Buka Solusi</span>
               <ChevronRight class="w-3.5 h-3.5" />
             </span>
@@ -667,7 +669,7 @@ function goBackHome() {
           <button
             v-if="searchQuery.trim()"
             @click="searchQuery = ''"
-            class="px-4 py-2 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 transition-colors cursor-pointer"
+            class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors cursor-pointer"
           >
             Hapus Kata Kunci
           </button>

@@ -561,7 +561,7 @@ watch(
             rel="noopener noreferrer"
             class="text-slate-600 hover:text-slate-950 transition-colors"
           >
-            Hubungi Implementator
+            Hubungi Kami
           </a>
         </div>
 
@@ -605,7 +605,7 @@ watch(
           @click="mobileMenuOpen = false"
           class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
         >
-          Hubungi Implementator
+          Hubungi Kami
         </a>
       </div>
     </nav>
