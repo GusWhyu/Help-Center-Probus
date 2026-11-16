@@ -568,21 +568,17 @@ watch(
               </button>
             </div>
 
-            <!-- Accordion List of Modules and Sub-Menus -->
-            <div class="space-y-2.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1 custom-sky-scrollbar">
+            <!-- Accordion List of Modules and Sub-Menus (Single Unified Card Layout) -->
+            <div class="divide-y divide-slate-100 max-h-[calc(100vh-280px)] overflow-y-auto pr-1 custom-sky-scrollbar">
               <div
                 v-for="mod in filteredModulesList"
                 :key="mod.id"
-                :class="[
-                  'rounded-2xl border transition-all duration-200 overflow-hidden',
-                  currentModule?.id === mod.id
-                    ? 'border-blue-500 bg-white shadow-2xs ring-1 ring-blue-500/30'
-                    : 'border-slate-200/90 bg-white hover:border-slate-300'
-                ]"
+                class="py-2 first:pt-0 last:pb-0"
               >
                 <!-- Header Modul (Dapat diklik untuk expand / pilih modul) -->
                 <div
-                  class="p-3 sm:p-3.5 flex items-center justify-between gap-2.5 cursor-pointer select-none group"
+                  class="p-2 sm:p-2.5 rounded-xl flex items-center justify-between gap-2.5 cursor-pointer select-none group transition-all duration-150"
+                  :class="currentModule?.id === mod.id ? 'bg-blue-50/70' : 'hover:bg-slate-50'"
                   @click="toggleModule(mod)"
                 >
                   <div class="flex items-center gap-2.5 min-w-0">
@@ -620,8 +616,8 @@ watch(
                     <span
                       class="text-[10.5px] font-bold px-2.5 py-0.5 rounded-full border transition-colors whitespace-nowrap"
                       :class="currentModule?.id === mod.id
-                        ? 'bg-blue-50 text-blue-700 border-blue-200/80'
-                        : 'bg-slate-100/90 text-slate-600 border-slate-200/70 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100'"
+                        ? 'bg-blue-100/70 text-blue-700 border-blue-200/80'
+                        : 'bg-slate-100 text-slate-600 border-slate-200/70 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100'"
                     >
                       {{ (mod.manualBooks || []).length }} Sub Menu
                     </span>
@@ -633,29 +629,30 @@ watch(
                   </div>
                 </div>
 
-                <!-- Daftar Sub Menu di bawah Modul (Inline Accordion) -->
+                <!-- Tree Hierarchy for Sub Menus (Sesuai Referensi Gambar 1) -->
                 <div
                   v-show="expandedModules[mod.id] || (tocSearchQuery && tocSearchQuery.length > 0)"
-                  class="border-t border-slate-100 bg-slate-50/70 p-2.5 space-y-1.5"
+                  class="mt-1.5 ml-4 sm:ml-5 pl-3 sm:pl-3.5 border-l-2 space-y-1 py-1"
+                  :class="currentModule?.id === mod.id ? 'border-blue-300' : 'border-slate-200'"
                 >
                   <div
                     v-for="(sub, sIdx) in mod.manualBooks"
                     :key="sub.id"
                     @click="selectChapter(mod, sIdx)"
                     :class="[
-                      'p-2.5 rounded-xl transition-all duration-150 cursor-pointer flex items-center justify-between gap-2.5 select-none group/item active:scale-[0.99]',
+                      'p-2 rounded-xl transition-all duration-150 cursor-pointer flex items-center justify-between gap-2.5 select-none group/item active:scale-[0.99]',
                       currentModule?.id === mod.id && activeManualIndex === sIdx
                         ? 'bg-blue-600 text-white font-semibold shadow-xs'
-                        : 'bg-white text-slate-700 hover:bg-blue-50/60 border border-slate-200/80 hover:border-blue-200 shadow-2xs'
+                        : 'hover:bg-blue-50/70 text-slate-700 hover:text-blue-900'
                     ]"
                   >
-                    <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="flex items-center gap-2 min-w-0">
                       <!-- Badge nomor urut berbentuk pill di kiri (#1, #2) -->
                       <span
                         class="px-2 py-0.5 rounded-full text-[10.5px] shrink-0 transition-colors"
                         :class="currentModule?.id === mod.id && activeManualIndex === sIdx
                           ? 'bg-white/20 text-white border border-white/25 font-black'
-                          : 'bg-slate-100 text-slate-500 border border-slate-200/70 group-hover/item:bg-blue-100/80 group-hover/item:text-blue-700 group-hover/item:border-blue-200 font-bold'"
+                          : 'bg-slate-100 text-slate-500 border border-slate-200/70 group-hover/item:bg-blue-100 group-hover/item:text-blue-700 group-hover/item:border-blue-200 font-bold'"
                       >
                         #{{ sub.order || (sIdx + 1) }}
                       </span>
@@ -681,9 +678,10 @@ watch(
                     />
                   </div>
 
+                  <!-- Empty state jika belum ada sub menu panduan (seperti gambar 1) -->
                   <div
                     v-if="!mod.manualBooks || mod.manualBooks.length === 0"
-                    class="text-xs text-slate-400 italic py-3 text-center"
+                    class="text-xs text-slate-400 italic py-2 pl-2"
                   >
                     Belum ada sub menu panduan.
                   </div>
