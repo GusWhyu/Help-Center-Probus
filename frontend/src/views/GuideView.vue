@@ -20,7 +20,7 @@ import {
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { detectSystemIcon } from '../utils/iconResolver'
-import { slugify, getSystemSlug, getSystemIdFromParam, findModuleByParam } from '../utils/slug'
+import { slugify, getSystemSlug, getSystemIdFromParam, findModuleByParam, highlightKeyword } from '../utils/slug'
 
 const route = useRoute()
 const router = useRouter()
@@ -367,7 +367,7 @@ async function loadSystemData() {
   }
 }
 
-// Filtered modules by sidebar TOC search query
+// Filtered modules by sidebar TOC search query (strictly within selected system)
 const filteredModulesList = computed(() => {
   const q = (tocSearchQuery.value || '').trim().toLowerCase()
   if (!q) return modulesList.value
@@ -380,6 +380,22 @@ const filteredModulesList = computed(() => {
     )
     return titleMatch || nameMatch || subMatch
   })
+})
+
+// Total matching items in current system
+const totalMatchesCount = computed(() => {
+  const q = (tocSearchQuery.value || '').trim().toLowerCase()
+  if (!q) return 0
+  let count = 0
+  filteredModulesList.value.forEach(mod => {
+    const titleMatch = (mod.title || '').toLowerCase().includes(q) || (mod.name || '').toLowerCase().includes(q)
+    const matchingSubs = (mod.manualBooks || []).filter(mb =>
+      (mb.title || '').toLowerCase().includes(q) ||
+      cleanChapterTitle(mb.title).toLowerCase().includes(q)
+    ).length
+    count += matchingSubs > 0 ? matchingSubs : (titleMatch ? 1 : 0)
+  })
+  return count
 })
 
 // Current active module
@@ -475,6 +491,7 @@ function selectModule(mod) {
 
 function switchSystem(sys) {
   selectedSystemId.value = sys.id
+  tocSearchQuery.value = ''
   activeManualIndex.value = 0
   const sysSlug = getSystemSlug(sys.id)
   router.replace(`/system/${sysSlug}/guide/1`)
@@ -717,36 +734,62 @@ watch(
         <aside class="w-full lg:w-80 xl:w-[340px] shrink-0">
           <div class="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs sticky top-24">
             
-            <!-- Sidebar Header -->
-            <div class="flex items-center justify-between mb-3 px-0.5">
-              <div>
-                <div class="text-xs font-black text-slate-800 uppercase tracking-wider">
-                  DAFTAR MODUL &amp; SUB MENU ({{ modulesList.length }})
+            <!-- Sidebar Header with Selected System Badge -->
+            <div class="mb-3 px-0.5">
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-xs font-black text-slate-800 uppercase tracking-wider truncate">
+                  DAFTAR MODUL &amp; SUB MENU
                 </div>
-                <p class="text-[11px] text-slate-400 mt-0.5">
-                  Pilih modul untuk melihat materi sub menu:
-                </p>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200/80 shrink-0">
+                  {{ currentSystem.name }} ({{ modulesList.length }})
+                </span>
               </div>
+              <p class="text-[11px] text-slate-400 mt-1 truncate">
+                Panduan materi operasional {{ currentSystem.name }}:
+              </p>
             </div>
 
-            <!-- Mini Search Filter for Sub Menus -->
+            <!-- Option 1: Modern Clean Search Filter (Scoped strictly to Selected System) -->
             <div class="relative mb-3.5 group">
-              <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 pointer-events-none transition-colors" />
+              <!-- Search Icon with focus transition -->
+              <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 pointer-events-none transition-colors duration-200" />
+              
+              <!-- Input with rounded-xl, subtle contrast, and smooth focus ring -->
               <input
                 v-model="tocSearchQuery"
                 type="text"
-                placeholder="Cari dalam daftar sub menu..."
-                class="w-full pl-10 pr-9 py-2 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs"
+                :placeholder="`Cari materi ${currentSystem.name}...`"
+                class="w-full pl-9 pr-24 py-2.5 bg-slate-50/90 hover:bg-slate-100/70 focus:bg-white border border-slate-200 hover:border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/15 focus:shadow-xs transition-all duration-200"
               />
-              <button
-                v-if="tocSearchQuery"
-                @click="tocSearchQuery = ''"
-                type="button"
-                title="Hapus pencarian"
-                class="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"
-              >
-                <X class="w-2.5 h-2.5" />
-              </button>
+
+              <!-- Right Actions: Matches Count & Clear Button -->
+              <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <!-- Matches count badge when query is active -->
+                <span
+                  v-if="tocSearchQuery.trim() && totalMatchesCount > 0"
+                  class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs pointer-events-none animate-in fade-in"
+                >
+                  <CheckCircle2 class="w-2.5 h-2.5 text-blue-600" />
+                  <span>{{ totalMatchesCount }} cocok</span>
+                </span>
+                <span
+                  v-else-if="tocSearchQuery.trim() && totalMatchesCount === 0"
+                  class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-600 border border-rose-200 pointer-events-none"
+                >
+                  0 cocok
+                </span>
+
+                <!-- Clear button -->
+                <button
+                  v-if="tocSearchQuery"
+                  @click="tocSearchQuery = ''"
+                  type="button"
+                  title="Hapus pencarian"
+                  class="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors focus:outline-none cursor-pointer"
+                >
+                  <X class="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
             <!-- Accordion List of Modules and Sub-Menus (Single Unified Card Layout) -->
@@ -776,9 +819,8 @@ watch(
                       <!-- Judul modul (misal: "01. Setup Master") dengan teks tebal font-bold -->
                       <h3
                         class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate leading-tight"
-                      >
-                        {{ mod.title }}
-                      </h3>
+                        v-html="highlightKeyword(mod.title, tocSearchQuery)"
+                      ></h3>
                       <!-- Teks status di bawah judul modul -->
                       <p class="text-[11px] mt-0.5 truncate leading-tight">
                         <span v-if="currentModule?.id === mod.id" class="text-blue-600 font-bold inline-flex items-center gap-1">
@@ -843,9 +885,8 @@ watch(
                         :class="currentModule?.id === mod.id && activeManualIndex === sIdx
                           ? 'text-white font-semibold'
                           : 'text-slate-700 group-hover/item:text-blue-900 font-medium'"
-                      >
-                        {{ cleanChapterTitle(sub.title) }}
-                      </span>
+                        v-html="highlightKeyword(cleanChapterTitle(sub.title), tocSearchQuery)"
+                      ></span>
                     </div>
 
                     <!-- Ikon chevron kanan (">") di pojok kanan -->
@@ -886,9 +927,19 @@ watch(
               <!-- Empty state pencarian sidebar -->
               <div
                 v-else-if="filteredModulesList.length === 0"
-                class="py-8 text-center text-xs text-slate-400 italic"
+                class="py-8 px-2 text-center text-xs text-slate-500"
               >
-                Tidak ada sub menu yang cocok.
+                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mx-auto mb-2">
+                  <Search class="w-4 h-4" />
+                </div>
+                <p class="font-bold text-slate-700">Tidak ada materi yang cocok</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">di sistem <strong>{{ currentSystem.name }}</strong></p>
+                <button
+                  @click="tocSearchQuery = ''"
+                  class="mt-2.5 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 text-[11px] font-bold hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer"
+                >
+                  Hapus Pencarian
+                </button>
               </div>
             </div>
           </div>
