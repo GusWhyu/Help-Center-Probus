@@ -550,19 +550,21 @@ watch(
 
             <!-- Mini Search Filter for Sub Menus -->
             <div class="relative mb-3.5">
-              <Search class="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <Search class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
                 v-model="tocSearchQuery"
                 type="text"
                 placeholder="Cari dalam daftar sub menu..."
-                class="w-full pl-8 pr-7 py-1.5 bg-slate-50/70 focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+                class="w-full pl-8.5 pr-8 py-2 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs"
               />
               <button
                 v-if="tocSearchQuery"
                 @click="tocSearchQuery = ''"
-                class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                type="button"
+                title="Hapus pencarian"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"
               >
-                ✕
+                <X class="w-2.5 h-2.5" />
               </button>
             </div>
 
@@ -573,55 +575,67 @@ watch(
                 :key="mod.id"
                 :class="[
                   'rounded-2xl border transition-all duration-200 overflow-hidden',
-                  currentModule.id === mod.id
+                  currentModule?.id === mod.id
                     ? 'border-blue-500 bg-white shadow-2xs ring-1 ring-blue-500/30'
                     : 'border-slate-200/90 bg-white hover:border-slate-300'
                 ]"
               >
                 <!-- Header Modul (Dapat diklik untuk expand / pilih modul) -->
                 <div
-                  class="p-3.5 flex items-center justify-between gap-2 cursor-pointer select-none group"
+                  class="p-3 sm:p-3.5 flex items-center justify-between gap-2.5 cursor-pointer select-none group"
                   @click="toggleModule(mod)"
                 >
                   <div class="flex items-center gap-2.5 min-w-0">
+                    <!-- Ikon folder rounded berwarna biru di sebelah kiri -->
                     <div
-                      :class="currentModule.id === mod.id ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-50 text-slate-500 border border-slate-200'"
-                      class="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-colors"
+                      :class="currentModule?.id === mod.id
+                        ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/20'
+                        : 'bg-blue-50 text-blue-600 border border-blue-100/90 group-hover:bg-blue-100/80'"
+                      class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
                     >
-                      <Folder class="w-3.5 h-3.5" />
+                      <Folder class="w-4 h-4" />
                     </div>
                     <div class="min-w-0">
+                      <!-- Judul modul (misal: "01. Setup Master") dengan teks tebal font-bold -->
                       <h3
-                        class="text-xs sm:text-[13px] font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors"
+                        class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate leading-tight"
                       >
                         {{ mod.title }}
                       </h3>
-                      <span
-                        class="text-[10px] font-medium"
-                        :class="currentModule.id === mod.id ? 'text-blue-600 font-semibold' : 'text-slate-400'"
-                      >
-                        {{ currentModule.id === mod.id ? 'Sedang Dibaca' : `${mod.manualBooks.length} Sub Menu` }}
-                      </span>
+                      <!-- Teks status di bawah judul modul -->
+                      <p class="text-[11px] mt-0.5 truncate leading-tight">
+                        <span v-if="currentModule?.id === mod.id" class="text-blue-600 font-bold inline-flex items-center gap-1">
+                          <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                          Sedang Dibaca
+                        </span>
+                        <span v-else class="text-slate-400 font-medium">
+                          {{ (mod.manualBooks || []).length }} Sub Menu
+                        </span>
+                      </p>
                     </div>
                   </div>
 
-                  <div class="flex items-center gap-1.5 shrink-0">
+                  <div class="flex items-center gap-2 shrink-0">
+                    <!-- Badge jumlah sub menu berbentuk kapsul/pill abu-abu / biru muda -->
                     <span
-                      class="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                      :class="mod.manualBooks.length > 0 ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-400'"
+                      class="text-[10.5px] font-bold px-2.5 py-0.5 rounded-full border transition-colors whitespace-nowrap"
+                      :class="currentModule?.id === mod.id
+                        ? 'bg-blue-50 text-blue-700 border-blue-200/80'
+                        : 'bg-slate-100/90 text-slate-600 border-slate-200/70 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100'"
                     >
-                      {{ mod.manualBooks.length }} Sub Menu
+                      {{ (mod.manualBooks || []).length }} Sub Menu
                     </span>
+                    <!-- Ikon chevron (panah atas/bawah) untuk accordion buka-tutup -->
                     <ChevronDown
-                      class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"
-                      :class="expandedModules[mod.id] ? 'rotate-180 text-blue-500' : ''"
+                      class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 shrink-0"
+                      :class="expandedModules[mod.id] ? 'rotate-180 text-blue-600' : ''"
                     />
                   </div>
                 </div>
 
                 <!-- Daftar Sub Menu di bawah Modul (Inline Accordion) -->
                 <div
-                  v-show="expandedModules[mod.id] || tocSearchQuery.length > 0"
+                  v-show="expandedModules[mod.id] || (tocSearchQuery && tocSearchQuery.length > 0)"
                   class="border-t border-slate-100 bg-slate-50/70 p-2.5 space-y-1.5"
                 >
                   <div
@@ -629,26 +643,41 @@ watch(
                     :key="sub.id"
                     @click="selectChapter(mod, sIdx)"
                     :class="[
-                      'p-2.5 rounded-xl transition-all duration-150 cursor-pointer flex items-center justify-between gap-2 select-none group',
-                      currentModule.id === mod.id && activeManualIndex === sIdx
+                      'p-2.5 rounded-xl transition-all duration-150 cursor-pointer flex items-center justify-between gap-2.5 select-none group/item active:scale-[0.99]',
+                      currentModule?.id === mod.id && activeManualIndex === sIdx
                         ? 'bg-blue-600 text-white font-semibold shadow-xs'
-                        : 'bg-white text-slate-700 hover:bg-blue-50/80 border border-slate-200/80'
+                        : 'bg-white text-slate-700 hover:bg-blue-50/60 border border-slate-200/80 hover:border-blue-200 shadow-2xs'
                     ]"
                   >
-                    <div class="flex items-center gap-2 min-w-0">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                      <!-- Badge nomor urut berbentuk pill di kiri (#1, #2) -->
                       <span
-                        class="w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-black shrink-0"
-                        :class="currentModule.id === mod.id && activeManualIndex === sIdx ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'"
+                        class="px-2 py-0.5 rounded-full text-[10.5px] shrink-0 transition-colors"
+                        :class="currentModule?.id === mod.id && activeManualIndex === sIdx
+                          ? 'bg-white/20 text-white border border-white/25 font-black'
+                          : 'bg-slate-100 text-slate-500 border border-slate-200/70 group-hover/item:bg-blue-100/80 group-hover/item:text-blue-700 group-hover/item:border-blue-200 font-bold'"
                       >
                         #{{ sub.order || (sIdx + 1) }}
                       </span>
-                      <span class="text-xs truncate font-medium">
+                      <!-- Judul sub menu -->
+                      <span
+                        class="text-xs truncate leading-normal"
+                        :class="currentModule?.id === mod.id && activeManualIndex === sIdx
+                          ? 'text-white font-semibold'
+                          : 'text-slate-700 group-hover/item:text-blue-900 font-medium'"
+                      >
                         {{ cleanChapterTitle(sub.title) }}
                       </span>
                     </div>
+
+                    <!-- Ikon chevron kanan (">") di pojok kanan -->
                     <ChevronRight
-                      v-if="currentModule.id === mod.id && activeManualIndex === sIdx"
-                      class="w-3 h-3 text-white/80 shrink-0"
+                      v-if="currentModule?.id === mod.id && activeManualIndex === sIdx"
+                      class="w-3.5 h-3.5 text-white shrink-0 ml-auto"
+                    />
+                    <ChevronRight
+                      v-else
+                      class="w-3.5 h-3.5 text-slate-300 opacity-0 group-hover/item:opacity-100 group-hover/item:text-blue-500 transition-opacity shrink-0 ml-auto"
                     />
                   </div>
 
