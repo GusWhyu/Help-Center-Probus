@@ -57,8 +57,8 @@ func (r *repository) FindCategoryByID(ctx context.Context, id uint) (*Kategori, 
 		Preload("Menus", "parent_id IS NULL", func(db *gorm.DB) *gorm.DB {
 			return db.Order("`order` ASC, id ASC")
 		}).
-		Preload("Menus.ManualBooks", "status = ?", "published", func(db *gorm.DB) *gorm.DB {
-			return db.Order("`order` ASC, id ASC")
+		Preload("Menus.ManualBooks", "manual_books.status = ?", "published", func(db *gorm.DB) *gorm.DB {
+			return db.Order("menu_has_manual_books.`order` ASC, manual_books.id ASC")
 		}).
 		First(&cat, id).Error
 	if err != nil {

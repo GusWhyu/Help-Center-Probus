@@ -264,17 +264,20 @@ async function loadSystemData() {
     const rawManuals = (manualRes.data && manualRes.data.data) ? manualRes.data.data : []
     const seenManualIds = new Set()
     const uniqueManuals = []
+    const uniqueManualsMap = new Map()
     for (const mb of rawManuals) {
-      if (!seenManualIds.has(mb.id)) {
+      if (mb && mb.id && !seenManualIds.has(mb.id)) {
         seenManualIds.add(mb.id)
-        uniqueManuals.push(mb)
+        const formatted = {
+          ...mb,
+          description: isWordImportDesc(mb.description) ? '' : mb.description
+        }
+        uniqueManuals.push(formatted)
+        uniqueManualsMap.set(mb.id, formatted)
       }
     }
 
-    systemManualBooks.value = uniqueManuals.map(mb => ({
-      ...mb,
-      description: isWordImportDesc(mb.description) ? '' : mb.description
-    }))
+    systemManualBooks.value = uniqueManuals
 
     // 4. Build module list combining database `menu_systems` and preloaded `manual_books`
     if (menusFromDb.length > 0) {
@@ -282,24 +285,33 @@ async function loadSystemData() {
         const orderNum = menu.order || (idx + 1)
         const code = String(orderNum).padStart(2, '0')
 
-        // Find manual books linked to this menu_system_id
-        const linkedManuals = systemManualBooks.value.filter(mb => {
-          if (!mb.menu_systems || !Array.isArray(mb.menu_systems)) return false
-          return mb.menu_systems.some(ms => ms.id === menu.id)
-        })
-
-        // Deduplikasi manual books by ID di dalam modul
-        const seenInModule = new Set()
-        const uniqueLinked = []
-        for (const mb of linkedManuals) {
-          if (!seenInModule.has(mb.id)) {
-            seenInModule.add(mb.id)
-            uniqueLinked.push(mb)
-          }
+        // Prioritaskan buku panduan yang tertaut langsung pada modul (menu.manual_books)
+        // yang sudah diurutkan berdasarkan pivot order dari backend
+        let uniqueLinked = []
+        if (Array.isArray(menu.manual_books) && menu.manual_books.length > 0) {
+          const seenIds = new Set()
+          menu.manual_books.forEach(mb => {
+            if (mb && mb.id && !seenIds.has(mb.id)) {
+              seenIds.add(mb.id)
+              const full = uniqueManualsMap.get(mb.id) || mb
+              uniqueLinked.push({
+                ...full,
+                description: isWordImportDesc(full.description) ? '' : full.description
+              })
+            }
+          })
+        } else {
+          // Fallback ke systemManualBooks jika menu.manual_books tidak tersedia
+          const seenIds = new Set()
+          systemManualBooks.value.forEach(mb => {
+            if (mb && mb.id && !seenIds.has(mb.id) && Array.isArray(mb.menu_systems)) {
+              if (mb.menu_systems.some(ms => ms.id === menu.id)) {
+                seenIds.add(mb.id)
+                uniqueLinked.push(mb)
+              }
+            }
+          })
         }
-
-        // Sort sub-menus ascending by order, then by id
-        uniqueLinked.sort((a, b) => (a.order || 0) - (b.order || 0) || a.id - b.id)
 
         return {
           id: menu.id,
