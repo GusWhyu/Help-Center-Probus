@@ -218,10 +218,22 @@ async function loadSystemData() {
   try {
     // 1. Fetch Categories and all published Manual Books to determine real published module count
     const [catRes, allManualRes, detailRes, manualRes] = await Promise.all([
-      apiClient.get('/categories'),
-      apiClient.get('/manual-books'),
-      apiClient.get(`/categories/${selectedSystemId.value}`),
-      apiClient.get('/manual-books', { params: { kategori_id: selectedSystemId.value } })
+      apiClient.get('/categories').catch(err => {
+        console.warn('Failed to fetch categories:', err)
+        return { data: { data: [] } }
+      }),
+      apiClient.get('/manual-books').catch(err => {
+        console.warn('Failed to fetch all manual books:', err)
+        return { data: { data: [] } }
+      }),
+      apiClient.get(`/categories/${selectedSystemId.value}`).catch(err => {
+        console.warn(`Failed to fetch category detail for ID ${selectedSystemId.value}:`, err)
+        return { data: { data: null } }
+      }),
+      apiClient.get('/manual-books', { params: { kategori_id: selectedSystemId.value } }).catch(err => {
+        console.warn(`Failed to fetch manual books for category ID ${selectedSystemId.value}:`, err)
+        return { data: { data: [] } }
+      })
     ])
 
     // Hitung jumlah modul yang benar-benar memiliki buku panduan terbit (published) per kategori

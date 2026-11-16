@@ -3,6 +3,7 @@ package helpcenter
 import (
 	"context"
 	"errors"
+	"sort"
 	"strings"
 
 	"github.com/rafialfauzan/layrd/pkg/database"
@@ -57,8 +58,8 @@ func (r *repository) FindCategoryByID(ctx context.Context, id uint) (*Kategori, 
 		Preload("Menus", "parent_id IS NULL", func(db *gorm.DB) *gorm.DB {
 			return db.Order("`order` ASC, id ASC")
 		}).
-		Preload("Menus.ManualBooks", "manual_books.status = ?", "published", func(db *gorm.DB) *gorm.DB {
-			return db.Order("menu_has_manual_books.`order` ASC, manual_books.id ASC")
+		Preload("Menus.ManualBooks", "status = ?", "published", func(db *gorm.DB) *gorm.DB {
+			return db.Order("manual_books.`order` ASC, manual_books.id ASC")
 		}).
 		First(&cat, id).Error
 	if err != nil {
@@ -67,6 +68,53 @@ func (r *repository) FindCategoryByID(ctx context.Context, id uint) (*Kategori, 
 		}
 		return nil, err
 	}
+
+	// Urutkan manual books pada setiap menu berdasarkan kolom order tabel pivot menu_has_manual_books
+	if len(cat.Menus) > 0 {
+		var menuIDs []uint
+		for _, m := range cat.Menus {
+			menuIDs = append(menuIDs, m.ID)
+		}
+
+		type PivotOrder struct {
+			MenuSystemID uint `gorm:"column:menu_system_id"`
+			ManualBookID uint `gorm:"column:manual_book_id"`
+			Order        int  `gorm:"column:order"`
+		}
+		var pivots []PivotOrder
+		if err := r.db.WithContext(ctx).Table("menu_has_manual_books").
+			Where("menu_system_id IN (?)", menuIDs).
+			Find(&pivots).Error; err == nil {
+			pivotMap := make(map[uint]map[uint]int)
+			for _, p := range pivots {
+				if _, ok := pivotMap[p.MenuSystemID]; !ok {
+					pivotMap[p.MenuSystemID] = make(map[uint]int)
+				}
+				pivotMap[p.MenuSystemID][p.ManualBookID] = p.Order
+			}
+
+			for i := range cat.Menus {
+				mID := cat.Menus[i].ID
+				if orders, ok := pivotMap[mID]; ok && len(cat.Menus[i].ManualBooks) > 1 {
+					sort.SliceStable(cat.Menus[i].ManualBooks, func(a, b int) bool {
+						ordA, okA := orders[cat.Menus[i].ManualBooks[a].ID]
+						ordB, okB := orders[cat.Menus[i].ManualBooks[b].ID]
+						if !okA {
+							ordA = 999
+						}
+						if !okB {
+							ordB = 999
+						}
+						if ordA != ordB {
+							return ordA < ordB
+						}
+						return cat.Menus[i].ManualBooks[a].ID < cat.Menus[i].ManualBooks[b].ID
+					})
+				}
+			}
+		}
+	}
+
 	return &cat, nil
 }
 
