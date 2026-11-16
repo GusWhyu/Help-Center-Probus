@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Search,
@@ -20,10 +20,12 @@ import {
   HelpCircle,
   Loader2,
   Phone,
-  Menu
+  Menu,
+  Layers
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { slugify, highlightKeyword } from '../utils/slug'
+import { detectSystemIcon } from '../utils/iconResolver'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -133,37 +135,51 @@ const default9Categories = [
   { value: 9, label: 'BARONG POS' },
 ]
 
-// All 9 system categories directly from database `kategori` table + Semua Sistem
+// All 9 system categories directly from database `kategori` table + Semua Sistem di paling depan (Index 0)
 const systemOptions = computed(() => {
   const result = []
 
-  if (categories.value && categories.value.length > 0) {
-    // Sort strictly by id ASC (1 to 9) to match database table `kategori`
-    const sorted = [...categories.value].sort((a, b) => a.id - b.id)
-
-    sorted.forEach(c => {
-      result.push({
-        value: c.id,
-        code: c.name,
-        label: c.name, // Exact database name: PHIS, PRESTO, PPOS, SELF ORDER, etc.
-      })
-    })
-  } else {
-    default9Categories.forEach(c => {
-      result.push({
-        value: c.value,
-        code: c.label,
-        label: c.label,
-      })
-    })
-  }
-
-  // Append 'Semua Sistem' at the end
+  // 1. Opsi 'Semua Sistem' di urutan pertama (Index 0)
   result.push({
     value: 'all',
     code: 'ALL',
     label: 'Semua Sistem',
+    articleCount: articles.value.length,
   })
+
+  // 2. 9 Kategori Sistem Resmi Probus
+  if (categories.value && categories.value.length > 0) {
+    const sorted = [...categories.value].sort((a, b) => a.id - b.id)
+    sorted.forEach(c => {
+      const count = articles.value.filter(a => {
+        const matchId = a.kategoriId === Number(c.id)
+        const matchSys = a.system && a.system.toUpperCase() === c.name.toUpperCase()
+        return matchId || matchSys
+      }).length
+
+      result.push({
+        value: c.id,
+        code: c.name,
+        label: c.name, // PHIS, PRESTO, PPOS, SELF ORDER, etc.
+        articleCount: count,
+      })
+    })
+  } else {
+    default9Categories.forEach(c => {
+      const count = articles.value.filter(a => {
+        const matchId = a.kategoriId === Number(c.value)
+        const matchSys = a.system && a.system.toUpperCase() === c.label.toUpperCase()
+        return matchId || matchSys
+      }).length
+
+      result.push({
+        value: c.value,
+        code: c.label,
+        label: c.label,
+        articleCount: count,
+      })
+    })
+  }
 
   return result
 })
@@ -224,6 +240,21 @@ const availableModules = computed(() => {
       count,
     }
   })
+})
+
+// Hanya tampilkan modul yang memiliki artikel solusi (count > 0)
+const modulesWithArticles = computed(() => {
+  return availableModules.value.filter(m => m.count > 0)
+})
+
+// Sinkronisasi: jika modul yang dipilih tidak ada dalam daftar modul berartikel, kembalikan ke 'all'
+watch([selectedSystemFilter, modulesWithArticles], () => {
+  if (selectedModuleFilter.value !== 'all') {
+    const exists = modulesWithArticles.value.some(m => m.id === selectedModuleFilter.value)
+    if (!exists) {
+      selectedModuleFilter.value = 'all'
+    }
+  }
 })
 
 // Total count of articles for current selected system
@@ -373,40 +404,35 @@ function goBackHome() {
     </nav>
 
     <!-- 3. Hero Section (Bank Solusi) -->
-    <section class="pt-10 pb-8 sm:pt-12 sm:pb-10 px-4 sm:px-6 lg:px-12 xl:px-16 text-center bg-gradient-to-b from-white via-amber-50/20 to-transparent">
-      <div class="w-full max-w-5xl mx-auto">
-        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-50 text-amber-800 text-xs font-semibold border border-amber-200/60 mb-3 shadow-2xs">
-          <AlertCircle class="w-3.5 h-3.5" />
-          <span>Knowledge Base & Troubleshooting</span>
-        </div>
-
-        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
-          Bank Solusi Kendala & Troubleshooting
+    <section class="pt-10 pb-8 sm:pt-16 sm:pb-12 lg:pt-20 lg:pb-16 px-4 sm:px-6 lg:px-12 xl:px-16 text-center bg-gradient-to-b from-white via-sky-50/20 to-transparent">
+      <div class="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+          Pusat Bantuan & Solusi Klien
         </h1>
-        <p class="mt-2.5 text-slate-500 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
-          Temukan solusi cepat untuk masalah printer kasir, cash drawer, jaringan LAN, dan error operasional sistem Probus.
+        <p class="mt-3 sm:mt-4 text-slate-500 text-sm sm:text-base lg:text-lg leading-relaxed max-w-3xl mx-auto">
+          Pilih sistem dan modul di bawah, atau ketik kendala Anda untuk menemukan panduan langkah demi langkah.
         </p>
 
         <!-- Search Omnibox -->
-        <div class="mt-7 w-full max-w-2xl sm:max-w-3xl lg:max-w-4xl mx-auto relative group">
-          <div class="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center transition-colors duration-200 text-slate-400 group-focus-within:text-amber-600">
-            <Search class="w-4.5 h-4.5" />
+        <div class="mt-7 sm:mt-8 w-full max-w-2xl sm:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto relative group">
+          <div class="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center transition-colors duration-200 text-slate-400 group-focus-within:text-blue-600">
+            <Search class="w-5 h-5" />
           </div>
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Cari solusi kendala (contoh: printer, cash drawer, paper jam, IP address)..."
-            class="w-full pl-11 sm:pl-12 pr-32 sm:pr-40 py-3.5 rounded-2xl text-sm bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:shadow-md transition-all duration-200"
+            placeholder="Cari kendala (contoh: printer tidak cetak, laci kasir macet, gagal QRIS)..."
+            class="w-full pl-12 sm:pl-14 pr-32 sm:pr-40 py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base bg-white border border-slate-200/90 text-slate-800 placeholder:text-slate-400 font-normal shadow-xs hover:border-slate-300 hover:shadow-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15 focus:shadow-md transition-all duration-200"
           />
 
           <!-- Right Side Indicators (Tanda Cocok & Clear Button) -->
-          <div class="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+          <div class="absolute right-3.5 sm:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
             <!-- Match indicator badge inside search bar -->
             <span
               v-if="searchQuery.trim() && filteredArticles.length > 0"
-              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs pointer-events-none animate-in fade-in"
+              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200 shadow-2xs pointer-events-none animate-in fade-in"
             >
-              <CheckCircle2 class="w-3 h-3 text-amber-700" />
+              <CheckCircle2 class="w-3.5 h-3.5 text-blue-600" />
               <span>{{ filteredArticles.length }} cocok</span>
             </span>
             <span
@@ -428,79 +454,122 @@ function goBackHome() {
           </div>
         </div>
 
-        <!-- 1. PILIH SISTEM ROW (9 Kategori Produk Probus + Semua Sistem) -->
-        <div class="mt-7 text-left">
-          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-            PILIH SISTEM
+        <!-- 1. PILIH SISTEM ROW (Semua Sistem + 9 Kategori Produk Probus) -->
+        <div class="mt-8 text-left">
+          <div class="flex items-center justify-between mb-2.5">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                Pilih Sistem Probus
+              </span>
+            </div>
+            <span class="text-[11px] text-slate-400 hidden sm:inline">
+              Geser untuk melihat sistem lainnya →
+            </span>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
+
+          <!-- Horizontal Scroll Container -->
+          <div class="custom-sky-scrollbar flex items-center gap-2.5 overflow-x-auto pb-3 pt-1">
             <button
               v-for="opt in systemOptions"
               :key="opt.value"
               @click="selectSystem(opt.value)"
               :class="[
-                'px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer',
+                'group shrink-0 inline-flex items-center gap-2 text-xs px-3.5 sm:px-4 py-2.5 rounded-xl font-bold transition-all duration-200 cursor-pointer select-none',
                 selectedSystemFilter === opt.value
-                  ? 'bg-slate-950 text-white shadow-xs ring-2 ring-slate-900/10'
-                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-950 shadow-2xs'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 ring-2 ring-blue-500/30'
+                  : 'bg-white text-slate-700 border border-slate-200/90 hover:border-blue-300 hover:bg-blue-50/60 hover:text-blue-700 shadow-2xs'
               ]"
             >
-              {{ opt.label }}
+              <!-- System Icon -->
+              <div
+                :class="[
+                  'w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors',
+                  selectedSystemFilter === opt.value
+                    ? 'bg-white/20 text-white'
+                    : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'
+                ]"
+              >
+                <component
+                  :is="opt.value === 'all' ? Layers : detectSystemIcon(opt.code)"
+                  class="w-3.5 h-3.5"
+                />
+              </div>
+
+              <!-- System Name -->
+              <span class="tracking-tight">{{ opt.label }}</span>
+
+              <!-- Solusi Count Badge -->
+              <span
+                :class="[
+                  'text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors',
+                  selectedSystemFilter === opt.value
+                    ? 'bg-white/25 text-white'
+                    : (opt.articleCount > 0
+                        ? 'bg-blue-50 text-blue-700 border border-blue-100/80 group-hover:bg-blue-100'
+                        : 'bg-slate-100 text-slate-400')
+                ]"
+              >
+                {{ opt.articleCount }} Solusi
+              </span>
             </button>
           </div>
         </div>
 
-        <!-- 2. MODUL BAR (10 Modul Sistem dari Database) -->
-        <div class="mt-3.5 p-3 sm:p-3.5 bg-slate-50/90 border border-slate-200/90 rounded-2xl flex flex-wrap items-center gap-2 text-left shadow-2xs">
+        <!-- 2. MODUL BAR (Hanya modul yang memiliki artikel solusi) -->
+        <div
+          v-if="modulesWithArticles.length > 0"
+          class="mt-2.5 p-2.5 sm:p-3 bg-slate-50/90 border border-slate-200/90 rounded-2xl flex flex-wrap items-center gap-2 text-left shadow-2xs animate-in fade-in duration-200"
+        >
           <span class="text-xs font-black text-slate-500 uppercase tracking-wider px-2 shrink-0">
             MODUL:
           </span>
 
-          <!-- Individual Module Pills (10 Modul) -->
-          <button
-            v-for="mod in availableModules"
-            :key="mod.id"
-            @click="selectedModuleFilter = mod.id"
-            :class="[
-              'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5',
-              selectedModuleFilter === mod.id
-                ? 'bg-sky-600 text-white shadow-xs'
-                : 'bg-white text-slate-700 border border-slate-200/90 hover:bg-slate-100 hover:text-slate-900 shadow-2xs'
-            ]"
-          >
-            <span>{{ mod.displayName }}</span>
-            <span
-              :class="[
-                'text-[10px] px-1.5 py-0.2 rounded-full font-bold',
-                selectedModuleFilter === mod.id
-                  ? 'bg-sky-700/70 text-white'
-                  : (mod.count > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-400')
-              ]"
-            >
-              {{ mod.count }}
-            </span>
-          </button>
-
-          <!-- Semua Modul Pill -->
+          <!-- Semua Modul Pill (Paling Depan) -->
           <button
             @click="selectedModuleFilter = 'all'"
             :class="[
-              'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5',
+              'px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5',
               selectedModuleFilter === 'all'
-                ? 'bg-sky-600 text-white shadow-xs'
-                : 'bg-white text-slate-700 border border-slate-200/90 hover:bg-slate-100 hover:text-slate-900 shadow-2xs'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200/90 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 shadow-2xs'
             ]"
           >
             <span>Semua Modul</span>
             <span
               :class="[
-                'text-[10px] px-1.5 py-0.2 rounded-full font-bold',
+                'text-[10px] px-1.5 py-0.5 rounded-full font-bold',
                 selectedModuleFilter === 'all'
-                  ? 'bg-sky-700/70 text-white'
-                  : 'bg-slate-100 text-slate-500'
+                  ? 'bg-blue-700/80 text-white'
+                  : 'bg-slate-100 text-slate-600'
               ]"
             >
               {{ totalArticlesCount }}
+            </span>
+          </button>
+
+          <!-- Modul-Modul yang memiliki artikel -->
+          <button
+            v-for="mod in modulesWithArticles"
+            :key="mod.id"
+            @click="selectedModuleFilter = mod.id"
+            :class="[
+              'px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5',
+              selectedModuleFilter === mod.id
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200/90 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 shadow-2xs'
+            ]"
+          >
+            <span>{{ mod.displayName }}</span>
+            <span
+              :class="[
+                'text-[10px] px-1.5 py-0.5 rounded-full font-bold',
+                selectedModuleFilter === mod.id
+                  ? 'bg-blue-700/80 text-white'
+                  : 'bg-blue-50 text-blue-700 border border-blue-100'
+              ]"
+            >
+              {{ mod.count }}
             </span>
           </button>
         </div>

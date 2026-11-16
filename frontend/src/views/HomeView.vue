@@ -97,21 +97,42 @@ const categoryMetaMap = {
 
 // Fallback initial list containing all 9 categories from dbprobuscs
 const systems = ref([
-  { id: 2, name: 'PRESTO', title: 'PRESTO Resto POS', badge: 'Restoran & POS', desc: categoryMetaMap['PRESTO'].desc, modulCount: 10, icon: MonitorCheck },
-  { id: 1, name: 'PHIS', title: 'PHIS - Probus Hotel PMS', badge: 'Hotel & Resort', desc: categoryMetaMap['PHIS'].desc, modulCount: 10, icon: Building2 },
-  { id: 8, name: 'PPE', title: 'PPE 2.0 Management', badge: 'Facility & Asset', desc: categoryMetaMap['PPE'].desc, modulCount: 10, icon: Zap },
-  { id: 3, name: 'PPOS', title: 'PPOS - Probus Point of Sales', badge: 'Retail & Kasir', desc: categoryMetaMap['PPOS'].desc, modulCount: 10, icon: Printer },
-  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO Online & Purchasing', badge: 'Logistik & Gudang', desc: categoryMetaMap['PR-PO ONLINE'].desc, modulCount: 10, icon: Package },
-  { id: 4, name: 'SELF ORDER', title: 'Probus Self Order', badge: 'Self Service', desc: categoryMetaMap['SELF ORDER'].desc, modulCount: 10, icon: Smartphone },
-  { id: 6, name: 'ORDER TAKER', title: 'Order Taker Mobile', badge: 'Waiter App', desc: categoryMetaMap['ORDER TAKER'].desc, modulCount: 10, icon: UtensilsCrossed },
-  { id: 7, name: 'VRESTROPICAL', title: 'Vrestropical POS System', badge: 'Club & Lounge', desc: categoryMetaMap['VRESTROPICAL'].desc, modulCount: 10, icon: Sparkles },
-  { id: 9, name: 'BARONG POS', title: 'Barong POS Cloud', badge: 'Cloud POS', desc: categoryMetaMap['BARONG POS'].desc, modulCount: 8, icon: Laptop },
+  { id: 2, name: 'PRESTO', title: 'PRESTO Resto POS', badge: 'Restoran & POS', desc: categoryMetaMap['PRESTO'].desc, modulCount: 2, icon: MonitorCheck },
+  { id: 1, name: 'PHIS', title: 'PHIS - Probus Hotel PMS', badge: 'Hotel & Resort', desc: categoryMetaMap['PHIS'].desc, modulCount: 1, icon: Building2 },
+  { id: 8, name: 'PPE', title: 'PPE 2.0 Management', badge: 'Facility & Asset', desc: categoryMetaMap['PPE'].desc, modulCount: 0, icon: Zap },
+  { id: 3, name: 'PPOS', title: 'PPOS - Probus Point of Sales', badge: 'Retail & Kasir', desc: categoryMetaMap['PPOS'].desc, modulCount: 0, icon: Printer },
+  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO Online & Purchasing', badge: 'Logistik & Gudang', desc: categoryMetaMap['PR-PO ONLINE'].desc, modulCount: 0, icon: Package },
+  { id: 4, name: 'SELF ORDER', title: 'Probus Self Order', badge: 'Self Service', desc: categoryMetaMap['SELF ORDER'].desc, modulCount: 0, icon: Smartphone },
+  { id: 6, name: 'ORDER TAKER', title: 'Order Taker Mobile', badge: 'Waiter App', desc: categoryMetaMap['ORDER TAKER'].desc, modulCount: 0, icon: UtensilsCrossed },
+  { id: 7, name: 'VRESTROPICAL', title: 'Vrestropical POS System', badge: 'Club & Lounge', desc: categoryMetaMap['VRESTROPICAL'].desc, modulCount: 0, icon: Sparkles },
+  { id: 9, name: 'BARONG POS', title: 'Barong POS Cloud', badge: 'Cloud POS', desc: categoryMetaMap['BARONG POS'].desc, modulCount: 0, icon: Laptop },
 ])
 
 onMounted(async () => {
   try {
     isLoading.value = true
-    const res = await apiClient.get('/categories')
+    const [res, manualRes] = await Promise.all([
+      apiClient.get('/categories'),
+      apiClient.get('/manual-books')
+    ])
+
+    // Hitung jumlah modul yang benar-benar memiliki buku panduan terbit (published) per kategori
+    const publishedModuleCounts = {}
+    const allManuals = (manualRes.data && manualRes.data.data) ? manualRes.data.data : []
+    allManuals.forEach(mb => {
+      if (mb.status === 'published' && Array.isArray(mb.menu_systems)) {
+        mb.menu_systems.forEach(ms => {
+          const kId = ms.kategori_id
+          if (kId) {
+            if (!publishedModuleCounts[kId]) {
+              publishedModuleCounts[kId] = new Set()
+            }
+            publishedModuleCounts[kId].add(ms.id)
+          }
+        })
+      }
+    })
+
     if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
       const dbCategories = res.data.data
       systems.value = dbCategories.map(cat => {
@@ -120,13 +141,14 @@ onMounted(async () => {
           desc: cat.description || `Panduan operasional dan solusi kendala sistem ${cat.name}.`,
           displayTitle: `${cat.name} System`,
         }
+        const count = publishedModuleCounts[cat.id] ? publishedModuleCounts[cat.id].size : 0
         return {
           id: cat.id,
           name: cat.name,
           title: meta.displayTitle || cat.name,
           badge: meta.badge,
           desc: cat.description || meta.desc,
-          modulCount: cat.total_menus || cat.modul_count || (cat.name === 'BARONG POS' ? 8 : 10),
+          modulCount: count,
           icon: detectSystemIcon(cat.name),
         }
       })

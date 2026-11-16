@@ -45,15 +45,15 @@ const expandedModules = ref({})
 
 const isLoading = ref(false)
 const availableSystems = ref([
-  { id: 2, name: 'PRESTO', title: 'PRESTO (10 Modul)', modulCount: 10, shortName: 'PRESTO Resto POS' },
-  { id: 1, name: 'PHIS', title: 'PHIS (10 Modul)', modulCount: 10, shortName: 'Probus Hotel PMS' },
-  { id: 8, name: 'PPE', title: 'PPE (10 Modul)', modulCount: 10, shortName: 'PPE 2.0 Management' },
-  { id: 3, name: 'PPOS', title: 'PPOS (10 Modul)', modulCount: 10, shortName: 'PPOS Point of Sales' },
-  { id: 4, name: 'SELF ORDER', title: 'SELF ORDER (10 Modul)', modulCount: 10, shortName: 'Probus Self Order' },
-  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO ONLINE (10 Modul)', modulCount: 10, shortName: 'PR-PO Online' },
-  { id: 6, name: 'ORDER TAKER', title: 'ORDER TAKER (10 Modul)', modulCount: 10, shortName: 'Order Taker Mobile' },
-  { id: 7, name: 'VRESTROPICAL', title: 'VRESTROPICAL (10 Modul)', modulCount: 10, shortName: 'Vrestropical POS' },
-  { id: 9, name: 'BARONG POS', title: 'BARONG POS (8 Modul)', modulCount: 8, shortName: 'Barong POS Cloud' },
+  { id: 2, name: 'PRESTO', title: 'PRESTO (2 Modul)', modulCount: 2, shortName: 'PRESTO Resto POS' },
+  { id: 1, name: 'PHIS', title: 'PHIS (1 Modul)', modulCount: 1, shortName: 'Probus Hotel PMS' },
+  { id: 8, name: 'PPE', title: 'PPE (0 Modul)', modulCount: 0, shortName: 'PPE 2.0 Management' },
+  { id: 3, name: 'PPOS', title: 'PPOS (0 Modul)', modulCount: 0, shortName: 'PPOS Point of Sales' },
+  { id: 4, name: 'SELF ORDER', title: 'SELF ORDER (0 Modul)', modulCount: 0, shortName: 'Probus Self Order' },
+  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO ONLINE (0 Modul)', modulCount: 0, shortName: 'PR-PO Online' },
+  { id: 6, name: 'ORDER TAKER', title: 'ORDER TAKER (0 Modul)', modulCount: 0, shortName: 'Order Taker Mobile' },
+  { id: 7, name: 'VRESTROPICAL', title: 'VRESTROPICAL (0 Modul)', modulCount: 0, shortName: 'Vrestropical POS' },
+  { id: 9, name: 'BARONG POS', title: 'BARONG POS (0 Modul)', modulCount: 0, shortName: 'Barong POS Cloud' },
 ])
 
 const currentSystem = computed(() => {
@@ -218,29 +218,51 @@ async function shareCurrentGuide() {
 async function loadSystemData() {
   isLoading.value = true
   try {
-    // 1. Fetch Categories
-    const catRes = await apiClient.get('/categories')
+    // 1. Fetch Categories and all published Manual Books to determine real published module count
+    const [catRes, allManualRes, detailRes, manualRes] = await Promise.all([
+      apiClient.get('/categories'),
+      apiClient.get('/manual-books'),
+      apiClient.get(`/categories/${selectedSystemId.value}`),
+      apiClient.get('/manual-books', { params: { kategori_id: selectedSystemId.value } })
+    ])
+
+    // Hitung jumlah modul yang benar-benar memiliki buku panduan terbit (published) per kategori
+    const publishedModuleCounts = {}
+    const allManuals = (allManualRes.data && allManualRes.data.data) ? allManualRes.data.data : []
+    allManuals.forEach(mb => {
+      if (mb.status === 'published' && Array.isArray(mb.menu_systems)) {
+        mb.menu_systems.forEach(ms => {
+          const kId = ms.kategori_id
+          if (kId) {
+            if (!publishedModuleCounts[kId]) {
+              publishedModuleCounts[kId] = new Set()
+            }
+            publishedModuleCounts[kId].add(ms.id)
+          }
+        })
+      }
+    })
+
     if (catRes.data && catRes.data.data && Array.isArray(catRes.data.data)) {
-      availableSystems.value = catRes.data.data.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        title: `${cat.name} (${cat.total_menus || 10} Modul)`,
-        modulCount: cat.total_menus || (cat.name === 'BARONG POS' ? 8 : 10),
-        shortName: cat.name === 'PRESTO' ? 'PRESTO Resto POS' : (cat.name === 'PHIS' ? 'Probus Hotel PMS' : `${cat.name} System`),
-      }))
+      availableSystems.value = catRes.data.data.map(cat => {
+        const count = publishedModuleCounts[cat.id] ? publishedModuleCounts[cat.id].size : 0
+        return {
+          id: cat.id,
+          name: cat.name,
+          title: `${cat.name} (${count} Modul)`,
+          modulCount: count,
+          shortName: cat.name === 'PRESTO' ? 'PRESTO Resto POS' : (cat.name === 'PHIS' ? 'Probus Hotel PMS' : `${cat.name} System`),
+        }
+      })
     }
 
-    // 2. Fetch specific Category details to get its `menu_systems`
-    const detailRes = await apiClient.get(`/categories/${selectedSystemId.value}`)
+    // 2. Modul menus dari database untuk kategori yang sedang dipilih
     let menusFromDb = []
     if (detailRes.data && detailRes.data.data && detailRes.data.data.menus) {
       menusFromDb = detailRes.data.data.menus
     }
 
-    // 3. Fetch published manual books for this category from database
-    const manualRes = await apiClient.get('/manual-books', {
-      params: { kategori_id: selectedSystemId.value }
-    })
+    // 3. Buku panduan terbit untuk kategori yang sedang dipilih
     const rawManuals = (manualRes.data && manualRes.data.data) ? manualRes.data.data : []
     systemManualBooks.value = rawManuals.map(mb => ({
       ...mb,
@@ -649,7 +671,7 @@ watch(
                     : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100/80 group-hover:text-blue-700'
                 ]"
               >
-                {{ sys.modulCount || (sys.name === 'BARONG POS' ? 8 : 10) }} Modul
+                {{ sys.modulCount ?? 0 }} Modul
               </span>
             </button>
           </div>
