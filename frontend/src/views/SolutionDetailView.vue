@@ -14,7 +14,9 @@ import {
   Lock,
   Calendar,
   Menu,
-  X
+  X,
+  Share2,
+  Check
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { slugify, findArticleByParam } from '../utils/slug'
@@ -29,6 +31,10 @@ const relatedArticles = ref([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 const feedbackGiven = ref(false)
+
+// Share button state
+const copiedShareLink = ref(false)
+let copyTimeout = null
 
 const systemNameMap = {
   1: 'PHIS',
@@ -200,6 +206,57 @@ function printArticle() {
   window.print()
 }
 
+function getShareUrl() {
+  if (!article.value) return window.location.href
+  const slug = slugify(article.value.title) || article.value.id
+  const resolved = router.resolve(`/solutions/${slug}`)
+  return `${window.location.origin}${resolved.href}`
+}
+
+async function shareArticle() {
+  const url = getShareUrl()
+  const title = article.value?.title || 'Solusi Kendala Teknis'
+  const systemName = article.value?.systemShort || 'Probus'
+
+  // Web Share API di perangkat mobile
+  if (navigator.share && /mobile|android|iphone|ipad/i.test(navigator.userAgent || '')) {
+    try {
+      await navigator.share({
+        title: `${title} - Solusi ${systemName}`,
+        text: `Solusi Kendala Teknis: ${title} (${systemName})`,
+        url: url
+      })
+      return
+    } catch (err) {
+      if (err.name === 'AbortError') return
+    }
+  }
+
+  // Fallback salin ke clipboard
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(url)
+    } else {
+      const textArea = document.createElement('textarea')
+      textArea.value = url
+      textArea.style.position = 'fixed'
+      textArea.style.opacity = '0'
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+    }
+
+    copiedShareLink.value = true
+    if (copyTimeout) clearTimeout(copyTimeout)
+    copyTimeout = setTimeout(() => {
+      copiedShareLink.value = false
+    }, 2500)
+  } catch (err) {
+    console.error('Failed to copy share link:', err)
+  }
+}
+
 onMounted(() => {
   window.scrollTo({ top: 0, behavior: 'instant' })
   loadArticle()
@@ -357,7 +414,7 @@ watch(
           </div>
 
           <!-- Action Buttons -->
-          <div class="flex items-center gap-2.5 shrink-0">
+          <div class="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
             <router-link
               to="/solutions"
               class="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-2xs"
@@ -365,6 +422,23 @@ watch(
               <ArrowLeft class="w-3.5 h-3.5" />
               <span>Kembali ke Bank Solusi</span>
             </router-link>
+
+            <!-- Tombol Bagikan / Share Button -->
+            <button
+              @click="shareArticle"
+              type="button"
+              :title="copiedShareLink ? 'Link artikel tersalin!' : 'Bagikan solusi ini'"
+              :class="[
+                'inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 border select-none shadow-2xs active:scale-95 cursor-pointer',
+                copiedShareLink
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-2 ring-emerald-500/20'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 hover:text-sky-600 border-slate-200 hover:border-sky-300'
+              ]"
+            >
+              <Check v-if="copiedShareLink" class="w-3.5 h-3.5 text-emerald-600 animate-in zoom-in" />
+              <Share2 v-else class="w-3.5 h-3.5 text-slate-500 group-hover:text-sky-600" />
+              <span>{{ copiedShareLink ? 'Link Tersalin!' : 'Bagikan' }}</span>
+            </button>
 
             <button
               @click="printArticle"
@@ -444,12 +518,28 @@ watch(
             <div>
               Terakhir diperbarui: <span class="font-bold text-slate-700">{{ article.formattedUpdated }}</span>
             </div>
-            <router-link
-              to="/solutions"
-              class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
-            >
-              Semua Solusi
-            </router-link>
+            <div class="flex items-center gap-2.5">
+              <button
+                @click="shareArticle"
+                type="button"
+                :class="[
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border shadow-2xs cursor-pointer',
+                  copiedShareLink
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                    : 'bg-white hover:bg-slate-50 text-slate-700 hover:text-sky-600 border-slate-200'
+                ]"
+              >
+                <Check v-if="copiedShareLink" class="w-3.5 h-3.5 text-emerald-600" />
+                <Share2 v-else class="w-3.5 h-3.5 text-slate-500" />
+                <span>{{ copiedShareLink ? 'Link Tersalin!' : 'Bagikan Artikel' }}</span>
+              </button>
+              <router-link
+                to="/solutions"
+                class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
+              >
+                Semua Solusi
+              </router-link>
+            </div>
           </div>
         </article>
 
