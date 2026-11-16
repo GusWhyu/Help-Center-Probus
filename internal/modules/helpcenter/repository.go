@@ -79,8 +79,8 @@ func (r *repository) FindArticles(ctx context.Context, page, limit int, kategori
 	}
 
 	query := r.db.WithContext(ctx).Model(&Article{}).
-		Where("status = ?", "published").
-		Where("visibility = ?", "publik")
+		Where("articles.status = ?", "published").
+		Where("articles.visibility = ?", "publik")
 
 	if menuID > 0 {
 		query = query.Joins("JOIN menu_has_articles ON menu_has_articles.article_id = articles.id").
@@ -93,23 +93,37 @@ func (r *repository) FindArticles(ctx context.Context, page, limit int, kategori
 
 	if search != "" {
 		likeTerm := "%" + strings.ToLower(search) + "%"
-		query = query.Where("(LOWER(title) LIKE ? OR LOWER(summary) LIKE ?)", likeTerm, likeTerm)
+		query = query.Where("(LOWER(articles.title) LIKE ? OR LOWER(articles.summary) LIKE ?)", likeTerm, likeTerm)
 	}
 
 	var total int64
-	if err := query.Count(&total).Error; err != nil {
+	if err := query.Distinct("articles.id").Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	offset := (page - 1) * limit
 	var articles []Article
-	err := query.Preload("MenuSystems").
-		Order("id ASC").
+	err := query.Distinct("articles.*").
+		Preload("MenuSystems").
+		Order("articles.id ASC").
 		Offset(offset).
 		Limit(limit).
 		Find(&articles).Error
+	if err != nil {
+		return nil, 0, err
+	}
 
-	return articles, total, err
+	// Deduplikasi in-memory
+	seen := make(map[uint]bool)
+	uniqueArticles := make([]Article, 0, len(articles))
+	for _, a := range articles {
+		if !seen[a.ID] {
+			seen[a.ID] = true
+			uniqueArticles = append(uniqueArticles, a)
+		}
+	}
+
+	return uniqueArticles, total, nil
 }
 
 func (r *repository) FindArticleByID(ctx context.Context, id uint) (*Article, error) {
@@ -130,7 +144,7 @@ func (r *repository) FindArticleByID(ctx context.Context, id uint) (*Article, er
 
 func (r *repository) FindManualBooks(ctx context.Context, kategoriID, menuID uint, search string) ([]ManualBook, error) {
 	query := r.db.WithContext(ctx).Model(&ManualBook{}).
-		Where("status = ?", "published")
+		Where("manual_books.status = ?", "published")
 
 	if menuID > 0 {
 		query = query.Joins("JOIN menu_has_manual_books ON menu_has_manual_books.manual_book_id = manual_books.id").
@@ -143,15 +157,29 @@ func (r *repository) FindManualBooks(ctx context.Context, kategoriID, menuID uin
 
 	if search != "" {
 		likeTerm := "%" + strings.ToLower(search) + "%"
-		query = query.Where("(LOWER(title) LIKE ? OR LOWER(description) LIKE ?)", likeTerm, likeTerm)
+		query = query.Where("(LOWER(manual_books.title) LIKE ? OR LOWER(manual_books.description) LIKE ?)", likeTerm, likeTerm)
 	}
 
 	var manuals []ManualBook
-	err := query.Preload("MenuSystems").
-		Order("`order` ASC, id ASC").
+	err := query.Distinct("manual_books.*").
+		Preload("MenuSystems").
+		Order("manual_books.`order` ASC, manual_books.id ASC").
 		Find(&manuals).Error
+	if err != nil {
+		return nil, err
+	}
 
-	return manuals, err
+	// Deduplikasi in-memory
+	seen := make(map[uint]bool)
+	uniqueManuals := make([]ManualBook, 0, len(manuals))
+	for _, m := range manuals {
+		if !seen[m.ID] {
+			seen[m.ID] = true
+			uniqueManuals = append(uniqueManuals, m)
+		}
+	}
+
+	return uniqueManuals, nil
 }
 
 func (r *repository) FindManualBookByID(ctx context.Context, id uint) (*ManualBook, error) {

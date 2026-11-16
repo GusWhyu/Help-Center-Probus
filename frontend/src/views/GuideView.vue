@@ -122,24 +122,24 @@ function resolveActiveSubMenuFromQuery(mod) {
 
   const querySub = route.query.sub || route.query.chapter
   if (querySub !== undefined && querySub !== null && querySub !== '') {
-    // 1. Cocokkan dengan nomor urut modul (order)
+    // 1. Cocokkan dengan index urutan 1-based (e.g. ?sub=2 -> index 1)
+    const num = parseInt(querySub, 10)
+    if (!isNaN(num) && num >= 1 && num <= mod.manualBooks.length) {
+      activeManualIndex.value = num - 1
+      return
+    }
+
+    // 2. Cocokkan dengan nomor urut modul (order) jika ada
     const orderMatchIdx = mod.manualBooks.findIndex(mb => String(mb.order) === String(querySub))
     if (orderMatchIdx >= 0) {
       activeManualIndex.value = orderMatchIdx
       return
     }
 
-    // 2. Cocokkan dengan id sub menu
+    // 3. Cocokkan dengan id sub menu
     const idMatchIdx = mod.manualBooks.findIndex(mb => String(mb.id) === String(querySub))
     if (idMatchIdx >= 0) {
       activeManualIndex.value = idMatchIdx
-      return
-    }
-
-    // 3. Cocokkan dengan index urutan 1-based
-    const num = parseInt(querySub, 10)
-    if (!isNaN(num) && num >= 1 && num <= mod.manualBooks.length) {
-      activeManualIndex.value = num - 1
       return
     }
 
@@ -159,11 +159,9 @@ function getShareUrl() {
   if (!currentModule.value) return window.location.href
   const sysSlug = getSystemSlug(selectedSystemId.value)
   const modSlug = slugify(currentModule.value.name)
-  const currentSub = currentManualBook.value
-  const subParam = currentSub?.order || (activeManualIndex.value + 1)
   const resolved = router.resolve({
     path: `/system/${sysSlug}/guide/${modSlug}`,
-    query: { sub: subParam }
+    query: { sub: activeManualIndex.value + 1 }
   })
   return `${window.location.origin}${resolved.href}`
 }
@@ -262,9 +260,18 @@ async function loadSystemData() {
       menusFromDb = detailRes.data.data.menus
     }
 
-    // 3. Buku panduan terbit untuk kategori yang sedang dipilih
+    // 3. Buku panduan terbit untuk kategori yang sedang dipilih (deduplikasi by id)
     const rawManuals = (manualRes.data && manualRes.data.data) ? manualRes.data.data : []
-    systemManualBooks.value = rawManuals.map(mb => ({
+    const seenManualIds = new Set()
+    const uniqueManuals = []
+    for (const mb of rawManuals) {
+      if (!seenManualIds.has(mb.id)) {
+        seenManualIds.add(mb.id)
+        uniqueManuals.push(mb)
+      }
+    }
+
+    systemManualBooks.value = uniqueManuals.map(mb => ({
       ...mb,
       description: isWordImportDesc(mb.description) ? '' : mb.description
     }))
@@ -281,8 +288,18 @@ async function loadSystemData() {
           return mb.menu_systems.some(ms => ms.id === menu.id)
         })
 
-        // Sort sub-menus ascending by order
-        linkedManuals.sort((a, b) => (a.order || 0) - (b.order || 0))
+        // Deduplikasi manual books by ID di dalam modul
+        const seenInModule = new Set()
+        const uniqueLinked = []
+        for (const mb of linkedManuals) {
+          if (!seenInModule.has(mb.id)) {
+            seenInModule.add(mb.id)
+            uniqueLinked.push(mb)
+          }
+        }
+
+        // Sort sub-menus ascending by order, then by id
+        uniqueLinked.sort((a, b) => (a.order || 0) - (b.order || 0) || a.id - b.id)
 
         return {
           id: menu.id,
@@ -291,8 +308,8 @@ async function loadSystemData() {
           name: menu.name,
           title: `${code}. ${menu.name}`,
           desc: menu.description || 'Panduan operasional dan tata cara penggunaan fitur modul.',
-          manualBooks: linkedManuals,
-          hasManualBook: linkedManuals.length > 0,
+          manualBooks: uniqueLinked,
+          hasManualBook: uniqueLinked.length > 0,
         }
       })
 
@@ -422,11 +439,9 @@ function selectChapter(mod, chapterIdx) {
   expandedModules.value[mod.id] = true
   const sysSlug = getSystemSlug(selectedSystemId.value)
   const modSlug = slugify(mod.name)
-  const targetSub = mod.manualBooks[chapterIdx]
-  const subParam = targetSub?.order || (chapterIdx + 1)
   router.replace({
     path: `/system/${sysSlug}/guide/${modSlug}`,
-    query: { sub: subParam }
+    query: { sub: chapterIdx + 1 }
   })
   window.scrollTo({ top: 120, behavior: 'smooth' })
 }
@@ -808,7 +823,7 @@ watch(
                           ? 'bg-white/20 text-white border border-white/25 font-black'
                           : 'bg-slate-100 text-slate-500 border border-slate-200/70 group-hover/item:bg-blue-100 group-hover/item:text-blue-700 group-hover/item:border-blue-200 font-bold'"
                       >
-                        #{{ sub.order || (sIdx + 1) }}
+                        #{{ sIdx + 1 }}
                       </span>
                       <!-- Judul sub menu -->
                       <span
@@ -891,7 +906,7 @@ watch(
                     </span>
                     <ChevronRight class="w-3 h-3 text-slate-300" />
                     <span class="text-blue-600 font-bold">
-                      Sub Menu #{{ currentManualBook.order || (activeManualIndex + 1) }}
+                      Sub Menu #{{ activeManualIndex + 1 }}
                     </span>
                   </div>
 
