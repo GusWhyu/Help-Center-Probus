@@ -549,13 +549,13 @@ watch(
             </div>
 
             <!-- Mini Search Filter for Sub Menus -->
-            <div class="relative mb-3.5">
-              <Search class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <div class="relative mb-3.5 group">
+              <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 pointer-events-none transition-colors" />
               <input
                 v-model="tocSearchQuery"
                 type="text"
                 placeholder="Cari dalam daftar sub menu..."
-                class="w-full pl-8.5 pr-8 py-2 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs"
+                class="w-full pl-10 pr-9 py-2 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs"
               />
               <button
                 v-if="tocSearchQuery"
