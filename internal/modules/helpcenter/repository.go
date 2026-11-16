@@ -95,21 +95,28 @@ func (r *repository) FindCategoryByID(ctx context.Context, id uint) (*Kategori, 
 
 			for i := range cat.Menus {
 				mID := cat.Menus[i].ID
-				if orders, ok := pivotMap[mID]; ok && len(cat.Menus[i].ManualBooks) > 1 {
-					sort.SliceStable(cat.Menus[i].ManualBooks, func(a, b int) bool {
-						ordA, okA := orders[cat.Menus[i].ManualBooks[a].ID]
-						ordB, okB := orders[cat.Menus[i].ManualBooks[b].ID]
-						if !okA {
-							ordA = 999
+				if orders, ok := pivotMap[mID]; ok {
+					for j := range cat.Menus[i].ManualBooks {
+						if ord, exists := orders[cat.Menus[i].ManualBooks[j].ID]; exists {
+							cat.Menus[i].ManualBooks[j].Order = ord
 						}
-						if !okB {
-							ordB = 999
-						}
-						if ordA != ordB {
-							return ordA < ordB
-						}
-						return cat.Menus[i].ManualBooks[a].ID < cat.Menus[i].ManualBooks[b].ID
-					})
+					}
+					if len(cat.Menus[i].ManualBooks) > 1 {
+						sort.SliceStable(cat.Menus[i].ManualBooks, func(a, b int) bool {
+							ordA, okA := orders[cat.Menus[i].ManualBooks[a].ID]
+							ordB, okB := orders[cat.Menus[i].ManualBooks[b].ID]
+							if !okA {
+								ordA = 999
+							}
+							if !okB {
+								ordB = 999
+							}
+							if ordA != ordB {
+								return ordA < ordB
+							}
+							return cat.Menus[i].ManualBooks[a].ID < cat.Menus[i].ManualBooks[b].ID
+						})
+					}
 				}
 			}
 		}
@@ -209,10 +216,17 @@ func (r *repository) FindManualBooks(ctx context.Context, kategoriID, menuID uin
 	}
 
 	var manuals []ManualBook
-	err := query.Distinct("manual_books.*").
-		Preload("MenuSystems").
-		Order("manual_books.`order` ASC, manual_books.id ASC").
-		Find(&manuals).Error
+	if menuID > 0 {
+		query = query.Select("manual_books.*, menu_has_manual_books.`order` AS pivot_order").
+			Order("menu_has_manual_books.`order` ASC, manual_books.id ASC")
+	} else if kategoriID > 0 {
+		query = query.Select("manual_books.*, menu_has_manual_books.`order` AS pivot_order").
+			Order("menu_systems.`order` ASC, menu_has_manual_books.`order` ASC, manual_books.id ASC")
+	} else {
+		query = query.Select("manual_books.*").
+			Order("manual_books.`order` ASC, manual_books.id ASC")
+	}
+	err := query.Preload("MenuSystems").Find(&manuals).Error
 	if err != nil {
 		return nil, err
 	}
