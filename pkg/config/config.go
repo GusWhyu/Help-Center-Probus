@@ -12,6 +12,7 @@ import (
 
 type DatabaseConfig struct {
 	Name            string
+	Optional        bool
 	Driver          string
 	Host            string
 	Port            string
@@ -94,6 +95,7 @@ func LoadConfig() (*Config, error) {
 		}
 		cfg.Databases["user"] = DatabaseConfig{
 			Name:            "user",
+			Optional:        true,
 			Driver:          userDriver,
 			Host:            getEnv("DB_USER_HOST", cfg.Databases["default"].Host),
 			Port:            getEnv("DB_USER_PORT", userDefaultPort),

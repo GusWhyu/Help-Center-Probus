@@ -31,8 +31,22 @@ func TestLoadConfigDatabaseDrivers(t *testing.T) {
 	}
 
 	secondary := cfg.Databases["user"]
-	if secondary.Driver != "postgres" || secondary.Port != "5432" || secondary.User != "postgres" {
-		t.Errorf("unexpected PostgreSQL defaults: driver=%q port=%q user=%q", secondary.Driver, secondary.Port, secondary.User)
+	if !secondary.Optional || secondary.Driver != "postgres" || secondary.Port != "5432" || secondary.User != "postgres" {
+		t.Errorf("unexpected PostgreSQL secondary configuration: optional=%t driver=%q port=%q user=%q",
+			secondary.Optional, secondary.Driver, secondary.Port, secondary.User)
+	}
+}
+
+func TestLoadConfigOmitsOptionalUserDatabaseWhenNameIsEmpty(t *testing.T) {
+	t.Setenv("DB_USER_NAME", "")
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig() error = %v", err)
+	}
+
+	if _, exists := cfg.Databases["user"]; exists {
+		t.Fatal("optional user database should not be configured when DB_USER_NAME is empty")
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rafialfauzan/layrd/pkg/config"
+	"github.com/rafialfauzan/layrd/pkg/database"
 )
 
 type migrationTestModule struct {
@@ -54,5 +55,52 @@ func TestRegisterModuleReturnsInitializerError(t *testing.T) {
 	err := app.RegisterModule(&failingInitializerModule{err: wantErr})
 	if !errors.Is(err, wantErr) {
 		t.Fatalf("RegisterModule() error = %v, want %v", err, wantErr)
+	}
+}
+
+func TestInitDatabasesContinuesWhenOptionalDatabaseIsUnavailable(t *testing.T) {
+	app := &App{
+		Config: &config.Config{
+			GinMode: gin.ReleaseMode,
+			Databases: map[string]config.DatabaseConfig{
+				"user": {
+					Name:     "user",
+					Optional: true,
+					Driver:   "mysql",
+					Host:     "127.0.0.1",
+					Port:     "0",
+				},
+			},
+		},
+		DBManager: database.NewDBManager(),
+	}
+
+	if err := app.InitDatabases(); err != nil {
+		t.Fatalf("InitDatabases() error = %v, want nil for unavailable optional database", err)
+	}
+
+	if _, err := app.DBManager.Get("user"); err == nil {
+		t.Fatal("optional database should not be registered after connection failure")
+	}
+}
+
+func TestInitDatabasesFailsWhenRequiredDatabaseIsUnavailable(t *testing.T) {
+	app := &App{
+		Config: &config.Config{
+			GinMode: gin.ReleaseMode,
+			Databases: map[string]config.DatabaseConfig{
+				"default": {
+					Name:   "default",
+					Driver: "mysql",
+					Host:   "127.0.0.1",
+					Port:   "0",
+				},
+			},
+		},
+		DBManager: database.NewDBManager(),
+	}
+
+	if err := app.InitDatabases(); err == nil {
+		t.Fatal("InitDatabases() error = nil, want error for unavailable required database")
 	}
 }

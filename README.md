@@ -186,7 +186,10 @@ DB_NAME=layrd_main
 ```
 
 Database sekunder mewarisi driver utama secara default; atur `DB_USER_DRIVER`
-untuk memilih driver yang berbeda.
+untuk memilih driver yang berbeda. Database ini opsional: biarkan `DB_USER_NAME`
+kosong jika database sekunder tidak digunakan. Isi `DB_USER_NAME` untuk mengaktifkan
+koneksi database sekunder. Jika koneksi database sekunder gagal, aplikasi tetap
+berjalan tanpa database tersebut; database utama tetap wajib tersedia.
 
 Di environment production, `JWT_SECRET` harus ditentukan eksplisit dan memiliki
 panjang minimal 32 karakter.
