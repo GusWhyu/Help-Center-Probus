@@ -49,15 +49,15 @@ const systemNameMap = {
 }
 
 const systemFullTitleMap = {
-  1: 'PHIS Hotel PMS',
-  2: 'PRESTO Resto POS',
-  3: 'PPOS Point of Sales',
-  4: 'Probus Self Order',
-  5: 'PR-PO Online Logistik',
-  6: 'Order Taker Mobile',
-  7: 'Vrestropical POS',
-  8: 'PPE 2.0 Management',
-  9: 'Barong POS',
+  1: 'PHIS',
+  2: 'PRESTO',
+  3: 'PPOS',
+  4: 'SELF ORDER',
+  5: 'PR-PO ONLINE',
+  6: 'ORDER TAKER',
+  7: 'VRESTROPICAL',
+  8: 'PPE',
+  9: 'BARONG POS',
 }
 
 function formatArticleContent(html) {

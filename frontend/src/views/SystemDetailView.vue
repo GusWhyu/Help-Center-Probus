@@ -44,15 +44,15 @@ const selectedCardId = ref(2) // default highlight: card 02 (Transaksi)
 
 // System metadata mapping
 const systemsInfo = {
-  1: { id: 1, name: 'PHIS', title: 'Panduan Pengguna Probus Hotel PMS', badge: 'Hotel & Resort' },
-  2: { id: 2, name: 'PRESTO', title: 'Panduan Pengguna PRESTO Resto POS', badge: 'Restoran & POS' },
-  3: { id: 3, name: 'PPOS', title: 'Panduan Pengguna PPOS Point of Sales', badge: 'Retail & Kasir' },
-  4: { id: 4, name: 'SELF ORDER', title: 'Panduan Pengguna Probus Self Order', badge: 'Self Service' },
-  5: { id: 5, name: 'PR-PO ONLINE', title: 'Panduan Pengguna PR-PO Online Logistik', badge: 'Logistik & Gudang' },
-  6: { id: 6, name: 'ORDER TAKER', title: 'Panduan Pengguna Order Taker Mobile', badge: 'Waiter App' },
-  7: { id: 7, name: 'VRESTROPICAL', title: 'Panduan Pengguna Vrestropical POS', badge: 'Club & Lounge' },
-  8: { id: 8, name: 'PPE', title: 'Panduan Pengguna PPE 2.0 Management', badge: 'Facility & Asset' },
-  9: { id: 9, name: 'BARONG POS', title: 'Panduan Pengguna Barong POS Cloud', badge: 'Cloud POS' },
+  1: { id: 1, name: 'PHIS', title: 'Panduan Pengguna PHIS', badge: 'Hotel & Resort' },
+  2: { id: 2, name: 'PRESTO', title: 'Panduan Pengguna PRESTO', badge: 'Restoran & POS' },
+  3: { id: 3, name: 'PPOS', title: 'Panduan Pengguna PPOS', badge: 'Retail & Kasir' },
+  4: { id: 4, name: 'SELF ORDER', title: 'Panduan Pengguna SELF ORDER', badge: 'Self Service' },
+  5: { id: 5, name: 'PR-PO ONLINE', title: 'Panduan Pengguna PR-PO ONLINE', badge: 'Logistik & Gudang' },
+  6: { id: 6, name: 'ORDER TAKER', title: 'Panduan Pengguna ORDER TAKER', badge: 'Waiter App' },
+  7: { id: 7, name: 'VRESTROPICAL', title: 'Panduan Pengguna VRESTROPICAL', badge: 'Club & Lounge' },
+  8: { id: 8, name: 'PPE', title: 'Panduan Pengguna PPE', badge: 'Facility & Asset' },
+  9: { id: 9, name: 'BARONG POS', title: 'Panduan Pengguna BARONG POS', badge: 'Cloud POS' },
 }
 
 const currentSystem = computed(() => systemsInfo[systemId.value] || systemsInfo[2])

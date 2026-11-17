@@ -43,69 +43,60 @@ const categoryMetaMap = {
     badge: 'Hotel & Resort',
     desc: 'Property Management System komprehensif untuk front office, reservasi kamar, dan housekeeping.',
     icon: Building2,
-    displayTitle: 'PHIS - Probus Hotel PMS',
   },
   'PRESTO': {
     badge: 'Restoran & POS',
     desc: 'Sistem point-of-sale restoran terpadu mulai dari order taker, kitchen display, hingga kasir & split bill.',
     icon: MonitorCheck,
-    displayTitle: 'PRESTO Resto POS',
   },
   'PPOS': {
     badge: 'Retail & Kasir',
     desc: 'Sistem kasir cepat dan terintegrasi untuk outlet FnB, stand makanan, dan penjualan langsung.',
     icon: Printer,
-    displayTitle: 'PPOS - Probus Point of Sales',
   },
   'SELF ORDER': {
     badge: 'Self Service',
     desc: 'Sistem pemesanan mandiri oleh tamu melalui scan QR code meja tanpa antre di kasir.',
     icon: Smartphone,
-    displayTitle: 'Probus Self Order',
   },
   'PR-PO ONLINE': {
     badge: 'Logistik & Gudang',
     desc: 'Manajemen persediaan barang gudang, kartu stok, purchase request, dan penerimaan barang.',
     icon: Package,
-    displayTitle: 'PR-PO Online & Purchasing',
   },
   'ORDER TAKER': {
     badge: 'Waiter App',
     desc: 'Aplikasi mobile waiter untuk input pesanan langsung dari meja tamu terkirim instan ke dapur.',
     icon: UtensilsCrossed,
-    displayTitle: 'Order Taker Mobile',
   },
   'VRESTROPICAL': {
     badge: 'Club & Lounge',
     desc: 'Solusi kasir dan manajemen resto khusus konsep tropical bar, beach club, dan open-air dining.',
     icon: Sparkles,
-    displayTitle: 'Vrestropical POS System',
   },
   'PPE': {
     badge: 'Facility & Asset',
     desc: 'Platform manajemen pemeliharaan fasilitas (maintenance), penugasan staf, dan kontrol aset.',
     icon: Zap,
-    displayTitle: 'PPE 2.0 Management',
   },
   'BARONG POS': {
     badge: 'Cloud POS',
     desc: 'Sistem point of sales generasi baru dengan arsitektur modular dan sinkronisasi multi-outlet.',
     icon: Laptop,
-    displayTitle: 'Barong POS Cloud',
   },
 }
 
-// Fallback initial list containing all 9 categories from dbprobuscs
+// Fallback initial list containing all 9 categories from dbprobuscs (sesuai urutan dan nama di tabel kategori)
 const systems = ref([
-  { id: 2, name: 'PRESTO', title: 'PRESTO Resto POS', badge: 'Restoran & POS', desc: categoryMetaMap['PRESTO'].desc, modulCount: 2, icon: MonitorCheck },
-  { id: 1, name: 'PHIS', title: 'PHIS - Probus Hotel PMS', badge: 'Hotel & Resort', desc: categoryMetaMap['PHIS'].desc, modulCount: 1, icon: Building2 },
-  { id: 8, name: 'PPE', title: 'PPE 2.0 Management', badge: 'Facility & Asset', desc: categoryMetaMap['PPE'].desc, modulCount: 0, icon: Zap },
-  { id: 3, name: 'PPOS', title: 'PPOS - Probus Point of Sales', badge: 'Retail & Kasir', desc: categoryMetaMap['PPOS'].desc, modulCount: 0, icon: Printer },
-  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO Online & Purchasing', badge: 'Logistik & Gudang', desc: categoryMetaMap['PR-PO ONLINE'].desc, modulCount: 0, icon: Package },
-  { id: 4, name: 'SELF ORDER', title: 'Probus Self Order', badge: 'Self Service', desc: categoryMetaMap['SELF ORDER'].desc, modulCount: 0, icon: Smartphone },
-  { id: 6, name: 'ORDER TAKER', title: 'Order Taker Mobile', badge: 'Waiter App', desc: categoryMetaMap['ORDER TAKER'].desc, modulCount: 0, icon: UtensilsCrossed },
-  { id: 7, name: 'VRESTROPICAL', title: 'Vrestropical POS System', badge: 'Club & Lounge', desc: categoryMetaMap['VRESTROPICAL'].desc, modulCount: 0, icon: Sparkles },
-  { id: 9, name: 'BARONG POS', title: 'Barong POS Cloud', badge: 'Cloud POS', desc: categoryMetaMap['BARONG POS'].desc, modulCount: 0, icon: Laptop },
+  { id: 1, name: 'PHIS', title: 'PHIS', badge: 'Hotel & Resort', desc: categoryMetaMap['PHIS'].desc, modulCount: 1, icon: Building2 },
+  { id: 2, name: 'PRESTO', title: 'PRESTO', badge: 'Restoran & POS', desc: categoryMetaMap['PRESTO'].desc, modulCount: 2, icon: MonitorCheck },
+  { id: 3, name: 'PPOS', title: 'PPOS', badge: 'Retail & Kasir', desc: categoryMetaMap['PPOS'].desc, modulCount: 0, icon: Printer },
+  { id: 4, name: 'SELF ORDER', title: 'SELF ORDER', badge: 'Self Service', desc: categoryMetaMap['SELF ORDER'].desc, modulCount: 0, icon: Smartphone },
+  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO ONLINE', badge: 'Logistik & Gudang', desc: categoryMetaMap['PR-PO ONLINE'].desc, modulCount: 0, icon: Package },
+  { id: 6, name: 'ORDER TAKER', title: 'ORDER TAKER', badge: 'Waiter App', desc: categoryMetaMap['ORDER TAKER'].desc, modulCount: 0, icon: UtensilsCrossed },
+  { id: 7, name: 'VRESTROPICAL', title: 'VRESTROPICAL', badge: 'Club & Lounge', desc: categoryMetaMap['VRESTROPICAL'].desc, modulCount: 0, icon: Sparkles },
+  { id: 8, name: 'PPE', title: 'PPE', badge: 'Facility & Asset', desc: categoryMetaMap['PPE'].desc, modulCount: 0, icon: Zap },
+  { id: 9, name: 'BARONG POS', title: 'BARONG POS', badge: 'Cloud POS', desc: categoryMetaMap['BARONG POS'].desc, modulCount: 0, icon: Laptop },
 ])
 
 onMounted(async () => {
@@ -139,13 +130,12 @@ onMounted(async () => {
         const meta = categoryMetaMap[cat.name] || {
           badge: 'Sistem Probus',
           desc: cat.description || `Panduan operasional dan solusi kendala sistem ${cat.name}.`,
-          displayTitle: `${cat.name} System`,
         }
         const count = publishedModuleCounts[cat.id] ? publishedModuleCounts[cat.id].size : 0
         return {
           id: cat.id,
           name: cat.name,
-          title: meta.displayTitle || cat.name,
+          title: cat.name,
           badge: meta.badge,
           desc: cat.description || meta.desc,
           modulCount: count,
@@ -224,7 +214,7 @@ const searchResults = computed(() => {
         results.push({
           id: sys.id,
           type: 'system',
-          title: `${sys.name} - ${sys.title}`,
+          title: sys.name,
           category: sys.badge || 'Sistem Probus',
           systemId: sys.id,
           snippet: sys.desc || `Panduan modul dan sistem ${sys.name}`,

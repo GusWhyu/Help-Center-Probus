@@ -45,15 +45,15 @@ const expandedModules = ref({})
 
 const isLoading = ref(false)
 const availableSystems = ref([
-  { id: 2, name: 'PRESTO', title: 'PRESTO (2 Modul)', modulCount: 2, shortName: 'PRESTO Resto POS' },
-  { id: 1, name: 'PHIS', title: 'PHIS (1 Modul)', modulCount: 1, shortName: 'Probus Hotel PMS' },
-  { id: 8, name: 'PPE', title: 'PPE (0 Modul)', modulCount: 0, shortName: 'PPE 2.0 Management' },
-  { id: 3, name: 'PPOS', title: 'PPOS (0 Modul)', modulCount: 0, shortName: 'PPOS Point of Sales' },
-  { id: 4, name: 'SELF ORDER', title: 'SELF ORDER (0 Modul)', modulCount: 0, shortName: 'Probus Self Order' },
-  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO ONLINE (0 Modul)', modulCount: 0, shortName: 'PR-PO Online' },
-  { id: 6, name: 'ORDER TAKER', title: 'ORDER TAKER (0 Modul)', modulCount: 0, shortName: 'Order Taker Mobile' },
-  { id: 7, name: 'VRESTROPICAL', title: 'VRESTROPICAL (0 Modul)', modulCount: 0, shortName: 'Vrestropical POS' },
-  { id: 9, name: 'BARONG POS', title: 'BARONG POS (0 Modul)', modulCount: 0, shortName: 'Barong POS Cloud' },
+  { id: 1, name: 'PHIS', title: 'PHIS (1 Modul)', modulCount: 1, shortName: 'PHIS' },
+  { id: 2, name: 'PRESTO', title: 'PRESTO (2 Modul)', modulCount: 2, shortName: 'PRESTO' },
+  { id: 3, name: 'PPOS', title: 'PPOS (0 Modul)', modulCount: 0, shortName: 'PPOS' },
+  { id: 4, name: 'SELF ORDER', title: 'SELF ORDER (0 Modul)', modulCount: 0, shortName: 'SELF ORDER' },
+  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO ONLINE (0 Modul)', modulCount: 0, shortName: 'PR-PO ONLINE' },
+  { id: 6, name: 'ORDER TAKER', title: 'ORDER TAKER (0 Modul)', modulCount: 0, shortName: 'ORDER TAKER' },
+  { id: 7, name: 'VRESTROPICAL', title: 'VRESTROPICAL (0 Modul)', modulCount: 0, shortName: 'VRESTROPICAL' },
+  { id: 8, name: 'PPE', title: 'PPE (0 Modul)', modulCount: 0, shortName: 'PPE' },
+  { id: 9, name: 'BARONG POS', title: 'BARONG POS (0 Modul)', modulCount: 0, shortName: 'BARONG POS' },
 ])
 
 const currentSystem = computed(() => {
@@ -261,7 +261,7 @@ async function loadSystemData() {
           name: cat.name,
           title: `${cat.name} (${count} Modul)`,
           modulCount: count,
-          shortName: cat.name === 'PRESTO' ? 'PRESTO Resto POS' : (cat.name === 'PHIS' ? 'Probus Hotel PMS' : `${cat.name} System`),
+          shortName: cat.name,
         }
       })
     }
