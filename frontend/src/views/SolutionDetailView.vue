@@ -62,7 +62,21 @@ const systemFullTitleMap = {
 
 function formatArticleContent(html) {
   if (!html) return ''
-  return html.replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, '/uploads/')
+  let formatted = html.replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, '/uploads/')
+
+  // Auto-convert standalone YouTube links (anchor tag) ke responsive iframe
+  formatted = formatted.replace(
+    /<p>\s*<a\s+[^>]*href=["'](?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^"']*["'][^>]*>.*?<\/a>\s*<\/p>/gi,
+    '<div class="video-container my-4"><iframe src="https://www.youtube.com/embed/$1" width="100%" height="380" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen="allowfullscreen"></iframe></div>'
+  )
+
+  // Auto-convert standalone YouTube URL teks biasa ke responsive iframe
+  formatted = formatted.replace(
+    /<p>\s*(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S*)?\s*<\/p>/gi,
+    '<div class="video-container my-4"><iframe src="https://www.youtube.com/embed/$1" width="100%" height="380" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen="allowfullscreen"></iframe></div>'
+  )
+
+  return formatted
 }
 
 function formatDate(dateStr) {
@@ -734,6 +748,21 @@ watch(
   display: block;
   border: 1px solid rgba(148, 163, 184, 0.3);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Video / YouTube Embed Responsive (Identik Probus Implementator) */
+:deep(.article-content iframe),
+:deep(.article-content video),
+:deep(.video-container iframe) {
+  width: 100% !important;
+  max-width: 100% !important;
+  aspect-ratio: 16 / 9 !important;
+  height: auto !important;
+  border-radius: 0.75rem !important;
+  margin: 1.5em auto !important;
+  border: 1px solid rgba(148, 163, 184, 0.3) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  display: block !important;
 }
 
 /* Callout Box Wireframe / Screenshot (Identik Probus Implementator) */
