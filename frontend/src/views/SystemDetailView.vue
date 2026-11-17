@@ -57,222 +57,55 @@ const systemsInfo = {
 
 const currentSystem = computed(() => systemsInfo[systemId.value] || systemsInfo[2])
 
-// 10 Real Modules of PRESTO matching dbprobuscs `menu_systems` (Order 1 to 10)
-const presto10Modules = [
+// Modul fallback PRESTO yang riil memiliki buku panduan di database dbprobuscs
+const prestoFallbackModules = [
   {
-    id: 1,
+    id: 34,
     dbMenuId: 34,
     order: 1,
+    name: 'Setup Master',
     title: '01. Setup Master',
-    countText: '1 Panduan',
+    count: 3,
+    countText: '3 Panduan',
     icon: Settings,
     desc: 'Modul setup master data, parameter sistem, konfigurasi outlet resto, denah meja, dan pengaturan menu makanan.',
     estTime: 'Est. 4 menit',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">1. Pengenalan Modul Setup Master</h3>
-        <p class="text-slate-600">Modul Setup Master adalah pusat konfigurasi utama sistem PRESTO Resto POS untuk mendefinisikan seluruh parameter operasional sebelum transaksi kasir dijalankan.</p>
-        
-        <h3 class="text-lg font-bold text-slate-900 mt-6">2. Pengaturan yang Dikelola</h3>
-        <ul class="list-disc pl-5 space-y-1.5 text-slate-600">
-          <li><strong>Master Outlet & Pajak</strong>: Menentukan nama outlet, alamat, nomor NPWPD, dan persentase PB1 / Service Charge.</li>
-          <li><strong>Master Kategori & Menu</strong>: Menginput daftar makanan, minuman, harga jual, barcode, dan pengelompokan departemen.</li>
-          <li><strong>Master Denah Meja (Table Layout)</strong>: Mengatur denah meja visual per ruangan (Area Indoor AC, Outdoor, VIP Room, Bar).</li>
-        </ul>
-      </div>
-    `,
   },
   {
-    id: 2,
+    id: 35,
     dbMenuId: 35,
     order: 2,
+    name: 'Transaksi',
     title: '02. Transaksi',
-    countText: '3 Panduan',
+    count: 2,
+    countText: '2 Panduan',
     icon: UtensilsCrossed,
     desc: 'Modul transaksi penjualan operasional kasir POS, order taker meja, custom modifier pesanan, dan pembayaran split bill.',
     estTime: 'Est. 7 menit',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">1. Membuka Meja Baru (Open Table)</h3>
-        <p>Pilih area denah restoran (misal: <em>Indoor AC</em>, <em>Outdoor Garden</em>, atau <em>Bar Area</em>). Klik pada nomor meja yang berstatus kosong (berwarna hijau). Masukkan jumlah tamu (Pax) lalu klik tombol <strong>Buka Meja</strong>.</p>
-        
-        <h3 class="text-lg font-bold text-slate-900 mt-6">2. Memilih & Menginput Menu Pesanan</h3>
-        <p>Gunakan kategori menu di sebelah kiri (Makanan, Minuman, Dessert, atau Paket). Anda dapat mencari menu cepat dengan mengetik nama atau kode menu pada kolom pencarian.</p>
-        <ul class="list-disc pl-5 space-y-1.5 text-slate-600">
-          <li>Klik item menu untuk menambah jumlah porsi (+1).</li>
-          <li>Klik ikon pensil untuk menambahkan <strong>Special Request / Modifier</strong> (contoh: <em>Less Sugar</em>, <em>Pedas Level 2</em>, <em>Tanpa Bawang</em>).</li>
-        </ul>
-
-        <h3 class="text-lg font-bold text-slate-900 mt-6">3. Mengirim Pesanan ke Dapur (Send Order)</h3>
-        <p>Setelah pesanan selesai diinput, klik tombol <strong>Send Order / Simpan</strong>. Tiket pesanan otomatis tercetak di printer kitchen dan bar sesuai routing printer masing-masing departemen.</p>
-      </div>
-    `,
   },
   {
-    id: 3,
+    id: 36,
     dbMenuId: 36,
     order: 3,
+    name: 'Outlet Activity',
     title: '03. Outlet Activity',
+    count: 1,
     countText: '1 Panduan',
     icon: Store,
     desc: 'Modul aktivitas dan operasional outlet, pembagian shift kerja kasir, serah terima modal kas, dan pantauan kegiatan harian.',
     estTime: 'Est. 5 menit',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">1. Manajemen Aktivitas Harian Outlet</h3>
-        <p class="text-slate-600">Modul ini digunakan oleh Supervisor Outlet untuk memantau aktivitas kasir yang sedang login, status meja yang sedang terisi, dan durasi rata-rata waktu makan tamu (table turnover rate).</p>
-        
-        <h3 class="text-lg font-bold text-slate-900 mt-6">2. Pembukaan & Penutupan Shift Kasir</h3>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li>Kasir melakukan <strong>Open Cash</strong> dengan menghitung uang kas awal di laci.</li>
-          <li>Di akhir jam kerja, kasir melakukan <strong>Serah Terima Shift</strong> ke kasir shift berikutnya.</li>
-          <li>Sistem memverifikasi selisih uang fisik dengan data transaksi sistem.</li>
-        </ol>
-      </div>
-    `,
   },
   {
-    id: 4,
-    dbMenuId: 37,
-    order: 4,
-    title: '04. Cost Control',
-    countText: '1 Panduan',
-    icon: PieChart,
-    desc: 'Modul pengendalian biaya, standar resep menu (recipe costing), food & beverage cost, dan laporan analisa selisih bahan.',
-    estTime: 'Est. 6 menit',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">1. Fungsi Modul Cost Control</h3>
-        <p class="text-slate-600">Memastikan biaya pokok penjualan (HPP / Cost of Goods Sold) F&B restoran selalu berada dalam target persentase yang ditetapkan manajemen.</p>
-
-        <h3 class="text-lg font-bold text-slate-900 mt-6">2. Fitur Unggulan</h3>
-        <ul class="list-disc pl-5 space-y-1.5 text-slate-600">
-          <li><strong>Standar Resep Bahan Baku</strong>: Menghubungkan 1 porsi menu dengan gramasi bahan di gudang (otomatis memotong stok).</li>
-          <li><strong>Analisa Variance (Selisih)</strong>: Menghitung selisih antara pemakaian teoritis sistem dengan stok opname fisik di dapur.</li>
-        </ul>
-      </div>
-    `,
-  },
-  {
-    id: 5,
-    dbMenuId: 38,
-    order: 5,
-    title: '05. Purchasing AP',
-    countText: '2 Panduan',
-    icon: ShoppingBag,
-    desc: 'Modul pengadaan barang, purchase request (PR), purchase order (PO), receiving gudang, dan hutang usaha (AP).',
-    estTime: 'Est. 5 menit',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">1. Alur Pengadaan Barang Restoran</h3>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li><strong>Purchase Request (PR)</strong>: Kepala dapur/bar mengajukan permintaan belanja bahan baku yang menipis.</li>
-          <li><strong>Purchase Order (PO)</strong>: Bagian purchasing menyetujui dan menerbitkan PO ke supplier rekanan.</li>
-          <li><strong>Receiving</strong>: Bagian penerimaan memeriksa kecocokan fisik barang dan timbangan saat supplier tiba.</li>
-          <li><strong>Accounts Payable (AP)</strong>: Tagihan supplier tercatat otomatis ke pos hutang usaha.</li>
-        </ol>
-      </div>
-    `,
-  },
-  {
-    id: 6,
-    dbMenuId: 39,
-    order: 6,
-    title: '06. AR (Accounts Receivable)',
-    countText: '1 Panduan',
-    icon: Receipt,
-    desc: 'Modul piutang usaha, penagihan invoice klien hotel/resto, city ledger voucher rekanan, dan rekonsiliasi pembayaran.',
-    estTime: 'Est. 4 menit',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">1. Pengelolaan Piutang & City Ledger</h3>
-        <p class="text-slate-600">Jika tamu resto melakukan pembayaran menggunakan sistem voucher perusahaan, kartu member kredit, atau tagihan kamar hotel (Room Charge):</p>
-        <ul class="list-disc pl-5 space-y-1.5 text-slate-600">
-          <li>Transaksi dialihkan ke akun City Ledger perusahaan terkait.</li>
-          <li>Modul AR menghasilkan invoice resmi bertempo (due date) untuk ditagihkan ke pihak korporat/rekanan.</li>
-        </ul>
-      </div>
-    `,
-  },
-  {
-    id: 7,
-    dbMenuId: 41,
-    order: 7,
-    title: '07. General Cashier',
-    countText: '2 Panduan',
-    icon: Wallet,
-    desc: 'Modul kasir umum, pencatatan penerimaan uang kas harian, pengeluaran kas kecil (petty cash), dan setoran bank.',
-    estTime: 'Est. 4 menit',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">1. Fungsi General Cashier</h3>
-        <p class="text-slate-600">Merekonsiliasi seluruh uang tunai yang diserahkan oleh kasir-kasir operasional outlet di akhir hari, serta mengelola kas kecil untuk kebutuhan harian operasional (petty cash).</p>
-        <h3 class="text-lg font-bold text-slate-900 mt-6">2. Prosedur Setoran Bank</h3>
-        <p class="text-slate-600">Mencetak slip setoran fisik dan membukukan transfer setoran harian ke rekening giro operasional restoran.</p>
-      </div>
-    `,
-  },
-  {
-    id: 8,
-    dbMenuId: 42,
-    order: 8,
-    title: '08. Accounting System',
-    countText: '2 Panduan',
-    icon: BarChart3,
-    desc: 'Modul sistem akuntansi, pembukuan jurnal otomatis dari transaksi POS, buku besar (GL), neraca, dan laporan keuangan.',
-    estTime: 'Est. 6 menit',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">1. Integrasi Transaksi Kasir ke Jurnal Umum</h3>
-        <p class="text-slate-600">Setiap penjualan makanan, minuman, diskon, dan pajak di kasir otomatis memicu jurnal debet/kredit ke bagan akun (Chart of Accounts):</p>
-        <ul class="list-disc pl-5 space-y-1.5 text-slate-600">
-          <li>Debet: Kas / Bank / Piutang EDC</li>
-          <li>Kredit: Pendapatan Makanan & Minuman, Hutang Pajak Resto (PB1)</li>
-        </ul>
-      </div>
-    `,
-  },
-  {
-    id: 9,
-    dbMenuId: 43,
-    order: 9,
-    title: '09. Report',
-    countText: '3 Panduan',
-    icon: TrendingUp,
-    desc: 'Modul pusat laporan operasional penjualan harian/bulanan, analisa menu terlaris (menu engineering), dan statistik performa.',
-    estTime: 'Est. 5 menit',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">1. Laporan Standar Operasional</h3>
-        <ul class="list-disc pl-5 space-y-2 text-slate-600">
-          <li><strong>Daily Sales Summary (Z-Report)</strong>: Rekap total omzet, breakdown tunai/non-tunai, dan tax/service harian.</li>
-          <li><strong>Laporan Void & Cancel</strong>: Melacak pembatalan pesanan atau diskon manual oleh kasir untuk audit keamanan.</li>
-          <li><strong>Menu Engineering (Star, Dog, Plowhorse, Puzzle)</strong>: Menganalisa menu mana yang paling laris dan menghasilkan margin tertinggi.</li>
-        </ul>
-      </div>
-    `,
-  },
-  {
-    id: 10,
+    id: 40,
     dbMenuId: 40,
     order: 10,
+    name: 'Tools',
     title: '10. Tools',
-    countText: '6 Panduan & Solusi',
+    count: 1,
+    countText: '1 Panduan',
     icon: Printer,
     desc: 'Modul utilitas sistem, konfigurasi hardware printer kasir & dapur LAN/Bluetooth, cash drawer laci uang, dan diagnostik.',
     estTime: 'Est. 6 menit',
-    content: `
-      <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">1. Konfigurasi Hardware & Printer Thermal</h3>
-        <p class="text-slate-600">Menu Tools digunakan untuk mengatur koneksi perangkat keras kasir:</p>
-        <ol class="list-decimal pl-5 space-y-2 text-slate-600">
-          <li><strong>Printer Kasir</strong>: Pengaturan IP address LAN Port 9100 atau port USB thermal printer.</li>
-          <li><strong>Printer Dapur & Bar</strong>: Routing cetak otomatis tiket order pesanan berdasarkan kategori makanan/minuman.</li>
-          <li><strong>Cash Drawer (Laci Uang)</strong>: Menghubungkan kabel RJ11 ke port DK printer dan mengaktifkan tendangan otomatis.</li>
-          <li><strong>Customer Display & Barcode Scanner</strong>: Kalibrasi layar hadap pelanggan dan scanner QRIS.</li>
-        </ol>
-      </div>
-    `,
   },
 ]
 
@@ -323,29 +156,55 @@ async function loadSystemArticles() {
 
 // Dynamic modules from database
 const dynamicModules = ref([])
+const isModulesLoaded = ref(false)
 
 async function loadSystemModules() {
   try {
     const res = await apiClient.get(`/categories/${systemId.value}`)
     if (res.data && res.data.data && res.data.data.menus && res.data.data.menus.length > 0) {
-      dynamicModules.value = res.data.data.menus.map((menu, idx) => {
+      const activeOnly = []
+      res.data.data.menus.forEach((menu, idx) => {
         const orderNum = menu.order || (idx + 1)
         const code = String(orderNum).padStart(2, '0')
-        return {
-          id: menu.id,
-          order: orderNum,
-          title: `${code}. ${menu.name}`,
-          desc: menu.description || 'Panduan operasional dan tata cara penggunaan fitur modul.',
-          icon: detectModuleIcon(menu.name, orderNum),
-          countText: `${menu.manual_books ? menu.manual_books.length : 1} Panduan`,
-          estTime: 'Est. 5 menit',
+
+        // Hitung dan deduplikasi manual books yang berstatus published secara riil
+        const seenMbIds = new Set()
+        const validManuals = (menu.manual_books || []).filter(mb => {
+          if (!mb || !mb.id || seenMbIds.has(mb.id)) return false
+          seenMbIds.add(mb.id)
+          return mb.status === 'published'
+        })
+        const manualCount = validManuals.length
+
+        // HANYA tampilkan modul yang memang memiliki buku panduan (count > 0)
+        if (manualCount > 0) {
+          activeOnly.push({
+            id: menu.id,
+            order: orderNum,
+            name: menu.name,
+            title: `${code}. ${menu.name}`,
+            desc: menu.description || 'Panduan operasional dan tata cara penggunaan fitur modul.',
+            icon: detectModuleIcon(menu.name, orderNum),
+            count: manualCount,
+            countText: `${manualCount} Panduan`,
+            estTime: 'Est. 5 menit',
+            manualBooks: validManuals,
+          })
         }
       })
+      dynamicModules.value = activeOnly
     } else {
       dynamicModules.value = []
     }
   } catch (err) {
     console.warn('API /categories/:id failed, using fallback modules:', err)
+    if (systemId.value === 2) {
+      dynamicModules.value = prestoFallbackModules
+    } else {
+      dynamicModules.value = []
+    }
+  } finally {
+    isModulesLoaded.value = true
   }
 }
 
@@ -362,6 +221,7 @@ onMounted(() => {
 watch(
   () => route.params.id,
   () => {
+    isModulesLoaded.value = false
     loadSystemArticles()
     loadSystemModules()
     const currentParam = route.params.id
@@ -373,7 +233,10 @@ watch(
 )
 
 const activeModuleCards = computed(() => {
-  return dynamicModules.value.length > 0 ? dynamicModules.value : presto10Modules
+  if (isModulesLoaded.value) {
+    return dynamicModules.value
+  }
+  return systemId.value === 2 ? prestoFallbackModules : []
 })
 
 // Filtered lists
@@ -642,7 +505,7 @@ function goBackHome() {
       </div>
     </section>
 
-    <!-- 4. Main Section: 10 Modul Cards Grid (Setup Master hingga Tools) -->
+    <!-- 4. Main Section: Modul Cards Grid -->
     <main class="flex-1 w-full px-4 sm:px-6 lg:px-12 xl:px-16 pb-20">
       <!-- Section Header -->
       <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-2">
@@ -651,57 +514,82 @@ function goBackHome() {
             Pilih Modul Sesuai Kebutuhan Anda
           </h2>
           <p class="text-xs sm:text-sm text-slate-500 mt-1">
-            Pelajari panduan tata cara penggunaan fitur {{ currentSystem.name }} langkah demi langkah per modul (10 Modul Sistem):
+            Pelajari panduan tata cara penggunaan fitur {{ currentSystem.name }} langkah demi langkah per modul:
           </p>
         </div>
         <div class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-600 w-fit">
-          {{ filteredModuleCards.length }} dari 10 Modul
+          {{ filteredModuleCards.length }} Modul Tersedia
         </div>
       </div>
 
-      <!-- TAB 1: 10 Modul Cards Grid (Setup Master s/d Tools) -->
-      <div v-if="activeTab === 'manual'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 xl:gap-8">
-        <div
-          v-for="card in filteredModuleCards"
-          :key="card.id"
-          @click="openReader(card, 'manual')"
-          class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 hover:border-sky-500 hover:ring-4 hover:ring-sky-500/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs"
-        >
-          <div>
-            <!-- Card Top: Icon & Count Badge -->
-            <div class="flex items-center justify-between">
-              <div
-                class="w-11 h-11 rounded-xl flex items-center justify-center bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600 transition-colors"
-              >
-                <component :is="card.icon" class="w-5 h-5 stroke-[1.8]" />
+      <!-- TAB 1: Modul Cards Grid (Hanya yang memiliki buku panduan) -->
+      <div v-if="activeTab === 'manual'">
+        <div v-if="filteredModuleCards.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 xl:gap-8">
+          <div
+            v-for="card in filteredModuleCards"
+            :key="card.id"
+            @click="openReader(card, 'manual')"
+            class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 hover:border-sky-500 hover:ring-4 hover:ring-sky-500/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs"
+          >
+            <div>
+              <!-- Card Top: Icon & Count Badge -->
+              <div class="flex items-center justify-between">
+                <div
+                  class="w-11 h-11 rounded-xl flex items-center justify-center bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600 transition-colors"
+                >
+                  <component :is="card.icon" class="w-5 h-5 stroke-[1.8]" />
+                </div>
+
+                <!-- Top Right Badge (Pill) - Menampilkan jumlah panduan riil -->
+                <span
+                  class="text-xs font-semibold px-2.5 py-1 rounded-md tracking-wide bg-slate-100 text-slate-600 group-hover:bg-sky-100/70 group-hover:text-sky-700 transition-colors"
+                >
+                  {{ card.countText }}
+                </span>
               </div>
 
-              <!-- Top Right Badge (Pill) -->
-              <span
-                class="text-xs font-semibold px-2.5 py-1 rounded-md tracking-wide bg-slate-100 text-slate-600 group-hover:bg-sky-100/70 group-hover:text-sky-700 transition-colors"
-              >
-                {{ card.countText }}
-              </span>
+              <!-- Card Title & Description -->
+              <h3
+                class="font-bold text-slate-900 text-base sm:text-lg mt-5 group-hover:text-sky-600 transition-colors"
+                v-html="highlightKeyword(card.title, searchQuery)"
+              ></h3>
+              <p
+                class="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed line-clamp-3"
+                v-html="highlightKeyword(card.desc, searchQuery)"
+              ></p>
             </div>
 
-            <!-- Card Title & Description -->
-            <h3
-              class="font-bold text-slate-900 text-base sm:text-lg mt-5 group-hover:text-sky-600 transition-colors"
-              v-html="highlightKeyword(card.title, searchQuery)"
-            ></h3>
-            <p
-              class="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed line-clamp-3"
-              v-html="highlightKeyword(card.desc, searchQuery)"
-            ></p>
+            <!-- Card Bottom: Action Link -->
+            <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-end text-xs sm:text-sm">
+              <span class="text-sky-600 font-semibold flex items-center gap-1 group-hover:text-sky-700">
+                <span>Buka Manual Book</span>
+                <ArrowRight class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </span>
+            </div>
           </div>
+        </div>
 
-          <!-- Card Bottom: Action Link -->
-          <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-end text-xs sm:text-sm">
-            <span class="text-sky-600 font-semibold flex items-center gap-1 group-hover:text-sky-700">
-              <span>Buka Manual Book</span>
-              <ArrowRight class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </span>
+        <!-- Empty state jika tidak ada modul atau tidak cocok dengan filter pencarian -->
+        <div v-else class="py-16 px-4 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+          <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mx-auto mb-3">
+            <BookOpen class="w-6 h-6 stroke-[1.5]" />
           </div>
+          <h4 class="text-base font-bold text-slate-800">
+            {{ searchQuery ? 'Tidak Ada Modul yang Cocok' : 'Belum Ada Modul Panduan' }}
+          </h4>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1 max-w-md mx-auto">
+            {{ searchQuery 
+              ? `Tidak ditemukan modul yang memuat kata kunci "${searchQuery}". Coba kata kunci lain.` 
+              : `Modul buku panduan untuk sistem ${currentSystem.name} sedang dalam proses kurasi dan penyiapan.` 
+            }}
+          </p>
+          <button
+            v-if="searchQuery"
+            @click="searchQuery = ''"
+            class="mt-4 px-4 py-1.5 rounded-lg bg-sky-50 text-sky-700 font-semibold text-xs hover:bg-sky-100 transition-colors cursor-pointer"
+          >
+            Reset Pencarian
+          </button>
         </div>
       </div>
 

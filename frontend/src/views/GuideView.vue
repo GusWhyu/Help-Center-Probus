@@ -46,11 +46,11 @@ const expandedModules = ref({})
 const isLoading = ref(false)
 const availableSystems = ref([
   { id: 1, name: 'PHIS', title: 'PHIS (1 Modul)', modulCount: 1, shortName: 'PHIS' },
-  { id: 2, name: 'PRESTO', title: 'PRESTO (2 Modul)', modulCount: 2, shortName: 'PRESTO' },
-  { id: 3, name: 'PPOS', title: 'PPOS (0 Modul)', modulCount: 0, shortName: 'PPOS' },
-  { id: 4, name: 'SELF ORDER', title: 'SELF ORDER (0 Modul)', modulCount: 0, shortName: 'SELF ORDER' },
-  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO ONLINE (0 Modul)', modulCount: 0, shortName: 'PR-PO ONLINE' },
-  { id: 6, name: 'ORDER TAKER', title: 'ORDER TAKER (0 Modul)', modulCount: 0, shortName: 'ORDER TAKER' },
+  { id: 2, name: 'PRESTO', title: 'PRESTO (4 Modul)', modulCount: 4, shortName: 'PRESTO' },
+  { id: 3, name: 'PPOS', title: 'PPOS (1 Modul)', modulCount: 1, shortName: 'PPOS' },
+  { id: 4, name: 'SELF ORDER', title: 'SELF ORDER (2 Modul)', modulCount: 2, shortName: 'SELF ORDER' },
+  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO ONLINE (1 Modul)', modulCount: 1, shortName: 'PR-PO ONLINE' },
+  { id: 6, name: 'ORDER TAKER', title: 'ORDER TAKER (1 Modul)', modulCount: 1, shortName: 'ORDER TAKER' },
   { id: 7, name: 'VRESTROPICAL', title: 'VRESTROPICAL (0 Modul)', modulCount: 0, shortName: 'VRESTROPICAL' },
   { id: 8, name: 'PPE', title: 'PPE (0 Modul)', modulCount: 0, shortName: 'PPE' },
   { id: 9, name: 'BARONG POS', title: 'BARONG POS (0 Modul)', modulCount: 0, shortName: 'BARONG POS' },

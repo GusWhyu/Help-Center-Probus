@@ -89,11 +89,11 @@ const categoryMetaMap = {
 // Fallback initial list containing all 9 categories from dbprobuscs (sesuai urutan dan nama di tabel kategori)
 const systems = ref([
   { id: 1, name: 'PHIS', title: 'PHIS', badge: 'Hotel & Resort', desc: categoryMetaMap['PHIS'].desc, modulCount: 1, icon: Building2 },
-  { id: 2, name: 'PRESTO', title: 'PRESTO', badge: 'Restoran & POS', desc: categoryMetaMap['PRESTO'].desc, modulCount: 2, icon: MonitorCheck },
-  { id: 3, name: 'PPOS', title: 'PPOS', badge: 'Retail & Kasir', desc: categoryMetaMap['PPOS'].desc, modulCount: 0, icon: Printer },
-  { id: 4, name: 'SELF ORDER', title: 'SELF ORDER', badge: 'Self Service', desc: categoryMetaMap['SELF ORDER'].desc, modulCount: 0, icon: Smartphone },
-  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO ONLINE', badge: 'Logistik & Gudang', desc: categoryMetaMap['PR-PO ONLINE'].desc, modulCount: 0, icon: Package },
-  { id: 6, name: 'ORDER TAKER', title: 'ORDER TAKER', badge: 'Waiter App', desc: categoryMetaMap['ORDER TAKER'].desc, modulCount: 0, icon: UtensilsCrossed },
+  { id: 2, name: 'PRESTO', title: 'PRESTO', badge: 'Restoran & POS', desc: categoryMetaMap['PRESTO'].desc, modulCount: 4, icon: MonitorCheck },
+  { id: 3, name: 'PPOS', title: 'PPOS', badge: 'Retail & Kasir', desc: categoryMetaMap['PPOS'].desc, modulCount: 1, icon: Printer },
+  { id: 4, name: 'SELF ORDER', title: 'SELF ORDER', badge: 'Self Service', desc: categoryMetaMap['SELF ORDER'].desc, modulCount: 2, icon: Smartphone },
+  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO ONLINE', badge: 'Logistik & Gudang', desc: categoryMetaMap['PR-PO ONLINE'].desc, modulCount: 1, icon: Package },
+  { id: 6, name: 'ORDER TAKER', title: 'ORDER TAKER', badge: 'Waiter App', desc: categoryMetaMap['ORDER TAKER'].desc, modulCount: 1, icon: UtensilsCrossed },
   { id: 7, name: 'VRESTROPICAL', title: 'VRESTROPICAL', badge: 'Club & Lounge', desc: categoryMetaMap['VRESTROPICAL'].desc, modulCount: 0, icon: Sparkles },
   { id: 8, name: 'PPE', title: 'PPE', badge: 'Facility & Asset', desc: categoryMetaMap['PPE'].desc, modulCount: 0, icon: Zap },
   { id: 9, name: 'BARONG POS', title: 'BARONG POS', badge: 'Cloud POS', desc: categoryMetaMap['BARONG POS'].desc, modulCount: 0, icon: Laptop },
