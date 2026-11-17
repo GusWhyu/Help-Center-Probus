@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getSystemIdFromParam, getSystemSlug, slugify, highlightKeyword } from '../utils/slug'
+import { getSystemIdFromParam, getSystemSlug, slugify, highlightKeyword, registerCategories } from '../utils/slug'
 import apiClient from '../api/client'
 import { detectModuleIcon } from '../utils/iconResolver'
 import {
@@ -55,7 +55,24 @@ const systemsInfo = {
   9: { id: 9, name: 'BARONG POS', title: 'Panduan Pengguna BARONG POS', badge: 'Cloud POS' },
 }
 
-const currentSystem = computed(() => systemsInfo[systemId.value] || systemsInfo[2])
+const categoryData = ref(null)
+
+const currentSystem = computed(() => {
+  if (categoryData.value && categoryData.value.name) {
+    return {
+      id: categoryData.value.id,
+      name: categoryData.value.name,
+      title: `Panduan Pengguna ${categoryData.value.name}`,
+      badge: systemsInfo[systemId.value]?.badge || 'Sistem Probus',
+    }
+  }
+  return systemsInfo[systemId.value] || {
+    id: systemId.value,
+    name: `Sistem ${systemId.value}`,
+    title: `Panduan Pengguna Sistem ${systemId.value}`,
+    badge: 'Sistem Probus',
+  }
+})
 
 // Modul fallback PRESTO yang riil memiliki buku panduan di database dbprobuscs
 const prestoFallbackModules = [
@@ -161,6 +178,10 @@ const isModulesLoaded = ref(false)
 async function loadSystemModules() {
   try {
     const res = await apiClient.get(`/categories/${systemId.value}`)
+    if (res.data && res.data.data) {
+      registerCategories([res.data.data])
+      categoryData.value = res.data.data
+    }
     if (res.data && res.data.data && res.data.data.menus && res.data.data.menus.length > 0) {
       const activeOnly = []
       res.data.data.menus.forEach((menu, idx) => {
@@ -212,7 +233,7 @@ onMounted(() => {
   loadSystemArticles()
   loadSystemModules()
   const currentParam = route.params.id
-  const canonicalSlug = getSystemSlug(systemId.value)
+  const canonicalSlug = getSystemSlug(systemId.value, currentSystem.value)
   if (currentParam && !isNaN(Number(currentParam))) {
     router.replace(`/system/${canonicalSlug}`)
   }
@@ -225,7 +246,7 @@ watch(
     loadSystemArticles()
     loadSystemModules()
     const currentParam = route.params.id
-    const canonicalSlug = getSystemSlug(systemId.value)
+    const canonicalSlug = getSystemSlug(systemId.value, currentSystem.value)
     if (currentParam && !isNaN(Number(currentParam))) {
       router.replace(`/system/${canonicalSlug}`)
     }
@@ -268,7 +289,7 @@ const feedbackGiven = ref(false)
 
 function openReader(item, type = 'manual') {
   selectedCardId.value = item.id
-  const sysSlug = getSystemSlug(systemId.value)
+  const sysSlug = getSystemSlug(systemId.value, currentSystem.value)
   if (type === 'manual') {
     const modSlug = slugify(item.title || item.name || String(item.id))
     router.push(`/system/${sysSlug}/guide/${modSlug}`)

@@ -57,6 +57,61 @@ export const systemAliasToId = {
   'barong-pos-cloud': 9,
 }
 
+// In-memory registry for dynamic categories loaded from database
+const dynamicCategoryMap = new Map()
+const dynamicSlugToIdMap = new Map()
+
+// Pre-seeded categories including new systems (e.g. 10: Project WEB, 11: CHANNEL MANAGER (eZee))
+const preseededCategories = [
+  { id: 1, name: 'PHIS' },
+  { id: 2, name: 'PRESTO' },
+  { id: 3, name: 'PPOS' },
+  { id: 4, name: 'SELF ORDER' },
+  { id: 5, name: 'PR-PO ONLINE' },
+  { id: 6, name: 'ORDER TAKER' },
+  { id: 7, name: 'VRESTROPICAL' },
+  { id: 8, name: 'PPE' },
+  { id: 9, name: 'BARONG POS' },
+  { id: 10, name: 'Project WEB' },
+  { id: 11, name: 'CHANNEL MANAGER (eZee)' },
+]
+
+/**
+ * Register categories dynamically into the in-memory lookup cache.
+ * Automatically handles any new system added in the database without code changes.
+ *
+ * @param {Array<Object>} categories - List of category objects [{ id, name, ... }]
+ */
+export function registerCategories(categories) {
+  if (!Array.isArray(categories)) return
+  categories.forEach(cat => {
+    if (!cat || cat.id === undefined || cat.id === null) return
+    const id = Number(cat.id)
+    if (isNaN(id) || id <= 0) return
+
+    const name = cat.name || `System ${id}`
+    const rawSlug = slugifyRaw(name)
+    const cleanSlug = slugify(name)
+    const canonicalSlug = systemSlugMap[id] || rawSlug || `system-${id}`
+
+    dynamicCategoryMap.set(id, {
+      id,
+      name,
+      slug: canonicalSlug,
+    })
+
+    // Register all slug variations to resolve back to ID
+    dynamicSlugToIdMap.set(String(id), id)
+    dynamicSlugToIdMap.set(`system-${id}`, id)
+    if (canonicalSlug) dynamicSlugToIdMap.set(canonicalSlug.toLowerCase(), id)
+    if (rawSlug) dynamicSlugToIdMap.set(rawSlug.toLowerCase(), id)
+    if (cleanSlug) dynamicSlugToIdMap.set(cleanSlug.toLowerCase(), id)
+  })
+}
+
+// Pre-register pre-seeded systems immediately
+registerCategories(preseededCategories)
+
 /**
  * Convert any string into a clean, URL-safe slug.
  * Example: "01. Setup Master & Meja" -> "setup-master-meja"
@@ -92,31 +147,110 @@ export function slugifyRaw(text) {
 }
 
 /**
- * Get canonical slug for a system ID or system name
+ * Get canonical slug for a system ID, system object, or system name.
+ * NEVER defaults to 'presto' for valid unknown systems.
+ *
+ * @param {number|string|object} idOrName - Numeric ID, slug/name string, or category object
+ * @param {object} [fallbackCat] - Optional fallback category object { id, name }
+ * @returns {string} Canonical URL slug
  */
-export function getSystemSlug(idOrName) {
-  if (typeof idOrName === 'number' || (!isNaN(idOrName) && idOrName !== '')) {
-    return systemSlugMap[Number(idOrName)] || 'presto'
+export function getSystemSlug(idOrName, fallbackCat = null) {
+  if (idOrName === undefined || idOrName === null || idOrName === '') {
+    return 'presto'
   }
+
+  // Handle object passed directly (e.g. sys = { id: 11, name: 'CHANNEL MANAGER (eZee)' })
+  if (typeof idOrName === 'object' && idOrName !== null) {
+    if (idOrName.name) {
+      registerCategories([idOrName])
+    }
+    idOrName = idOrName.id
+  }
+
+  if (fallbackCat && fallbackCat.name && idOrName) {
+    registerCategories([{ id: idOrName, name: fallbackCat.name }])
+  }
+
+  // Check if numeric ID (number or string containing positive integer)
+  const numId = Number(idOrName)
+  if (!isNaN(numId) && numId > 0 && Number.isInteger(numId)) {
+    // 1. Static map (1..9)
+    if (systemSlugMap[numId]) {
+      return systemSlugMap[numId]
+    }
+    // 2. Dynamic registered map
+    if (dynamicCategoryMap.has(numId)) {
+      return dynamicCategoryMap.get(numId).slug
+    }
+    // 3. Fallback: dynamic system-{id} so it never redirects to presto
+    return `system-${numId}`
+  }
+
+  // If string (slug, name, or alias)
   const clean = slugifyRaw(idOrName)
-  const id = systemAliasToId[clean]
-  return id ? systemSlugMap[id] : clean
+  if (systemAliasToId[clean] !== undefined) {
+    const aliasId = systemAliasToId[clean]
+    return systemSlugMap[aliasId] || clean
+  }
+  if (dynamicSlugToIdMap.has(clean)) {
+    const dynId = dynamicSlugToIdMap.get(clean)
+    if (systemSlugMap[dynId]) return systemSlugMap[dynId]
+    if (dynamicCategoryMap.has(dynId)) return dynamicCategoryMap.get(dynId).slug
+    return clean
+  }
+
+  return clean || 'presto'
 }
 
 /**
  * Resolve system ID from slug or numeric parameter.
- * Defaults to 2 (PRESTO) if not found.
+ * Accepts any positive integer ID, system-XX pattern, or dynamic category slug.
+ *
+ * @param {string|number} param - Route parameter (slug or numeric ID)
+ * @param {number} [defaultId=2] - Fallback ID if parameter cannot be resolved
+ * @returns {number} Resolved system ID
  */
 export function getSystemIdFromParam(param, defaultId = 2) {
-  if (!param) return defaultId
+  if (param === undefined || param === null || param === '') {
+    return defaultId
+  }
+
   const strParam = String(param).toLowerCase().trim()
+
+  // 1. Static alias map
   if (systemAliasToId[strParam] !== undefined) {
     return systemAliasToId[strParam]
   }
+
+  // 2. Dynamic slug map
+  if (dynamicSlugToIdMap.has(strParam)) {
+    return dynamicSlugToIdMap.get(strParam)
+  }
+
+  // 3. Pure numeric parameter (e.g. "10", "11", 11)
   const numeric = Number(strParam)
-  if (!isNaN(numeric) && systemSlugMap[numeric]) {
+  if (!isNaN(numeric) && numeric > 0 && Number.isInteger(numeric)) {
     return numeric
   }
+
+  // 4. system-XX pattern (e.g. "system-10", "system-11")
+  const match = strParam.match(/^system-(\d+)$/)
+  if (match) {
+    const parsed = Number(match[1])
+    if (parsed > 0) return parsed
+  }
+
+  // 5. Dynamic category scan
+  for (const [id, cat] of dynamicCategoryMap.entries()) {
+    if (
+      cat.slug.toLowerCase() === strParam ||
+      slugifyRaw(cat.name) === strParam ||
+      slugify(cat.name) === strParam
+    ) {
+      return id
+    }
+  }
+
   return defaultId
 }
 

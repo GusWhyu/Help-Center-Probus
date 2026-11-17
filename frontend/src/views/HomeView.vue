@@ -26,7 +26,7 @@ import {
   Loader2
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import { getSystemSlug, slugify, highlightKeyword } from '../utils/slug'
+import { getSystemSlug, slugify, highlightKeyword, registerCategories } from '../utils/slug'
 import { detectSystemIcon } from '../utils/iconResolver'
 
 const router = useRouter()
@@ -126,6 +126,7 @@ onMounted(async () => {
 
     if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
       const dbCategories = res.data.data
+      registerCategories(dbCategories)
       systems.value = dbCategories.map(cat => {
         const meta = categoryMetaMap[cat.name] || {
           badge: 'Sistem Probus',
@@ -263,18 +264,21 @@ const searchResults = computed(() => {
 })
 
 function selectCard(id) {
-  router.push('/system/' + getSystemSlug(id))
+  const sys = systems.value.find(s => s.id === id)
+  router.push('/system/' + getSystemSlug(id, sys))
 }
 
 function handleSearchItemClick(item) {
+  const sysId = item.systemId || item.id || 2
+  const sysSlug = getSystemSlug(sysId)
   if (item.type === 'system') {
-    router.push('/system/' + getSystemSlug(item.systemId || item.id))
+    router.push('/system/' + sysSlug)
   } else if (item.type === 'manual' || item.type === 'manual_book') {
-    router.push(`/system/${getSystemSlug(item.systemId || 2)}/guide/${item.moduleId || item.id || 2}`)
+    router.push(`/system/${sysSlug}/guide/${item.moduleId || item.id || 2}`)
   } else if (item.type === 'article') {
     router.push(`/solutions/${slugify(item.title)}`)
   } else {
-    router.push('/system/' + getSystemSlug(item.systemId || 2))
+    router.push('/system/' + sysSlug)
   }
 }
 

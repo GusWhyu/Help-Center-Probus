@@ -20,7 +20,7 @@ import {
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { detectSystemIcon } from '../utils/iconResolver'
-import { slugify, getSystemSlug, getSystemIdFromParam, findModuleByParam, highlightKeyword } from '../utils/slug'
+import { slugify, getSystemSlug, getSystemIdFromParam, findModuleByParam, highlightKeyword, registerCategories } from '../utils/slug'
 
 const route = useRoute()
 const router = useRouter()
@@ -57,7 +57,15 @@ const availableSystems = ref([
 ])
 
 const currentSystem = computed(() => {
-  return availableSystems.value.find(s => s.id === selectedSystemId.value) || availableSystems.value[0]
+  const found = availableSystems.value.find(s => s.id === selectedSystemId.value)
+  if (found) return found
+  return {
+    id: selectedSystemId.value,
+    name: `Sistem ${selectedSystemId.value}`,
+    title: `Sistem ${selectedSystemId.value}`,
+    modulCount: 0,
+    shortName: `Sistem ${selectedSystemId.value}`,
+  }
 })
 
 // Current Modules list for the selected system
@@ -157,7 +165,7 @@ function resolveActiveSubMenuFromQuery(mod) {
 // Menghasilkan full direct URL untuk di-share
 function getShareUrl() {
   if (!currentModule.value) return window.location.href
-  const sysSlug = getSystemSlug(selectedSystemId.value)
+  const sysSlug = getSystemSlug(selectedSystemId.value, currentSystem.value)
   const modSlug = slugify(currentModule.value.name)
   const resolved = router.resolve({
     path: `/system/${sysSlug}/guide/${modSlug}`,
@@ -254,6 +262,7 @@ async function loadSystemData() {
     })
 
     if (catRes.data && catRes.data.data && Array.isArray(catRes.data.data)) {
+      registerCategories(catRes.data.data)
       availableSystems.value = catRes.data.data.map(cat => {
         const count = publishedModuleCounts[cat.id] ? publishedModuleCounts[cat.id].size : 0
         return {
@@ -264,6 +273,12 @@ async function loadSystemData() {
           shortName: cat.name,
         }
       })
+
+      // Re-verify selectedSystemId with newly registered categories
+      const reResolvedId = getSystemIdFromParam(route.params.systemId, selectedSystemId.value)
+      if (reResolvedId && reResolvedId !== selectedSystemId.value) {
+        selectedSystemId.value = reResolvedId
+      }
     }
 
     // 2. Modul menus dari database untuk kategori yang sedang dipilih
@@ -358,7 +373,7 @@ async function loadSystemData() {
 
       // Synchronize canonical URL with sub-menu query parameter
       const active = modulesList.value.find(m => m.id === selectedModuleOrder.value) || modulesList.value[0]
-      const sysSlug = getSystemSlug(selectedSystemId.value)
+      const sysSlug = getSystemSlug(selectedSystemId.value, currentSystem.value)
       const modSlug = slugify(active.name)
       const currentSub = active.manualBooks?.[activeManualIndex.value]
       const subParam = currentSub ? (currentSub.order || (activeManualIndex.value + 1)) : undefined
@@ -477,7 +492,7 @@ function selectChapter(mod, chapterIdx) {
   selectedModuleOrder.value = mod.id
   activeManualIndex.value = chapterIdx
   expandedModules.value[mod.id] = true
-  const sysSlug = getSystemSlug(selectedSystemId.value)
+  const sysSlug = getSystemSlug(selectedSystemId.value, currentSystem.value)
   const modSlug = slugify(mod.name)
   router.replace({
     path: `/system/${sysSlug}/guide/${modSlug}`,
@@ -490,7 +505,7 @@ function selectModule(mod) {
   selectedModuleOrder.value = mod.id
   activeManualIndex.value = 0
   expandedModules.value[mod.id] = true
-  const sysSlug = getSystemSlug(selectedSystemId.value)
+  const sysSlug = getSystemSlug(selectedSystemId.value, currentSystem.value)
   const modSlug = slugify(mod.name)
   const firstSub = mod.manualBooks?.[0]
   const subParam = firstSub ? (firstSub.order || 1) : undefined
@@ -505,13 +520,13 @@ function switchSystem(sys) {
   selectedSystemId.value = sys.id
   tocSearchQuery.value = ''
   activeManualIndex.value = 0
-  const sysSlug = getSystemSlug(sys.id)
+  const sysSlug = getSystemSlug(sys.id, sys)
   router.replace(`/system/${sysSlug}/guide/1`)
   loadSystemData()
 }
 
 function goBackToSystemDetail() {
-  router.push('/system/' + getSystemSlug(selectedSystemId.value))
+  router.push('/system/' + getSystemSlug(selectedSystemId.value, currentSystem.value))
 }
 
 function goToPrevChapter() {
