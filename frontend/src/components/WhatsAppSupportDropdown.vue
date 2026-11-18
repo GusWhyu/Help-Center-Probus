@@ -10,10 +10,13 @@ import { useWhatsAppSupports } from "../composables/useWhatsAppSupports";
 const isOpen = ref(false);
 const dropdownRef = ref(null);
 
-const { contacts, openWhatsApp: handleOpenWhatsApp } = useWhatsAppSupports();
+const { contacts, openWhatsApp: handleOpenWhatsApp, fetchWhatsAppSupports } = useWhatsAppSupports();
 
 function toggleDropdown() {
   isOpen.value = !isOpen.value;
+  if (isOpen.value) {
+    fetchWhatsAppSupports(true);
+  }
 }
 
 function openWhatsApp(contact) {

@@ -1,11 +1,16 @@
 import { ref, onMounted } from 'vue'
+import axios from 'axios'
 import {
   Headphones,
   ShoppingCart,
   GraduationCap,
   Wrench,
   Laptop,
-  Code
+  Code,
+  MessageSquare,
+  Phone,
+  UserCheck,
+  ShieldCheck,
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 
@@ -56,20 +61,32 @@ function resolveContactIcon(iconName, badge, name) {
   const badgeStr = (badge || '').toLowerCase()
   const nameStr = (name || '').toLowerCase()
 
-  if (iconStr.includes('headset') || badgeStr.includes('cs') || nameStr.includes('cs')) {
-    return Headphones
-  }
-  if (iconStr.includes('cart') || badgeStr.includes('commerce') || nameStr.includes('commerce') || badgeStr.includes('shop')) {
+  if (iconStr.includes('cart') || iconStr.includes('shop') || badgeStr.includes('commerce') || nameStr.includes('commerce')) {
     return ShoppingCart
   }
-  if (iconStr.includes('graduation') || badgeStr.includes('train') || nameStr.includes('train')) {
+  if (iconStr.includes('graduation') || iconStr.includes('cap') || badgeStr.includes('train') || nameStr.includes('train')) {
     return GraduationCap
+  }
+  if (iconStr.includes('comment') || iconStr.includes('chat') || iconStr.includes('message')) {
+    return MessageSquare
+  }
+  if (iconStr.includes('phone')) {
+    return Phone
+  }
+  if (iconStr.includes('user') || iconStr.includes('tie') || iconStr.includes('manager')) {
+    return UserCheck
+  }
+  if (iconStr.includes('shield') || iconStr.includes('security') || iconStr.includes('admin')) {
+    return ShieldCheck
   }
   if (iconStr.includes('wrench') || iconStr.includes('tool') || badgeStr.includes('dev') || nameStr.includes('program') || badgeStr.includes('tech')) {
     return Wrench
   }
   if (iconStr.includes('code') || iconStr.includes('laptop')) {
     return Code
+  }
+  if (iconStr.includes('headset') || badgeStr.includes('cs') || nameStr.includes('cs')) {
+    return Headphones
   }
   return Headphones
 }
@@ -106,13 +123,57 @@ function sanitizeWaNumber(phone) {
   return digits
 }
 
-export async function fetchWhatsAppSupports() {
-  if (hasFetched.value && contacts.value.length > 0) return
+export async function fetchWhatsAppSupports(force = false) {
+  if (!force && hasFetched.value && contacts.value.length > 0) return
   isLoading.value = true
+
+  let rawList = null
+
+  // 1. Primary: Ambil dari Go Backend API (http://localhost:8088/api/v1/whatsapp-supports)
   try {
     const res = await apiClient.get('/whatsapp-supports')
-    if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
-      contacts.value = res.data.data.map(item => {
+    if (res && res.data) {
+      if (Array.isArray(res.data.data)) {
+        rawList = res.data.data
+      } else if (Array.isArray(res.data)) {
+        rawList = res.data
+      }
+    }
+  } catch (err) {
+    // Go backend mungkin sedang offline atau belum di-restart
+  }
+
+  // 2. Resilient Fallback: Jika Go Backend belum dapat dijangkau, ambil dari Laravel Backend (port 8000)
+  if (!rawList) {
+    try {
+      const laravelRes = await axios.get('http://localhost:8000/api/whatsapp-supports', { timeout: 3000 })
+      if (laravelRes && laravelRes.data) {
+        if (Array.isArray(laravelRes.data.data)) {
+          rawList = laravelRes.data.data
+        } else if (Array.isArray(laravelRes.data)) {
+          rawList = laravelRes.data
+        }
+      }
+    } catch (e1) {
+      try {
+        const laravelIpRes = await axios.get('http://127.0.0.1:8000/api/whatsapp-supports', { timeout: 3000 })
+        if (laravelIpRes && laravelIpRes.data) {
+          if (Array.isArray(laravelIpRes.data.data)) {
+            rawList = laravelIpRes.data.data
+          } else if (Array.isArray(laravelIpRes.data)) {
+            rawList = laravelIpRes.data
+          }
+        }
+      } catch (e2) {
+        // Kedua backend tidak dapat dijangkau
+      }
+    }
+  }
+
+  // 3. Mapping data hasil fetch
+  if (rawList && Array.isArray(rawList)) {
+    if (rawList.length > 0) {
+      contacts.value = rawList.map(item => {
         const rawPhone = item.phone_number || ''
         const waNum = sanitizeWaNumber(rawPhone)
         const role = item.description || (item.badge ? `Bantuan Layanan ${item.badge}` : 'Bantuan Operasional Probus')
@@ -129,13 +190,13 @@ export async function fetchWhatsAppSupports() {
           defaultMessage: `Halo ${item.name}, saya butuh bantuan terkait kendala sistem Probus.`,
         }
       })
-      hasFetched.value = true
+    } else {
+      contacts.value = []
     }
-  } catch (err) {
-    console.warn('Gagal memuat kontak WhatsApp dari server, menggunakan data fallback:', err)
-  } finally {
-    isLoading.value = false
+    hasFetched.value = true
   }
+
+  isLoading.value = false
 }
 
 export function useWhatsAppSupports() {
