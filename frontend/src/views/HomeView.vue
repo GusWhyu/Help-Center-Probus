@@ -137,9 +137,10 @@ onMounted(async () => {
           desc: cat.description || `Panduan operasional dan solusi kendala sistem ${cat.name}.`,
         }
         const customCard = (customCards && (customCards[String(cat.id)] || customCards[cat.name])) || {}
-        const badge = customCard.badge || meta.badge
-        const desc = customCard.desc || cat.description || meta.desc
-        const resolved = resolveSystemIcon(customCard.icon, cat.name)
+        const badge = cat.badge || customCard.badge || meta.badge
+        const desc = cat.description || customCard.desc || meta.desc
+        const iconSrc = cat.icon || customCard.icon
+        const resolved = resolveSystemIcon(iconSrc, cat.name)
         const count = publishedModuleCounts[cat.id] ? publishedModuleCounts[cat.id].size : 0
 
         return {

@@ -187,7 +187,8 @@ const systemOptions = computed(() => {
 
       if (count > 0) {
         const card = (systemCards.value && (systemCards.value[String(c.id)] || systemCards.value[c.name])) || {}
-        const resolved = resolveSystemIcon(card.icon, c.name)
+        const iconSrc = c.icon || card.icon
+        const resolved = resolveSystemIcon(iconSrc, c.name)
 
         result.push({
           value: c.id,

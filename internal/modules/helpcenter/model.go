@@ -6,12 +6,16 @@ import (
 
 // Kategori represents system/product category (e.g. PHIS, PRESTO, PPOS)
 type Kategori struct {
-	ID         uint         `gorm:"primaryKey;autoIncrement" json:"id"`
-	Name       string       `gorm:"size:255;not null" json:"name"`
-	CreatedAt  *time.Time   `json:"created_at,omitempty"`
-	UpdatedAt  *time.Time   `json:"updated_at,omitempty"`
-	Menus      []MenuSystem `gorm:"foreignKey:KategoriID" json:"menus,omitempty"`
-	TotalMenus int          `gorm:"-" json:"total_menus"`
+	ID          uint         `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name        string       `gorm:"size:255;not null" json:"name"`
+	Badge       *string      `gorm:"size:100" json:"badge,omitempty"`
+	Description *string      `gorm:"type:text" json:"description,omitempty"`
+	IconMode    *string      `gorm:"size:20" json:"icon_mode,omitempty"`
+	Icon        *string      `gorm:"size:255" json:"icon,omitempty"`
+	CreatedAt   *time.Time   `json:"created_at,omitempty"`
+	UpdatedAt   *time.Time   `json:"updated_at,omitempty"`
+	Menus       []MenuSystem `gorm:"foreignKey:KategoriID" json:"menus,omitempty"`
+	TotalMenus  int          `gorm:"-" json:"total_menus"`
 }
 
 func (Kategori) TableName() string {

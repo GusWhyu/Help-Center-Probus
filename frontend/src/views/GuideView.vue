@@ -282,7 +282,8 @@ async function loadSystemData() {
       availableSystems.value = catRes.data.data.map(cat => {
         const count = publishedModuleCounts[cat.id] ? publishedModuleCounts[cat.id].size : 0
         const card = (customCards && (customCards[String(cat.id)] || customCards[cat.name])) || {}
-        const resolved = resolveSystemIcon(card.icon, cat.name)
+        const iconSrc = cat.icon || card.icon
+        const resolved = resolveSystemIcon(iconSrc, cat.name)
         return {
           id: cat.id,
           name: cat.name,
