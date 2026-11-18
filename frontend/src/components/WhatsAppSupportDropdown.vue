@@ -4,60 +4,20 @@ import {
   MessageSquare,
   ChevronDown,
   ExternalLink,
-  Headphones,
-  ShoppingCart,
-  GraduationCap,
 } from "lucide-vue-next";
+import { useWhatsAppSupports } from "../composables/useWhatsAppSupports";
 
 const isOpen = ref(false);
 const dropdownRef = ref(null);
 
-const contacts = [
-  {
-    id: 1,
-    name: "CS Probussystem",
-    role: "Customer Service & Bantuan Teknis",
-    numberDisplay: "+62 819-1087-5514",
-    waNumber: "6281910875514",
-    badge: "CS Support",
-    badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    icon: Headphones,
-    defaultMessage:
-      "Halo CS Probussystem, saya butuh bantuan terkait kendala sistem Probus.",
-  },
-  {
-    id: 2,
-    name: "E Commerce Probussystem",
-    role: "Online Booking, Channel & Integrasi",
-    numberDisplay: "+62 878-6144-6124",
-    waNumber: "6287861446124",
-    badge: "E-Commerce",
-    badgeClass: "bg-sky-50 text-sky-700 border-sky-200",
-    icon: ShoppingCart,
-    defaultMessage:
-      "Halo E-Commerce Probussystem, saya ingin konsultasi terkait layanan integrasi & E-Commerce Probus.",
-  },
-  {
-    id: 3,
-    name: "Trainer Probussystem",
-    role: "Panduan Operasional & Training Modul",
-    numberDisplay: "+62 819-1087-5514",
-    waNumber: "6281910875514",
-    badge: "Trainer",
-    badgeClass: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    icon: GraduationCap,
-    defaultMessage:
-      "Halo Trainer Probussystem, saya ingin panduan dan jadwal training modul sistem Probus.",
-  },
-];
+const { contacts, openWhatsApp: handleOpenWhatsApp } = useWhatsAppSupports();
 
 function toggleDropdown() {
   isOpen.value = !isOpen.value;
 }
 
 function openWhatsApp(contact) {
-  const url = `https://wa.me/${contact.waNumber}?text=${encodeURIComponent(contact.defaultMessage)}`;
-  window.open(url, "_blank");
+  handleOpenWhatsApp(contact);
   isOpen.value = false;
 }
 
@@ -118,7 +78,7 @@ onBeforeUnmount(() => {
           <span
             class="text-[10px] bg-white/20 text-white font-bold px-2 py-0.5 rounded-full"
           >
-            3 Kontak
+            {{ contacts.length }} Kontak
           </span>
         </div>
         <p class="text-xs text-emerald-100/90 mt-1">

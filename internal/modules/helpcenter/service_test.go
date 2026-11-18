@@ -9,6 +9,7 @@ type mockHelpCenterRepo struct {
 	categories []Kategori
 	articles   []Article
 	manuals    []ManualBook
+	supports   []WhatsAppSupport
 	searchRes  []SearchResultItem
 }
 
@@ -51,6 +52,10 @@ func (m *mockHelpCenterRepo) FindManualBookByID(ctx context.Context, id uint) (*
 	return nil, ErrNotFound
 }
 
+func (m *mockHelpCenterRepo) FindWhatsAppSupports(ctx context.Context) ([]WhatsAppSupport, error) {
+	return m.supports, nil
+}
+
 func (m *mockHelpCenterRepo) SearchAll(ctx context.Context, query string, limit int) ([]SearchResultItem, error) {
 	return m.searchRes, nil
 }
@@ -66,6 +71,9 @@ func TestHelpCenterService(t *testing.T) {
 		},
 		manuals: []ManualBook{
 			{ID: 1, Title: "01. Login Sales", Order: 1, Status: "published"},
+		},
+		supports: []WhatsAppSupport{
+			{ID: 1, Name: "CS Probus", PhoneNumber: "+6281910875514", IsActive: true},
 		},
 		searchRes: []SearchResultItem{
 			{ID: 1, Type: "article", Title: "Printer Thermal Tidak Mencetak"},
@@ -97,6 +105,12 @@ func TestHelpCenterService(t *testing.T) {
 	results, err := service.Search(ctx, "printer", 10)
 	if err != nil || len(results) != 1 {
 		t.Fatalf("expected 1 search result, got %v, err=%v", len(results), err)
+	}
+
+	// 5. WhatsApp Supports
+	supports, err := service.GetWhatsAppSupports(ctx)
+	if err != nil || len(supports) != 1 {
+		t.Fatalf("expected 1 whatsapp support, got %v, err=%v", len(supports), err)
 	}
 }
 

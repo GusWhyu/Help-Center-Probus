@@ -16,12 +16,13 @@ func registerRoutes(app *core.App) {
 			"status":              "online",
 			"frontend_portal_url": "http://localhost:5173",
 			"endpoints": gin.H{
-				"categories":   "/api/v1/categories",
-				"articles":     "/api/v1/articles",
-				"manual_books": "/api/v1/manual-books",
-				"search":       "/api/v1/search?q={query}",
-				"health":       "/health",
-				"version":      "/version",
+				"categories":        "/api/v1/categories",
+				"articles":          "/api/v1/articles",
+				"manual_books":      "/api/v1/manual-books",
+				"whatsapp_supports": "/api/v1/whatsapp-supports",
+				"search":            "/api/v1/search?q={query}",
+				"health":            "/health",
+				"version":           "/version",
 			},
 		})
 	}

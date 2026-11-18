@@ -11,6 +11,7 @@ type Service interface {
 	GetArticleByID(ctx context.Context, id uint) (*Article, error)
 	GetManualBooks(ctx context.Context, kategoriID, menuID uint, search string) ([]ManualBook, error)
 	GetManualBookByID(ctx context.Context, id uint) (*ManualBook, error)
+	GetWhatsAppSupports(ctx context.Context) ([]WhatsAppSupport, error)
 	Search(ctx context.Context, query string, limit int) ([]SearchResultItem, error)
 }
 
@@ -44,6 +45,10 @@ func (s *service) GetManualBooks(ctx context.Context, kategoriID, menuID uint, s
 
 func (s *service) GetManualBookByID(ctx context.Context, id uint) (*ManualBook, error) {
 	return s.repo.FindManualBookByID(ctx, id)
+}
+
+func (s *service) GetWhatsAppSupports(ctx context.Context) ([]WhatsAppSupport, error) {
+	return s.repo.FindWhatsAppSupports(ctx)
 }
 
 func (s *service) Search(ctx context.Context, query string, limit int) ([]SearchResultItem, error) {

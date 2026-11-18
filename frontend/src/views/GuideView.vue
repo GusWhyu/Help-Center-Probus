@@ -68,6 +68,11 @@ const currentSystem = computed(() => {
   }
 })
 
+// Hanya tampilkan sistem yang memiliki modul penggunaan di switcher bar atas
+const displayAvailableSystems = computed(() => {
+  return availableSystems.value.filter(s => s.modulCount > 0 || s.id === selectedSystemId.value)
+})
+
 // Current Modules list for the selected system
 const modulesList = ref([])
 
@@ -745,7 +750,7 @@ watch(
           <!-- Horizontal Scroll Container -->
           <div class="custom-sky-scrollbar flex items-center gap-2.5 overflow-x-auto pb-3 pt-1">
             <button
-              v-for="sys in availableSystems"
+              v-for="sys in displayAvailableSystems"
               :key="sys.id"
               @click="switchSystem(sys)"
               :class="[

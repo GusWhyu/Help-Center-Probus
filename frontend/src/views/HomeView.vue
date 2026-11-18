@@ -171,6 +171,11 @@ onMounted(async () => {
   }
 })
 
+// Hanya tampilkan sistem yang memang sudah memiliki modul terbit (modulCount > 0)
+const activeSystems = computed(() => {
+  return systems.value.filter(sys => sys.modulCount > 0)
+})
+
 // Quick search index
 const quickSearchDatabase = [
   { id: 1, type: 'article', title: 'Solusi Printer Kasir Thermal Tidak Mencetak / Error Paper Out', category: 'PRESTO', systemId: 2, snippet: 'Pengecekan kabel printer, paper jam, setting baudrate, dan test print di kasir.' },
@@ -220,8 +225,8 @@ const searchResults = computed(() => {
   const results = []
   const seenKeys = new Set()
 
-  // 1. Check matching Systems from `systems.value`
-  systems.value.forEach(sys => {
+  // 1. Check matching Systems from `activeSystems.value` (hanya sistem yang ada modulnya)
+  activeSystems.value.forEach(sys => {
     const match = queryWords.every(w =>
       sys.name.toLowerCase().includes(w) ||
       (sys.title && sys.title.toLowerCase().includes(w)) ||
@@ -284,7 +289,7 @@ const searchResults = computed(() => {
 })
 
 function selectCard(id) {
-  const sys = systems.value.find(s => s.id === id)
+  const sys = activeSystems.value.find(s => s.id === id) || systems.value.find(s => s.id === id)
   router.push('/system/' + getSystemSlug(id, sys))
 }
 
@@ -544,14 +549,14 @@ function clearSearch() {
           </p>
         </div>
         <div class="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-slate-600 shadow-2xs w-fit">
-          {{ systems.length }} Kategori Sistem Tersedia
+          {{ activeSystems.length }} Kategori Sistem Tersedia
         </div>
       </div>
 
-      <!-- 9 Cards Grid (3 Columns on Large Screens, 2 on Tablet, 1 on Mobile) -->
+      <!-- Cards Grid (Hanya menampilkan sistem yang memiliki modul penggunaan) -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 xl:gap-8">
         <div
-          v-for="sys in systems"
+          v-for="sys in activeSystems"
           :key="sys.id"
           @click="selectCard(sys.id)"
           class="bg-white rounded-2xl p-5 sm:p-6 lg:p-7 xl:p-8 border border-slate-200/90 hover:border-sky-500 hover:ring-4 hover:ring-sky-500/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-xs"

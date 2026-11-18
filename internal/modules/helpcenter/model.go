@@ -82,3 +82,22 @@ type SearchResultItem struct {
 	Status   string  `json:"status"`
 }
 
+// WhatsAppSupport represents a WhatsApp contact support entry
+type WhatsAppSupport struct {
+	ID          uint       `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name        string     `gorm:"size:255;not null" json:"name"`
+	Badge       *string    `gorm:"size:255" json:"badge,omitempty"`
+	Description *string    `gorm:"size:255" json:"description,omitempty"`
+	PhoneNumber string     `gorm:"size:255;not null" json:"phone_number"`
+	Icon        string     `gorm:"size:255;default:'fa-solid fa-headset'" json:"icon"`
+	BadgeColor  string     `gorm:"size:255;default:'emerald'" json:"badge_color"`
+	Order       int        `gorm:"default:0" json:"order"`
+	IsActive    bool       `gorm:"default:true" json:"is_active"`
+	CreatedAt   *time.Time `json:"created_at,omitempty"`
+	UpdatedAt   *time.Time `json:"updated_at,omitempty"`
+}
+
+func (WhatsAppSupport) TableName() string {
+	return "whatsapp_supports"
+}
+
