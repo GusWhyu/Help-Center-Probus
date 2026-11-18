@@ -150,6 +150,7 @@ const default9Categories = [
 ]
 
 // All 9 system categories directly from database `kategori` table + Semua Sistem di paling depan (Index 0)
+// HANYA sistem yang memiliki artikel solusi (count > 0) yang dimasukkan ke dalam daftar
 const systemOptions = computed(() => {
   const result = []
 
@@ -161,7 +162,7 @@ const systemOptions = computed(() => {
     articleCount: articles.value.length,
   })
 
-  // 2. 9 Kategori Sistem Resmi Probus
+  // 2. Kategori Sistem dari Database yang memiliki artikel solusi (count > 0)
   if (categories.value && categories.value.length > 0) {
     const sorted = [...categories.value].sort((a, b) => a.id - b.id)
     sorted.forEach(c => {
@@ -171,12 +172,14 @@ const systemOptions = computed(() => {
         return matchId || matchSys
       }).length
 
-      result.push({
-        value: c.id,
-        code: c.name,
-        label: c.name, // PHIS, PRESTO, PPOS, SELF ORDER, etc.
-        articleCount: count,
-      })
+      if (count > 0) {
+        result.push({
+          value: c.id,
+          code: c.name,
+          label: c.name, // PHIS, PRESTO, PPOS, SELF ORDER, etc.
+          articleCount: count,
+        })
+      }
     })
   } else {
     default9Categories.forEach(c => {
@@ -186,17 +189,34 @@ const systemOptions = computed(() => {
         return matchId || matchSys
       }).length
 
-      result.push({
-        value: c.value,
-        code: c.label,
-        label: c.label,
-        articleCount: count,
-      })
+      if (count > 0) {
+        result.push({
+          value: c.value,
+          code: c.label,
+          label: c.label,
+          articleCount: count,
+        })
+      }
     })
   }
 
   return result
 })
+
+// Jumlah sistem spesifik yang memiliki artikel solusi
+const activeSystemOptionsCount = computed(() => {
+  return systemOptions.value.filter(opt => opt.value !== 'all').length
+})
+
+// Sinkronisasi otomatis: jika sistem terpilih tidak ada dalam daftar sistem berartikel, kembalikan ke default yang ada artikelnya
+watch(systemOptions, (newOpts) => {
+  if (newOpts && newOpts.length > 0) {
+    const exists = newOpts.some(opt => opt.value === selectedSystemFilter.value)
+    if (!exists) {
+      selectedSystemFilter.value = newOpts[0].value
+    }
+  }
+}, { immediate: true })
 
 function selectSystem(systemVal) {
   selectedSystemFilter.value = systemVal
@@ -478,18 +498,18 @@ function goBackHome() {
               </span>
             </div>
             <span class="text-[11px] text-slate-400">
-              10 Pilihan Sistem
+              {{ activeSystemOptionsCount }} Pilihan Sistem
             </span>
           </div>
 
-          <!-- Grid 5 Kolom x 2 Baris Simetris -->
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+          <!-- Pilihan Sistem (Hanya menampilkan sistem yang memiliki artikel solusi) -->
+          <div class="flex flex-wrap gap-2.5">
             <button
               v-for="opt in systemOptions"
               :key="opt.value"
               @click="selectSystem(opt.value)"
               :class="[
-                'group w-full flex items-center justify-between gap-2 text-xs px-3 py-2.5 rounded-xl font-bold transition-all duration-200 cursor-pointer select-none text-left',
+                'group flex items-center justify-between gap-3 text-xs px-3.5 py-2.5 rounded-xl font-bold transition-all duration-200 cursor-pointer select-none text-left shrink-0',
                 selectedSystemFilter === opt.value
                   ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/25 ring-2 ring-emerald-500/30'
                   : 'bg-white text-slate-700 border border-slate-200/90 hover:border-emerald-300 hover:bg-emerald-50/60 hover:text-emerald-700 shadow-2xs'
