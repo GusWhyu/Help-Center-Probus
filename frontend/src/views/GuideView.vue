@@ -799,11 +799,11 @@ watch(
         <!-- LEFT COLUMN: SIDEBAR DAFTAR MODUL & SUB MENU ACCORDION   -->
         <!-- Sesuai Desain Probus Implementator manualbook.blade.php  -->
         <!-- ======================================================== -->
-        <aside class="w-full lg:w-80 xl:w-[340px] shrink-0">
-          <div class="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs sticky top-24">
+        <aside class="w-full lg:w-80 xl:w-[340px] shrink-0 lg:sticky lg:top-20 self-start z-10">
+          <div class="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col lg:max-h-[calc(100vh-6rem)]">
             
             <!-- Sidebar Header with Selected System Badge -->
-            <div class="mb-3 px-0.5">
+            <div class="mb-3 px-0.5 shrink-0">
               <div class="flex items-center justify-between gap-2">
                 <div class="text-xs font-black text-slate-800 uppercase tracking-wider truncate">
                   DAFTAR MODUL &amp; SUB MENU
@@ -818,7 +818,7 @@ watch(
             </div>
 
             <!-- Option 1: Modern Clean Search Filter (Scoped strictly to Selected System) -->
-            <div class="relative mb-3.5 group">
+            <div class="relative mb-3.5 group shrink-0">
               <!-- Search Icon with focus transition -->
               <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 pointer-events-none transition-colors duration-200" />
               
@@ -861,7 +861,7 @@ watch(
             </div>
 
             <!-- Accordion List of Modules and Sub-Menus (Single Unified Card Layout) -->
-            <div class="divide-y divide-slate-100 max-h-[calc(100vh-280px)] overflow-y-auto pr-1 custom-sky-scrollbar">
+            <div class="divide-y divide-slate-100 max-h-80 sm:max-h-96 lg:max-h-none flex-1 min-h-0 overflow-y-auto pr-1 -mr-1 custom-sky-scrollbar">
               <div
                 v-for="mod in filteredModulesList"
                 :key="mod.id"
