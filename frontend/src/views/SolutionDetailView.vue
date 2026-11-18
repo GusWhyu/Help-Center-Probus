@@ -80,9 +80,17 @@ function formatArticleContent(html) {
 }
 
 function formatDate(dateStr) {
-  if (!dateStr) return '09 Nov 2026'
+  if (!dateStr) return '-'
+  const raw = String(dateStr).trim()
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (match) {
+    const [, y, m, d] = match
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+    const monthIdx = parseInt(m, 10) - 1
+    return `${d} ${monthNames[monthIdx] || m} ${y}`
+  }
   const d = new Date(dateStr)
-  if (isNaN(d.getTime())) return '09 Nov 2026'
+  if (isNaN(d.getTime())) return '-'
   return d.toLocaleDateString('id-ID', {
     day: '2-digit',
     month: 'short',
@@ -92,15 +100,23 @@ function formatDate(dateStr) {
 
 function formatDateTime(dateStr) {
   if (!dateStr) return '-'
+  const raw = String(dateStr).trim()
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/)
+  if (match) {
+    const [, y, m, d, hh, mm] = match
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+    const monthIdx = parseInt(m, 10) - 1
+    return `${d} ${monthNames[monthIdx] || m} ${y}, ${hh}:${mm}`
+  }
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return '-'
-  return d.toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  const day = String(d.getDate()).padStart(2, '0')
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+  const month = monthNames[d.getMonth()]
+  const year = d.getFullYear()
+  const hours = String(d.getHours()).padStart(2, '0')
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  return `${day} ${month} ${year}, ${hours}:${minutes}`
 }
 
 async function loadRelatedArticles(currentId, katId) {
@@ -468,37 +484,11 @@ watch(
         <article class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-sm space-y-8">
           <!-- Header Artikel -->
           <div class="space-y-4 pb-6 border-b border-slate-100">
-            <!-- Kategori Sistem & Modul + Badge Visibilitas & Status -->
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div class="flex items-center gap-2 text-xs sm:text-sm font-extrabold uppercase tracking-wider text-emerald-600">
-                <span>{{ article.systemShort }}</span>
-                <span class="text-slate-300">•</span>
-                <span>{{ article.moduleName }}</span>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <!-- Badge Visibilitas -->
-                <span
-                  v-if="article.visibility === 'publik'"
-                  class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs"
-                >
-                  <Globe class="w-3 h-3 text-emerald-500 shrink-0" />
-                  <span>BLOG KLIEN</span>
-                </span>
-                <span
-                  v-else
-                  class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs"
-                >
-                  <Lock class="w-3 h-3 text-amber-500 shrink-0" />
-                  <span>INTERNAL</span>
-                </span>
-
-                <!-- Status Badge -->
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <CheckCircle2 class="w-3 h-3 text-emerald-600" />
-                  <span>Diterbitkan</span>
-                </span>
-              </div>
+            <!-- Kategori Sistem & Modul -->
+            <div class="flex items-center gap-2 text-xs sm:text-sm font-extrabold uppercase tracking-wider text-emerald-600">
+              <span>{{ article.systemShort }}</span>
+              <span class="text-slate-300">•</span>
+              <span>{{ article.moduleName }}</span>
             </div>
 
             <!-- Judul Utama -->
@@ -557,32 +547,6 @@ watch(
           </div>
         </article>
 
-        <!-- Interactive Feedback Card -->
-        <div class="mt-8 p-6 sm:p-7 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <h4 class="text-sm font-bold text-slate-900">Apakah artikel pemecahan masalah ini membantu Anda?</h4>
-            <p class="text-xs text-slate-500 mt-0.5">Masukan Anda membantu kami meningkatkan kualitas dokumentasi sistem Probus.</p>
-          </div>
-
-          <div class="flex items-center gap-2 shrink-0">
-            <button
-              v-if="!feedbackGiven"
-              @click="feedbackGiven = true"
-              class="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs inline-flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
-            >
-              <ThumbsUp class="w-3.5 h-3.5 text-emerald-600" />
-              <span>Ya, Berhasil</span>
-            </button>
-            <div
-              v-else
-              class="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs inline-flex items-center gap-1.5"
-            >
-              <CheckCircle2 class="w-4 h-4 text-emerald-600" />
-              <span>Terima kasih atas masukannya!</span>
-            </div>
-          </div>
-        </div>
-
         <!-- Related Articles Section (Solusi Terkait Lainnya di Modul ...) -->
         <div v-if="relatedArticles.length > 0" class="mt-8 space-y-4">
           <h3 class="text-base sm:text-lg font-black text-slate-800 tracking-tight">
@@ -597,9 +561,6 @@ watch(
               class="p-5 bg-white border border-slate-200 rounded-2xl hover:border-emerald-500 hover:shadow-md transition-all duration-200 group flex flex-col justify-between shadow-xs"
             >
               <div>
-                <div class="text-[10px] font-black uppercase tracking-wider text-emerald-600 mb-1.5">
-                  {{ rel.visibility === 'publik' ? 'BLOG KLIEN' : 'INTERNAL' }}
-                </div>
                 <h4 class="text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition-colors line-clamp-2">
                   {{ rel.title }}
                 </h4>
