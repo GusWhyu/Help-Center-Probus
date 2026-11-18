@@ -36,8 +36,26 @@ const mobileMenuOpen = ref(false)
 // Get system ID from route parameter, supports both slugs ('self-order') and legacy IDs ('4')
 const systemId = ref(getSystemIdFromParam(route.params.id, 2))
 
-// Active Tab: 'manual' or 'solusi'
-const activeTab = ref('manual')
+// Active Tab: 'manual' or 'solusi' (sync with route query ?tab=...)
+const activeTab = ref(route.query.tab === 'solusi' ? 'solusi' : 'manual')
+
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    activeTab.value = newTab === 'solusi' ? 'solusi' : 'manual'
+  }
+)
+
+function switchTab(tab) {
+  activeTab.value = tab
+  const newQuery = { ...route.query }
+  if (tab === 'solusi') {
+    newQuery.tab = 'solusi'
+  } else {
+    delete newQuery.tab
+  }
+  router.replace({ query: newQuery })
+}
 const searchQuery = ref('')
 const selectedCardId = ref(2) // default highlight: card 02 (Transaksi)
 
@@ -259,12 +277,15 @@ async function loadSystemModules() {
 }
 
 onMounted(async () => {
+  if (route.query.tab === 'solusi') {
+    activeTab.value = 'solusi'
+  }
   await loadSystemModules()
   await loadSystemArticles()
   const currentParam = route.params.id
   const canonicalSlug = getSystemSlug(systemId.value, currentSystem.value)
   if (currentParam && !isNaN(Number(currentParam))) {
-    router.replace(`/system/${canonicalSlug}`)
+    router.replace({ path: `/system/${canonicalSlug}`, query: route.query })
   }
 })
 
@@ -272,12 +293,15 @@ watch(
   () => route.params.id,
   async (newParam) => {
     if (newParam) {
+      if (route.query.tab === 'solusi') {
+        activeTab.value = 'solusi'
+      }
       isModulesLoaded.value = false
       await loadSystemModules()
       await loadSystemArticles()
       const canonicalSlug = getSystemSlug(systemId.value, currentSystem.value)
       if (!isNaN(Number(newParam))) {
-        router.replace(`/system/${canonicalSlug}`)
+        router.replace({ path: `/system/${canonicalSlug}`, query: route.query })
       }
     }
   }
@@ -323,7 +347,13 @@ function openReader(item, type = 'manual') {
     return
   }
   const artSlug = slugify(item.title || String(item.id))
-  router.push(`/solutions/${artSlug}`)
+  router.push({
+    path: `/solutions/${artSlug}`,
+    query: {
+      from: 'system',
+      system: sysSlug
+    }
+  })
 }
 
 function closeReader() {
@@ -502,9 +532,9 @@ function goBackHome() {
         <div class="mt-6 inline-flex p-1 bg-white border border-slate-200 rounded-xl shadow-xs">
           <!-- Tab 1: Manual Book (Active) -->
           <button
-            @click="activeTab = 'manual'"
+            @click="switchTab('manual')"
             :class="[
-              'inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all',
+              'inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer',
               activeTab === 'manual'
                 ? 'bg-sky-600 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -524,9 +554,9 @@ function goBackHome() {
 
           <!-- Tab 2: Solusi (Troubleshooting) -->
           <button
-            @click="activeTab = 'solusi'"
+            @click="switchTab('solusi')"
             :class="[
-              'inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all',
+              'inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer',
               activeTab === 'solusi'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -548,7 +578,12 @@ function goBackHome() {
         <!-- Explanatory Note below tab -->
         <p class="mt-2 text-xs text-slate-400 flex items-center justify-center gap-1">
           <Info class="w-3.5 h-3.5 inline" />
-          <span>Tab 'Manual Book' aktif (tata cara per modul). Klik tab 'Solusi' untuk dialihkan ke Halaman Utama Solusi.</span>
+          <span v-if="activeTab === 'manual'">
+            Tab 'Manual Book' aktif (tata cara per modul). Beralih ke tab 'Solusi' untuk melihat pemecahan kendala teknis.
+          </span>
+          <span v-else>
+            Tab 'Solusi' aktif (pemecahan masalah & kendala teknis {{ currentSystem.name }}).
+          </span>
         </p>
       </div>
     </section>
@@ -718,7 +753,7 @@ function goBackHome() {
           </p>
           <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
             <button
-              @click="activeTab = 'manual'"
+              @click="switchTab('manual')"
               class="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
             >
               <BookOpen class="w-4 h-4" />
@@ -745,8 +780,8 @@ function goBackHome() {
         </div>
 
         <button
-          @click="activeTab = 'solusi'"
-          class="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-xs transition-colors"
+          @click="switchTab('solusi')"
+          class="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
         >
           <span>Buka Halaman Solusi {{ currentSystem.name }}</span>
           <ArrowRight class="w-4 h-4" />

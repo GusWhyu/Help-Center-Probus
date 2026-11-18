@@ -32,6 +32,46 @@ const isLoading = ref(true)
 const errorMessage = ref('')
 const feedbackGiven = ref(false)
 
+// Navigation origin detection: checks if opened from a specific system (e.g. /system/:id?tab=solusi)
+const isFromSystem = computed(() => {
+  return route.query.from === 'system' || Boolean(route.query.system)
+})
+
+const backSystemSlug = computed(() => {
+  if (route.query.system) {
+    return String(route.query.system).toLowerCase()
+  }
+  if (article.value && article.value.systemShort && article.value.systemShort !== 'Sistem Probus') {
+    return slugify(article.value.systemShort)
+  }
+  return ''
+})
+
+const backSystemName = computed(() => {
+  if (article.value && article.value.systemShort && article.value.systemShort !== 'Sistem Probus') {
+    return article.value.systemShort
+  }
+  if (route.query.system) {
+    return String(route.query.system).toUpperCase()
+  }
+  return 'Sistem'
+})
+
+const backUrl = computed(() => {
+  if (isFromSystem.value && backSystemSlug.value) {
+    return `/system/${backSystemSlug.value}?tab=solusi`
+  }
+  return '/solutions'
+})
+
+function handleGoBack() {
+  if (isFromSystem.value && backSystemSlug.value) {
+    router.push(`/system/${backSystemSlug.value}?tab=solusi`)
+    return
+  }
+  router.push('/solutions')
+}
+
 // Share button state
 const copiedShareLink = ref(false)
 let copyTimeout = null
@@ -161,7 +201,7 @@ async function loadArticle() {
           processArticleData(res.data.data, allCats)
           const canonicalSlug = slugify(res.data.data.title)
           if (canonicalSlug && route.params.id !== canonicalSlug) {
-            router.replace(`/solutions/${canonicalSlug}`)
+            router.replace({ path: `/solutions/${canonicalSlug}`, query: route.query })
           }
           return
         }
@@ -189,7 +229,7 @@ async function loadArticle() {
 
         const canonicalSlug = slugify(matched.title)
         if (canonicalSlug && route.params.id !== canonicalSlug) {
-          router.replace(`/solutions/${canonicalSlug}`)
+          router.replace({ path: `/solutions/${canonicalSlug}`, query: route.query })
         }
         return
       }
@@ -323,25 +363,46 @@ watch(
           <span class="text-slate-300 font-light hidden sm:inline">|</span>
           <span class="text-slate-500 text-sm font-medium hidden md:inline">Pusat Bantuan Publik</span>
 
-          <!-- Pill Button: "← Kembali ke Bank Solusi" -->
+          <!-- Pill Button: "← Kembali ke Solusi ..." / "← Kembali ke Bank Solusi" -->
           <button
-            @click="router.push('/solutions')"
+            @click="handleGoBack"
             class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs border border-emerald-100 transition-colors shadow-2xs cursor-pointer"
           >
             <ArrowLeft class="w-3.5 h-3.5" />
-            <span class="hidden sm:inline">Kembali ke Bank Solusi</span>
-            <span class="sm:hidden">Bank Solusi</span>
+            <span class="hidden sm:inline">
+              {{ isFromSystem ? `Kembali ke Solusi ${backSystemName}` : 'Kembali ke Bank Solusi' }}
+            </span>
+            <span class="sm:hidden">
+              {{ isFromSystem ? `Solusi ${backSystemName}` : 'Bank Solusi' }}
+            </span>
           </button>
         </div>
 
         <!-- Desktop Navigation Links -->
         <div class="hidden md:flex items-center gap-8 text-sm font-medium">
-          <router-link to="/" class="text-slate-600 hover:text-slate-950 transition-colors">
+          <router-link
+            to="/"
+            :class="[
+              'transition-colors relative py-1',
+              isFromSystem
+                ? 'text-sky-600 font-semibold hover:text-sky-700'
+                : 'text-slate-600 hover:text-slate-950'
+            ]"
+          >
             Panduan Sistem
+            <span v-if="isFromSystem" class="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-600 rounded-full"></span>
           </router-link>
-          <router-link to="/solutions" class="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors relative py-1">
+          <router-link
+            to="/solutions"
+            :class="[
+              'transition-colors relative py-1',
+              !isFromSystem
+                ? 'text-emerald-600 font-semibold hover:text-emerald-700'
+                : 'text-slate-600 hover:text-slate-950'
+            ]"
+          >
             Bank Solusi
-            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 rounded-full"></span>
+            <span v-if="!isFromSystem" class="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 rounded-full"></span>
           </router-link>
           <a
             href="https://probussystem.com/contact"
@@ -375,14 +436,20 @@ watch(
         <router-link
           to="/"
           @click="mobileMenuOpen = false"
-          class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+          :class="[
+            'block px-3 py-2 rounded-lg text-sm font-medium',
+            isFromSystem ? 'bg-sky-50 text-sky-700 font-semibold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+          ]"
         >
           Panduan Sistem
         </router-link>
         <router-link
           to="/solutions"
           @click="mobileMenuOpen = false"
-          class="block px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-50 text-emerald-700"
+          :class="[
+            'block px-3 py-2 rounded-lg text-sm font-medium',
+            !isFromSystem ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+          ]"
         >
           Bank Solusi
         </router-link>
@@ -424,11 +491,11 @@ watch(
         <h3 class="text-lg font-bold text-slate-900 mb-2">Artikel Tidak Ditemukan</h3>
         <p class="text-sm text-slate-500 mb-6">{{ errorMessage || 'Artikel yang Anda cari tidak tersedia atau belum dipublikasikan.' }}</p>
         <button
-          @click="router.push('/solutions')"
+          @click="handleGoBack"
           class="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-semibold text-xs hover:bg-slate-800 transition-colors cursor-pointer inline-flex items-center gap-2"
         >
           <ArrowLeft class="w-4 h-4" />
-          <span>Kembali ke Bank Solusi</span>
+          <span>{{ isFromSystem ? `Kembali ke Solusi ${backSystemName}` : 'Kembali ke Bank Solusi' }}</span>
         </button>
       </div>
 
@@ -440,7 +507,28 @@ watch(
           <div class="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-500 overflow-hidden">
             <span class="hover:text-slate-700 transition-colors shrink-0">Knowledge Base</span>
             <ChevronRight class="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <router-link to="/solutions" class="hover:text-emerald-600 transition-colors shrink-0">Bank Solusi</router-link>
+
+            <template v-if="isFromSystem">
+              <router-link
+                :to="`/system/${backSystemSlug}?tab=solusi`"
+                class="hover:text-emerald-600 transition-colors shrink-0"
+              >
+                Panduan {{ backSystemName }}
+              </router-link>
+              <ChevronRight class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <router-link
+                :to="`/system/${backSystemSlug}?tab=solusi`"
+                class="hover:text-emerald-600 transition-colors shrink-0"
+              >
+                Solusi
+              </router-link>
+            </template>
+            <template v-else>
+              <router-link to="/solutions" class="hover:text-emerald-600 transition-colors shrink-0">
+                Bank Solusi
+              </router-link>
+            </template>
+
             <ChevronRight class="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span class="text-slate-800 font-bold truncate max-w-xs sm:max-w-md lg:max-w-lg">
               {{ article.title }}
@@ -449,13 +537,13 @@ watch(
 
           <!-- Action Buttons -->
           <div class="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
-            <router-link
-              to="/solutions"
-              class="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-2xs"
+            <button
+              @click="handleGoBack"
+              class="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-2xs cursor-pointer"
             >
               <ArrowLeft class="w-3.5 h-3.5" />
-              <span>Kembali ke Bank Solusi</span>
-            </router-link>
+              <span>{{ isFromSystem ? `Kembali ke Solusi ${backSystemName}` : 'Kembali ke Bank Solusi' }}</span>
+            </button>
 
             <!-- Tombol Bagikan / Share Button -->
             <button
@@ -542,6 +630,13 @@ watch(
                 <span>{{ copiedShareLink ? 'Link Tersalin!' : 'Bagikan Artikel' }}</span>
               </button>
               <router-link
+                v-if="isFromSystem"
+                :to="`/system/${backSystemSlug}?tab=solusi`"
+                class="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-all"
+              >
+                Solusi {{ backSystemName }}
+              </router-link>
+              <router-link
                 to="/solutions"
                 class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
               >
@@ -561,7 +656,10 @@ watch(
             <router-link
               v-for="rel in relatedArticles"
               :key="rel.id"
-              :to="`/solutions/${rel.slug}`"
+              :to="{
+                path: `/solutions/${rel.slug}`,
+                query: isFromSystem ? { from: 'system', system: backSystemSlug } : {}
+              }"
               class="p-5 bg-white border border-slate-200 rounded-2xl hover:border-emerald-500 hover:shadow-md transition-all duration-200 group flex flex-col justify-between shadow-xs"
             >
               <div>
