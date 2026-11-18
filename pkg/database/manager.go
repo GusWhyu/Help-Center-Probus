@@ -99,6 +99,7 @@ func databaseDialector(dbCfg config.DatabaseConfig, postgresDSN string) (gorm.Di
 		dsnConfig.DBName = dbCfg.DBName
 		dsnConfig.Params = map[string]string{"charset": "utf8mb4"}
 		dsnConfig.ParseTime = true
+		dsnConfig.Loc = time.FixedZone("Asia/Makassar", 8*3600)
 		return mysql.Open(dsnConfig.FormatDSN()), nil
 	default:
 		return nil, fmt.Errorf(
