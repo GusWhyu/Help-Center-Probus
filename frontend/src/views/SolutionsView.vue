@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   ChevronRight,
   AlertCircle,
-  Clock,
   X,
   ThumbsUp,
   CheckCircle2,
@@ -663,9 +662,6 @@ function goBackHome() {
             <div class="flex items-center justify-between gap-2 mb-3.5">
               <span class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60">
                 {{ art.system }} • {{ art.categoryName }}
-              </span>
-              <span class="text-xs text-slate-400 flex items-center gap-1">
-                <Clock class="w-3 h-3" /> {{ art.readTime }}
               </span>
             </div>
 
