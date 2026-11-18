@@ -21,6 +21,7 @@ type Repository interface {
 	FindArticleByID(ctx context.Context, id uint) (*Article, error)
 	FindManualBooks(ctx context.Context, kategoriID, menuID uint, search string) ([]ManualBook, error)
 	FindManualBookByID(ctx context.Context, id uint) (*ManualBook, error)
+	FindWhatsAppSupports(ctx context.Context) ([]WhatsAppSupport, error)
 	SearchAll(ctx context.Context, query string, limit int) ([]SearchResultItem, error)
 }
 
@@ -321,5 +322,17 @@ func (r *repository) SearchAll(ctx context.Context, query string, limit int) ([]
 	}
 
 	return results, nil
+}
+
+func (r *repository) FindWhatsAppSupports(ctx context.Context) ([]WhatsAppSupport, error) {
+	var supports []WhatsAppSupport
+	err := r.db.WithContext(ctx).
+		Where("is_active = ?", true).
+		Order("`order` ASC, id ASC").
+		Find(&supports).Error
+	if err != nil {
+		return nil, err
+	}
+	return supports, nil
 }
 

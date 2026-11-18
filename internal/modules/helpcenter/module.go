@@ -46,6 +46,12 @@ func (m *Module) RegisterRoutes(rg *gin.RouterGroup) {
 		manuals.GET("/:id", m.handler.GetManualBookByID)
 	}
 
+	waGroup := rg.Group("/whatsapp-supports")
+	{
+		waGroup.GET("", m.handler.GetWhatsAppSupports)
+	}
+	rg.GET("/whatsapp-support", m.handler.GetWhatsAppSupports)
+
 	rg.GET("/search", m.handler.Search)
 }
 

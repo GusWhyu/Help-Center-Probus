@@ -126,3 +126,12 @@ func (h *Handler) Search(c *gin.Context) {
 	}
 	response.OK(c, "Search results retrieved successfully", results)
 }
+
+func (h *Handler) GetWhatsAppSupports(c *gin.Context) {
+	supports, err := h.service.GetWhatsAppSupports(c.Request.Context())
+	if err != nil {
+		response.InternalError(c, "Failed to retrieve WhatsApp support contacts", err.Error())
+		return
+	}
+	response.OK(c, "WhatsApp support contacts retrieved successfully", supports)
+}
