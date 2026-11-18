@@ -754,15 +754,13 @@ watch(
 :deep(.article-content iframe),
 :deep(.article-content video),
 :deep(.video-container iframe) {
-  width: 100% !important;
   max-width: 100% !important;
-  aspect-ratio: 16 / 9 !important;
-  height: auto !important;
+  aspect-ratio: 16 / 9;
   border-radius: 0.75rem !important;
   margin: 1.5em auto !important;
   border: 1px solid rgba(148, 163, 184, 0.3) !important;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-  display: block !important;
+  display: block;
 }
 
 /* Callout Box Wireframe / Screenshot (Identik Probus Implementator) */
