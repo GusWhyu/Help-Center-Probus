@@ -29,7 +29,7 @@ import { detectSystemIcon, resolveSystemIcon } from '../utils/iconResolver'
 
 const router = useRouter()
 const searchQuery = ref('')
-const selectedSystemFilter = ref(2) // Default to PRESTO Resto POS (ID: 2)
+const selectedSystemFilter = ref('all') // Default to Semua Sistem ('all')
 const selectedModuleFilter = ref('all') // Default to 'all' (Semua Modul)
 const isLoading = ref(false)
 const mobileMenuOpen = ref(false)
@@ -98,8 +98,10 @@ async function loadArticles() {
         .filter(item => item.status === 'published' && item.visibility === 'publik')
         .map(item => {
           const primaryMenu = item.menu_systems && item.menu_systems.length > 0 ? item.menu_systems[0] : null
-          const katId = primaryMenu ? primaryMenu.kategori_id : 2
-          const sysCode = systemNameMap[katId] || 'PRESTO'
+          const rawKategori = primaryMenu && primaryMenu.kategori
+          const katId = (primaryMenu && primaryMenu.kategori_id) || (rawKategori && rawKategori.id) || 2
+          const sysCategory = categories.value.find(c => c.id === katId)
+          const sysCode = (sysCategory && sysCategory.name) || (rawKategori && rawKategori.name) || systemNameMap[katId] || 'PRESTO'
           const menuName = primaryMenu ? primaryMenu.name : 'Umum'
           const menuId = primaryMenu ? primaryMenu.id : null
 
@@ -158,19 +160,6 @@ onMounted(async () => {
   ])
 })
 
-// Exact database categories from `kategori` table
-const default9Categories = [
-  { value: 1, label: 'PHIS' },
-  { value: 2, label: 'PRESTO' },
-  { value: 3, label: 'PPOS' },
-  { value: 4, label: 'SELF ORDER' },
-  { value: 5, label: 'PR-PO ONLINE' },
-  { value: 6, label: 'ORDER TAKER' },
-  { value: 7, label: 'VRESTROPICAL' },
-  { value: 8, label: 'PPE' },
-  { value: 9, label: 'BARONG POS' },
-]
-
 // All system categories directly from database `kategori` table + Semua Sistem di paling depan (Index 0)
 // HANYA sistem yang memiliki artikel solusi (count > 0) yang dimasukkan ke dalam daftar
 const systemOptions = computed(() => {
@@ -203,29 +192,7 @@ const systemOptions = computed(() => {
         result.push({
           value: c.id,
           code: c.name,
-          label: c.name, // PHIS, PRESTO, PPOS, SELF ORDER, etc.
-          articleCount: count,
-          icon: resolved.icon,
-          isImage: resolved.isImage,
-        })
-      }
-    })
-  } else {
-    default9Categories.forEach(c => {
-      const count = articles.value.filter(a => {
-        const matchId = a.kategoriId === Number(c.value)
-        const matchSys = a.system && a.system.toUpperCase() === c.label.toUpperCase()
-        return matchId || matchSys
-      }).length
-
-      if (count > 0) {
-        const card = (systemCards.value && (systemCards.value[String(c.value)] || systemCards.value[c.label])) || {}
-        const resolved = resolveSystemIcon(card.icon, c.label)
-
-        result.push({
-          value: c.value,
-          code: c.label,
-          label: c.label,
+          label: c.name,
           articleCount: count,
           icon: resolved.icon,
           isImage: resolved.isImage,
@@ -257,36 +224,30 @@ function selectSystem(systemVal) {
   selectedModuleFilter.value = 'all'
 }
 
-// 10 Real Modules for the selected system directly from `menu_systems`
+// Real Modules for the selected system directly from database `menu_systems`
 const availableModules = computed(() => {
   let menus = []
   if (selectedSystemFilter.value === 'all') {
-    // If all systems selected, use PRESTO menus as baseline
-    const presto = categories.value.find(c => c.id === 2 || c.name === 'PRESTO')
-    if (presto && presto.menus && presto.menus.length > 0) {
-      menus = presto.menus
+    // If all systems selected, aggregate unique modules across all categories
+    const seenNames = new Set()
+    if (categories.value && categories.value.length > 0) {
+      categories.value.forEach(cat => {
+        if (Array.isArray(cat.menus)) {
+          cat.menus.forEach(m => {
+            const lower = (m.name || '').toLowerCase()
+            if (!seenNames.has(lower)) {
+              seenNames.add(lower)
+              menus.push(m)
+            }
+          })
+        }
+      })
     }
   } else {
     const cat = categories.value.find(c => c.id === Number(selectedSystemFilter.value) || c.name === selectedSystemFilter.value)
     if (cat && cat.menus && cat.menus.length > 0) {
       menus = cat.menus
     }
-  }
-
-  // Fallback to standard 10 modules if not yet loaded from DB
-  if (!menus || menus.length === 0) {
-    menus = [
-      { id: 34, order: 1, name: 'Setup Master' },
-      { id: 35, order: 2, name: 'Transaksi' },
-      { id: 36, order: 3, name: 'Outlet Activity' },
-      { id: 37, order: 4, name: 'Cost Control' },
-      { id: 38, order: 5, name: 'Purcashing AP' },
-      { id: 39, order: 6, name: 'AR' },
-      { id: 41, order: 7, name: 'General Cashier' },
-      { id: 42, order: 8, name: 'Accounting System' },
-      { id: 43, order: 9, name: 'Report' },
-      { id: 40, order: 10, name: 'Tools' },
-    ]
   }
 
   // Sort menus strictly by order (1 to 10)

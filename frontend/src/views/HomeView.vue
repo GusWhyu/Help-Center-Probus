@@ -31,7 +31,7 @@ import { detectSystemIcon, resolveSystemIcon } from '../utils/iconResolver'
 
 const router = useRouter()
 const searchQuery = ref('')
-const isLoading = ref(false)
+const isLoading = ref(true)
 const isSearching = ref(false)
 const liveSearchResults = ref([])
 const mobileMenuOpen = ref(false)
@@ -86,18 +86,8 @@ const categoryMetaMap = {
   },
 }
 
-// Fallback initial list containing all 9 categories from dbprobuscs (sesuai urutan dan nama di tabel kategori)
-const systems = ref([
-  { id: 1, name: 'PHIS', title: 'PHIS', badge: 'Hotel & Resort', desc: categoryMetaMap['PHIS'].desc, modulCount: 1, icon: Building2 },
-  { id: 2, name: 'PRESTO', title: 'PRESTO', badge: 'Restoran & POS', desc: categoryMetaMap['PRESTO'].desc, modulCount: 4, icon: MonitorCheck },
-  { id: 3, name: 'PPOS', title: 'PPOS', badge: 'Retail & Kasir', desc: categoryMetaMap['PPOS'].desc, modulCount: 1, icon: Printer },
-  { id: 4, name: 'SELF ORDER', title: 'SELF ORDER', badge: 'Self Service', desc: categoryMetaMap['SELF ORDER'].desc, modulCount: 2, icon: Smartphone },
-  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO ONLINE', badge: 'Logistik & Gudang', desc: categoryMetaMap['PR-PO ONLINE'].desc, modulCount: 1, icon: Package },
-  { id: 6, name: 'ORDER TAKER', title: 'ORDER TAKER', badge: 'Waiter App', desc: categoryMetaMap['ORDER TAKER'].desc, modulCount: 1, icon: UtensilsCrossed },
-  { id: 7, name: 'VRESTROPICAL', title: 'VRESTROPICAL', badge: 'Club & Lounge', desc: categoryMetaMap['VRESTROPICAL'].desc, modulCount: 0, icon: Sparkles },
-  { id: 8, name: 'PPE', title: 'PPE', badge: 'Facility & Asset', desc: categoryMetaMap['PPE'].desc, modulCount: 0, icon: Zap },
-  { id: 9, name: 'BARONG POS', title: 'BARONG POS', badge: 'Cloud POS', desc: categoryMetaMap['BARONG POS'].desc, modulCount: 0, icon: Laptop },
-])
+// Dynamic systems list loaded strictly from backend API
+const systems = ref([])
 
 onMounted(async () => {
   try {
@@ -548,13 +538,33 @@ function clearSearch() {
             Pilih sistem yang digunakan oleh properti Anda untuk melihat modul penggunaan dan solusi kendala:
           </p>
         </div>
-        <div class="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-slate-600 shadow-2xs w-fit">
+        <div v-if="!isLoading" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-slate-600 shadow-2xs w-fit">
           {{ activeSystems.length }} Kategori Sistem Tersedia
+        </div>
+        <div v-else class="h-7 w-36 bg-slate-100 rounded-full animate-pulse border border-slate-200/60"></div>
+      </div>
+
+      <!-- Loading Skeleton Cards -->
+      <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 xl:gap-8">
+        <div v-for="i in 4" :key="i" class="bg-white rounded-2xl p-5 sm:p-6 lg:p-7 xl:p-8 border border-slate-200/90 flex flex-col justify-between h-[230px] animate-pulse shadow-xs">
+          <div>
+            <div class="flex items-center justify-between">
+              <div class="w-11 sm:w-12 h-11 sm:h-12 rounded-xl bg-slate-100"></div>
+              <div class="h-6 w-24 bg-slate-100 rounded-lg"></div>
+            </div>
+            <div class="h-6 w-32 bg-slate-100 rounded mt-5"></div>
+            <div class="h-4 w-full bg-slate-100 rounded mt-2.5"></div>
+            <div class="h-4 w-3/4 bg-slate-100 rounded mt-2"></div>
+          </div>
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div class="h-4 w-24 bg-slate-100 rounded"></div>
+            <div class="h-4 w-20 bg-slate-100 rounded"></div>
+          </div>
         </div>
       </div>
 
       <!-- Cards Grid (Hanya menampilkan sistem yang memiliki modul penggunaan) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 xl:gap-8">
+      <div v-else-if="activeSystems.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 xl:gap-8">
         <div
           v-for="sys in activeSystems"
           :key="sys.id"
@@ -601,6 +611,12 @@ function clearSearch() {
             </span>
           </div>
         </div>
+      </div>
+
+      <!-- Empty State jika belum ada modul aktif -->
+      <div v-else class="text-center py-16 bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
+        <p class="text-sm font-semibold text-slate-700">Belum ada kategori sistem dengan modul panduan terbit.</p>
+        <p class="text-xs text-slate-400 mt-1">Modul akan otomatis muncul di sini setelah diterbitkan melalui CMS Implementator.</p>
       </div>
 
     </main>

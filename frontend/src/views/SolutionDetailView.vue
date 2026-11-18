@@ -19,7 +19,7 @@ import {
   Check
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import { slugify, findArticleByParam } from '../utils/slug'
+import { slugify, findArticleByParam, ensureCategoriesLoaded } from '../utils/slug'
 
 const route = useRoute()
 const router = useRouter()
@@ -151,12 +151,14 @@ async function loadArticle() {
   const numId = Number(param)
 
   try {
+    const allCats = await ensureCategoriesLoaded().catch(() => [])
+
     // 1. If param is numeric, try fetching directly by ID
     if (!isNaN(numId) && numId > 0) {
       try {
         const res = await apiClient.get(`/articles/${numId}`)
         if (res.data && res.data.data) {
-          processArticleData(res.data.data)
+          processArticleData(res.data.data, allCats)
           const canonicalSlug = slugify(res.data.data.title)
           if (canonicalSlug && route.params.id !== canonicalSlug) {
             router.replace(`/solutions/${canonicalSlug}`)
@@ -177,12 +179,12 @@ async function loadArticle() {
         try {
           const detailRes = await apiClient.get(`/articles/${matched.id}`)
           if (detailRes.data && detailRes.data.data) {
-            processArticleData(detailRes.data.data)
+            processArticleData(detailRes.data.data, allCats)
           } else {
-            processArticleData(matched)
+            processArticleData(matched, allCats)
           }
         } catch {
-          processArticleData(matched)
+          processArticleData(matched, allCats)
         }
 
         const canonicalSlug = slugify(matched.title)
@@ -201,12 +203,14 @@ async function loadArticle() {
   }
 }
 
-function processArticleData(raw) {
+function processArticleData(raw, allCats = []) {
   const primaryMenu = raw.menu_systems && raw.menu_systems.length > 0 ? raw.menu_systems[0] : null
-  const katId = primaryMenu ? primaryMenu.kategori_id : 1
-  const sysShort = systemNameMap[katId] || 'PHIS'
-  const sysFull = systemFullTitleMap[katId] || sysShort
-  const menuName = primaryMenu ? primaryMenu.name : 'Setup Master'
+  const rawKategori = primaryMenu && primaryMenu.kategori
+  const katId = primaryMenu ? primaryMenu.kategori_id : (rawKategori ? rawKategori.id : null)
+  const matchedCat = (allCats || []).find(c => c.id === katId) || (rawKategori ? rawKategori : null)
+  const sysShort = (matchedCat && matchedCat.name) || (katId && systemNameMap[katId]) || 'Sistem Probus'
+  const sysFull = sysShort
+  const menuName = primaryMenu ? primaryMenu.name : 'Umum'
 
   const words = (raw.content || '').split(/\s+/).length
   const minutes = Math.max(2, Math.min(10, Math.ceil(words / 150)))

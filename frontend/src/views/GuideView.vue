@@ -43,18 +43,8 @@ let copyTimeout = null
 const tocSearchQuery = ref('')
 const expandedModules = ref({})
 
-const isLoading = ref(false)
-const availableSystems = ref([
-  { id: 1, name: 'PHIS', title: 'PHIS (1 Modul)', modulCount: 1, shortName: 'PHIS' },
-  { id: 2, name: 'PRESTO', title: 'PRESTO (4 Modul)', modulCount: 4, shortName: 'PRESTO' },
-  { id: 3, name: 'PPOS', title: 'PPOS (1 Modul)', modulCount: 1, shortName: 'PPOS' },
-  { id: 4, name: 'SELF ORDER', title: 'SELF ORDER (2 Modul)', modulCount: 2, shortName: 'SELF ORDER' },
-  { id: 5, name: 'PR-PO ONLINE', title: 'PR-PO ONLINE (1 Modul)', modulCount: 1, shortName: 'PR-PO ONLINE' },
-  { id: 6, name: 'ORDER TAKER', title: 'ORDER TAKER (1 Modul)', modulCount: 1, shortName: 'ORDER TAKER' },
-  { id: 7, name: 'VRESTROPICAL', title: 'VRESTROPICAL (0 Modul)', modulCount: 0, shortName: 'VRESTROPICAL' },
-  { id: 8, name: 'PPE', title: 'PPE (0 Modul)', modulCount: 0, shortName: 'PPE' },
-  { id: 9, name: 'BARONG POS', title: 'BARONG POS (0 Modul)', modulCount: 0, shortName: 'BARONG POS' },
-])
+const isLoading = ref(true)
+const availableSystems = ref([])
 
 const currentSystem = computed(() => {
   const found = availableSystems.value.find(s => s.id === selectedSystemId.value)
@@ -748,7 +738,7 @@ watch(
           </div>
 
           <!-- Horizontal Scroll Container -->
-          <div class="custom-sky-scrollbar flex items-center gap-2.5 overflow-x-auto pb-3 pt-1">
+          <div v-if="displayAvailableSystems.length > 0" class="custom-sky-scrollbar flex items-center gap-2.5 overflow-x-auto pb-3 pt-1">
             <button
               v-for="sys in displayAvailableSystems"
               :key="sys.id"
@@ -790,6 +780,10 @@ watch(
                 {{ sys.modulCount ?? 0 }} Modul
               </span>
             </button>
+          </div>
+          <!-- Skeleton Loading Pills -->
+          <div v-else class="flex items-center gap-2.5 pb-3 pt-1 animate-pulse overflow-hidden">
+            <div v-for="i in 4" :key="i" class="h-9 w-28 bg-slate-100 rounded-xl shrink-0"></div>
           </div>
         </div>
       </div>

@@ -282,10 +282,7 @@ watch(
 )
 
 const activeModuleCards = computed(() => {
-  if (isModulesLoaded.value) {
-    return dynamicModules.value
-  }
-  return systemId.value === 2 ? prestoFallbackModules : []
+  return dynamicModules.value
 })
 
 // Filtered lists
@@ -519,7 +516,7 @@ function goBackHome() {
                 activeTab === 'manual' ? 'bg-sky-700 text-white' : 'bg-slate-100 text-slate-600'
               ]"
             >
-              10 Modul
+              {{ activeModuleCards.length }} Modul
             </span>
           </button>
 
@@ -566,14 +563,33 @@ function goBackHome() {
             Pelajari panduan tata cara penggunaan fitur {{ currentSystem.name }} langkah demi langkah per modul:
           </p>
         </div>
-        <div class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-600 w-fit">
+        <div v-if="isModulesLoaded" class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-600 w-fit">
           {{ filteredModuleCards.length }} Modul Tersedia
         </div>
+        <div v-else class="h-6 w-28 bg-slate-100 rounded-full animate-pulse"></div>
       </div>
 
       <!-- TAB 1: Modul Cards Grid (Hanya yang memiliki buku panduan) -->
       <div v-if="activeTab === 'manual'">
-        <div v-if="filteredModuleCards.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 xl:gap-8">
+        <!-- Loading Skeleton -->
+        <div v-if="!isModulesLoaded" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 xl:gap-8">
+          <div v-for="i in 3" :key="i" class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 flex flex-col justify-between h-[210px] animate-pulse shadow-xs">
+            <div>
+              <div class="flex items-center justify-between">
+                <div class="w-12 h-12 rounded-xl bg-slate-100"></div>
+                <div class="h-6 w-20 bg-slate-100 rounded-md"></div>
+              </div>
+              <div class="h-6 w-36 bg-slate-100 rounded mt-5"></div>
+              <div class="h-4 w-full bg-slate-100 rounded mt-2.5"></div>
+              <div class="h-4 w-2/3 bg-slate-100 rounded mt-2"></div>
+            </div>
+            <div class="pt-5 border-t border-slate-100 flex items-center justify-between">
+              <div class="h-4 w-24 bg-slate-100 rounded"></div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="filteredModuleCards.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 xl:gap-8">
           <div
             v-for="card in filteredModuleCards"
             :key="card.id"
