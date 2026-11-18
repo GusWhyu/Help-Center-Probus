@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getSystemIdFromParam, getSystemSlug, slugify, highlightKeyword, registerCategories, ensureCategoriesLoaded, resolveSystemId } from '../utils/slug'
 import apiClient from '../api/client'
-import { detectModuleIcon, parseModuleDescription, resolveModuleIcon } from '../utils/iconResolver'
+import { detectModuleIcon, parseModuleDescription, resolveModuleIcon, isImageIcon } from '../utils/iconResolver'
 import {
   ArrowLeft,
   ArrowRight,
@@ -223,7 +223,10 @@ async function loadSystemModules() {
 
         // HANYA tampilkan modul yang memang memiliki buku panduan (count > 0)
         if (manualCount > 0) {
-          const { icon: customIcon, text: cleanDesc, isImage } = parseModuleDescription(menu.description)
+          const parsed = parseModuleDescription(menu.description)
+          const customIcon = menu.icon || parsed.icon
+          const cleanDesc = (parsed.text || menu.description || '').trim()
+          const isImage = isImageIcon(customIcon)
           const moduleIcon = isImage ? customIcon : resolveModuleIcon(customIcon, menu.name, orderNum)
           activeOnly.push({
             id: menu.id,

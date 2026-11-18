@@ -29,6 +29,8 @@ type MenuSystem struct {
 	ParentID    *uint        `json:"parent_id"`
 	Name        string       `gorm:"size:100;not null" json:"name"`
 	Description *string      `gorm:"type:text" json:"description,omitempty"`
+	IconMode    *string      `gorm:"size:20" json:"icon_mode,omitempty"`
+	Icon        *string      `gorm:"size:255" json:"icon,omitempty"`
 	Order       int          `gorm:"default:0" json:"order"`
 	CreatedAt   *time.Time   `json:"created_at,omitempty"`
 	UpdatedAt   *time.Time   `json:"updated_at,omitempty"`

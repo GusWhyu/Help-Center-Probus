@@ -371,7 +371,8 @@ async function loadSystemData() {
           })
         }
 
-        const { text: cleanDesc } = parseModuleDescription(menu.description)
+        const parsed = parseModuleDescription(menu.description)
+        const cleanDesc = (parsed.text || menu.description || '').trim()
 
         return {
           id: menu.id,
