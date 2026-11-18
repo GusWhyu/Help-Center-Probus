@@ -1,3 +1,5 @@
+import apiClient from '../api/client'
+
 /**
  * Utility functions for URL Slug generation and resolution
  * Maps systems, modules, and articles to human-readable & secure URL slugs without altering MySQL database schemas.
@@ -14,6 +16,7 @@ export const systemSlugMap = {
   7: 'vrestropical',
   8: 'ppe',
   9: 'barong-pos',
+  12: 'channel-manager-ezze',
 }
 
 // Aliases mapping for backward compatibility and friendly URLs
@@ -61,7 +64,7 @@ export const systemAliasToId = {
 const dynamicCategoryMap = new Map()
 const dynamicSlugToIdMap = new Map()
 
-// Pre-seeded categories including new systems (e.g. 10: Project WEB, 11: CHANNEL MANAGER (eZee))
+// Pre-seeded categories including new systems (e.g. 10: Project WEB, 11: CHANNEL MANAGER (eZee), 12: Channel Manager (Ezze))
 const preseededCategories = [
   { id: 1, name: 'PHIS' },
   { id: 2, name: 'PRESTO' },
@@ -74,7 +77,66 @@ const preseededCategories = [
   { id: 9, name: 'BARONG POS' },
   { id: 10, name: 'Project WEB' },
   { id: 11, name: 'CHANNEL MANAGER (eZee)' },
+  { id: 12, name: 'Channel Manager (Ezze)' },
 ]
+
+// In-flight categories fetch promise to avoid redundant API calls
+let categoriesPromise = null
+
+/**
+ * Fetch all categories from backend API and register them dynamically.
+ * Ensures unknown slugs can be resolved on initial refresh/F5 without falling back to PRESTO.
+ */
+export async function ensureCategoriesLoaded(forceRefresh = false) {
+  if (categoriesPromise && !forceRefresh) {
+    return categoriesPromise
+  }
+  try {
+    categoriesPromise = apiClient.get('/categories')
+      .then(res => {
+        if (res.data && res.data.data && Array.isArray(res.data.data)) {
+          registerCategories(res.data.data)
+          return res.data.data
+        }
+        return []
+      })
+      .catch(err => {
+        console.warn('[slug] Auto-fetch categories failed:', err)
+        categoriesPromise = null
+        return []
+      })
+    return await categoriesPromise
+  } catch (err) {
+    console.warn('[slug] Error in ensureCategoriesLoaded:', err)
+    return []
+  }
+}
+
+/**
+ * Asynchronously resolve a system ID from route parameter, auto-fetching categories if unrecognised.
+ */
+export async function resolveSystemId(param, defaultId = 2) {
+  if (param === undefined || param === null || param === '') {
+    return defaultId
+  }
+
+  // 1. Try resolving with currently loaded memory
+  const syncId = getSystemIdFromParam(param, null)
+  if (syncId !== null) {
+    return syncId
+  }
+
+  // 2. Fresh reload / F5 with new system slug: fetch latest categories from database
+  await ensureCategoriesLoaded(true)
+
+  // 3. Re-resolve with newly registered categories
+  const reResolved = getSystemIdFromParam(param, null)
+  if (reResolved !== null) {
+    return reResolved
+  }
+
+  return defaultId
+}
 
 /**
  * Register categories dynamically into the in-memory lookup cache.

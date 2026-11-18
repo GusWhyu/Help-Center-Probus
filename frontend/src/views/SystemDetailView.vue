@@ -1,9 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getSystemIdFromParam, getSystemSlug, slugify, highlightKeyword, registerCategories } from '../utils/slug'
+import { getSystemIdFromParam, getSystemSlug, slugify, highlightKeyword, registerCategories, ensureCategoriesLoaded, resolveSystemId } from '../utils/slug'
 import apiClient from '../api/client'
-import { detectModuleIcon } from '../utils/iconResolver'
+import { detectModuleIcon, parseModuleDescription, resolveModuleIcon } from '../utils/iconResolver'
 import {
   ArrowLeft,
   ArrowRight,
@@ -35,7 +35,7 @@ const router = useRouter()
 const mobileMenuOpen = ref(false)
 
 // Get system ID from route parameter, supports both slugs ('self-order') and legacy IDs ('4')
-const systemId = computed(() => getSystemIdFromParam(route.params.id, 2))
+const systemId = ref(getSystemIdFromParam(route.params.id, 2))
 
 // Active Tab: 'manual' or 'solusi'
 const activeTab = ref('manual')
@@ -155,8 +155,10 @@ const troubleshootingArticles = ref([])
 
 async function loadSystemArticles() {
   try {
+    const currentId = systemId.value
+    if (!currentId) return
     const res = await apiClient.get('/articles', {
-      params: { kategori_id: systemId.value, limit: 50 }
+      params: { kategori_id: currentId, limit: 50 }
     })
     if (res.data && res.data.data && Array.isArray(res.data.data)) {
       troubleshootingArticles.value = res.data.data
@@ -191,7 +193,15 @@ const isModulesLoaded = ref(false)
 
 async function loadSystemModules() {
   try {
-    const res = await apiClient.get(`/categories/${systemId.value}`)
+    // 1. Pastikan seluruh kategori dari database teregistrasi ke registry slug
+    await ensureCategoriesLoaded()
+
+    // 2. Resolve systemId secara akurat berdasarkan parameter rute
+    const resolvedId = await resolveSystemId(route.params.id, systemId.value || 2)
+    systemId.value = resolvedId
+
+    // 3. Ambil data kategori & modul untuk sistem yang benar
+    const res = await apiClient.get(`/categories/${resolvedId}`)
     if (res.data && res.data.data) {
       registerCategories([res.data.data])
       categoryData.value = res.data.data
@@ -213,13 +223,16 @@ async function loadSystemModules() {
 
         // HANYA tampilkan modul yang memang memiliki buku panduan (count > 0)
         if (manualCount > 0) {
+          const { icon: customIcon, text: cleanDesc, isImage } = parseModuleDescription(menu.description)
+          const moduleIcon = isImage ? customIcon : resolveModuleIcon(customIcon, menu.name, orderNum)
           activeOnly.push({
             id: menu.id,
             order: orderNum,
             name: menu.name,
             title: `${code}. ${menu.name}`,
-            desc: menu.description || 'Panduan operasional dan tata cara penggunaan fitur modul.',
-            icon: detectModuleIcon(menu.name, orderNum),
+            desc: cleanDesc || 'Panduan operasional dan tata cara penggunaan fitur modul.',
+            icon: moduleIcon,
+            isImage: isImage,
             count: manualCount,
             countText: `${manualCount} Panduan`,
             estTime: 'Est. 5 menit',
@@ -243,9 +256,9 @@ async function loadSystemModules() {
   }
 }
 
-onMounted(() => {
-  loadSystemArticles()
-  loadSystemModules()
+onMounted(async () => {
+  await loadSystemModules()
+  await loadSystemArticles()
   const currentParam = route.params.id
   const canonicalSlug = getSystemSlug(systemId.value, currentSystem.value)
   if (currentParam && !isNaN(Number(currentParam))) {
@@ -255,14 +268,15 @@ onMounted(() => {
 
 watch(
   () => route.params.id,
-  () => {
-    isModulesLoaded.value = false
-    loadSystemArticles()
-    loadSystemModules()
-    const currentParam = route.params.id
-    const canonicalSlug = getSystemSlug(systemId.value, currentSystem.value)
-    if (currentParam && !isNaN(Number(currentParam))) {
-      router.replace(`/system/${canonicalSlug}`)
+  async (newParam) => {
+    if (newParam) {
+      isModulesLoaded.value = false
+      await loadSystemModules()
+      await loadSystemArticles()
+      const canonicalSlug = getSystemSlug(systemId.value, currentSystem.value)
+      if (!isNaN(Number(newParam))) {
+        router.replace(`/system/${canonicalSlug}`)
+      }
     }
   }
 )
@@ -570,9 +584,16 @@ function goBackHome() {
               <!-- Card Top: Icon & Count Badge -->
               <div class="flex items-center justify-between">
                 <div
-                  class="w-11 h-11 rounded-xl flex items-center justify-center bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600 transition-colors"
+                  class="rounded-xl flex items-center justify-center transition-all overflow-hidden"
+                  :class="card.isImage ? 'w-12 h-12 bg-white border border-slate-200/90 p-0 shadow-2xs' : 'w-11 h-11 bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600'"
                 >
-                  <component :is="card.icon" class="w-5 h-5 stroke-[1.8]" />
+                  <img
+                    v-if="card.isImage"
+                    :src="card.icon"
+                    :alt="card.name"
+                    class="w-full h-full object-cover rounded-xl transition-transform duration-200 group-hover:scale-105"
+                  />
+                  <component v-else :is="card.icon" class="w-5 h-5 stroke-[1.8]" />
                 </div>
 
                 <!-- Top Right Badge (Pill) - Menampilkan jumlah panduan riil -->

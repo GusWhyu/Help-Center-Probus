@@ -32,9 +32,23 @@ import {
   Globe,
   Users,
   ShieldCheck,
+  Shield,
   CreditCard,
   Coffee,
-  Hotel
+  Hotel,
+  Bed,
+  Key,
+  Wifi,
+  Car,
+  Bell,
+  Tv,
+  Clock,
+  Heart,
+  Star,
+  Compass,
+  Tag,
+  Award,
+  Flame
 } from 'lucide-vue-next'
 
 // Standard 10 Module Order Map (Fallback for Standard ERP Modules)
@@ -62,6 +76,8 @@ const officialSystemIcons = {
   'VRESTROPICAL': Sparkles,
   'PPE': Zap,
   'BARONG POS': Laptop,
+  'CHANNEL MANAGER': Globe,
+  'CHANNEL MANAGER (EZZE)': Globe,
 }
 
 /**
@@ -124,6 +140,11 @@ export function detectSystemIcon(systemName) {
   // 9. Finance & Akuntansi
   if (s.includes('akuntan') || s.includes('finance') || s.includes('keuangan') || s.includes('pajak')) {
     return BarChart3
+  }
+
+  // 10. Channel Manager, OTA & Distribusi Online
+  if (s.includes('channel') || s.includes('ota') || s.includes('ezze') || s.includes('distribusi') || s.includes('distribution') || s.includes('extranet')) {
+    return Globe
   }
 
   // Default fallback untuk sistem baru
@@ -220,7 +241,125 @@ export function detectModuleIcon(moduleName, orderNum = 0) {
   return BookOpen
 }
 
+export const namedModuleIcons = {
+  'settings': Settings,
+  'utensils': UtensilsCrossed,
+  'utensils-crossed': UtensilsCrossed,
+  'store': Store,
+  'pie-chart': PieChart,
+  'shopping-bag': ShoppingBag,
+  'receipt': Receipt,
+  'wallet': Wallet,
+  'bar-chart': BarChart3,
+  'bar-chart-3': BarChart3,
+  'trending-up': TrendingUp,
+  'printer': Printer,
+  'smartphone': Smartphone,
+  'package': Package,
+  'users': Users,
+  'zap': Zap,
+  'laptop': Laptop,
+  'building': Building2,
+  'building-2': Building2,
+  'monitor': MonitorCheck,
+  'monitor-check': MonitorCheck,
+  'hotel': Hotel,
+  'credit-card': CreditCard,
+  'coffee': Coffee,
+  'sparkles': Sparkles,
+  'calendar': Calendar,
+  'calculator': Calculator,
+  'network': Network,
+  'wrench': Wrench,
+  'sliders': Sliders,
+  'book': BookOpen,
+  'bed': Bed,
+  'key': Key,
+  'wifi': Wifi,
+  'car': Car,
+  'bell': Bell,
+  'shield': ShieldCheck,
+  'shield-check': ShieldCheck,
+  'tv': Tv,
+  'clock': Clock,
+  'heart': Heart,
+  'star': Star,
+  'compass': Compass,
+  'tag': Tag,
+  'award': Award,
+  'flame': Flame,
+  'folder': Folder,
+  'layers': Layers,
+  'file': FileText,
+  'file-text': FileText,
+  'globe': Globe,
+  'search': Search,
+}
+
+/**
+ * Cek apakah string icon adalah file gambar (/uploads/... atau berekstensi gambar)
+ */
+export function isImageIcon(iconKey) {
+  if (!iconKey) return false
+  return /\.(png|svg|jpg|jpeg|webp)$/i.test(iconKey) || iconKey.startsWith('/uploads/') || iconKey.startsWith('http')
+}
+
+/**
+ * Memisahkan custom icon tag (<!--icon:printer--> atau <!--icon:/uploads/...-->) dari teks deskripsi modul
+ */
+export function parseModuleDescription(rawDesc) {
+  if (!rawDesc) return { icon: null, text: '', isImage: false }
+  let icon = null
+  let text = String(rawDesc)
+  const match = text.match(/<!--icon:([^>]+)-->/)
+  let isImage = false
+  if (match) {
+    icon = match[1].trim()
+    text = text.replace(match[0], '').trim()
+    isImage = isImageIcon(icon)
+  }
+  return { icon, text, isImage }
+}
+
+/**
+ * Menyelesaikan icon modul: utamakan icon kustom, jika kosong fallback otomatis ke detectModuleIcon
+ */
+export function resolveModuleIcon(customIconKey, moduleName, orderNum = 0) {
+  if (customIconKey && !isImageIcon(customIconKey)) {
+    const key = customIconKey.toLowerCase()
+    if (namedModuleIcons[key]) {
+      return namedModuleIcons[key]
+    }
+  }
+  return detectModuleIcon(moduleName, orderNum)
+}
+
+/**
+ * Menyelesaikan icon kartu sistem: utamakan custom icon (file gambar atau icon Lucide), fallback ke detectSystemIcon
+ */
+export function resolveSystemIcon(customIconKey, systemName) {
+  if (customIconKey) {
+    if (isImageIcon(customIconKey)) {
+      return { isImage: true, icon: customIconKey }
+    }
+    const key = customIconKey.toLowerCase().replace(/_/g, '-')
+    const keyNoDash = key.replace(/-/g, '')
+    if (namedModuleIcons[key]) {
+      return { isImage: false, icon: namedModuleIcons[key] }
+    }
+    if (namedModuleIcons[keyNoDash]) {
+      return { isImage: false, icon: namedModuleIcons[keyNoDash] }
+    }
+  }
+  return { isImage: false, icon: detectSystemIcon(systemName) }
+}
+
 export default {
   detectSystemIcon,
   detectModuleIcon,
+  namedModuleIcons,
+  isImageIcon,
+  parseModuleDescription,
+  resolveModuleIcon,
+  resolveSystemIcon,
 }

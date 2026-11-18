@@ -19,8 +19,8 @@ import {
   Check
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import { detectSystemIcon } from '../utils/iconResolver'
-import { slugify, getSystemSlug, getSystemIdFromParam, findModuleByParam, highlightKeyword, registerCategories } from '../utils/slug'
+import { detectSystemIcon, resolveSystemIcon, parseModuleDescription } from '../utils/iconResolver'
+import { slugify, getSystemSlug, getSystemIdFromParam, findModuleByParam, highlightKeyword, registerCategories, ensureCategoriesLoaded, resolveSystemId } from '../utils/slug'
 
 const route = useRoute()
 const router = useRouter()
@@ -238,22 +238,14 @@ async function shareCurrentGuide() {
 async function loadSystemData() {
   isLoading.value = true
   try {
-    // 1. Fetch Categories and all published Manual Books to determine real published module count
-    const [catRes, allManualRes, detailRes, manualRes] = await Promise.all([
+    // 1. Fetch Categories dan all published Manual Books terlebih dahulu
+    const [catRes, allManualRes] = await Promise.all([
       apiClient.get('/categories').catch(err => {
         console.warn('Failed to fetch categories:', err)
         return { data: { data: [] } }
       }),
       apiClient.get('/manual-books').catch(err => {
         console.warn('Failed to fetch all manual books:', err)
-        return { data: { data: [] } }
-      }),
-      apiClient.get(`/categories/${selectedSystemId.value}`).catch(err => {
-        console.warn(`Failed to fetch category detail for ID ${selectedSystemId.value}:`, err)
-        return { data: { data: null } }
-      }),
-      apiClient.get('/manual-books', { params: { kategori_id: selectedSystemId.value } }).catch(err => {
-        console.warn(`Failed to fetch manual books for category ID ${selectedSystemId.value}:`, err)
         return { data: { data: [] } }
       })
     ])
@@ -277,23 +269,52 @@ async function loadSystemData() {
 
     if (catRes.data && catRes.data.data && Array.isArray(catRes.data.data)) {
       registerCategories(catRes.data.data)
+
+      const fetchCustomCards = async () => {
+        try {
+          const res = await fetch('/uploads/system_cards.json?t=' + Date.now())
+          if (res.ok) return await res.json()
+        } catch (_) {}
+        try {
+          const res = await fetch('/system_cards.json?t=' + Date.now())
+          if (res.ok) return await res.json()
+        } catch (_) {}
+        return {}
+      }
+
+      const customCards = await fetchCustomCards()
+
       availableSystems.value = catRes.data.data.map(cat => {
         const count = publishedModuleCounts[cat.id] ? publishedModuleCounts[cat.id].size : 0
+        const card = (customCards && (customCards[String(cat.id)] || customCards[cat.name])) || {}
+        const resolved = resolveSystemIcon(card.icon, cat.name)
         return {
           id: cat.id,
           name: cat.name,
           title: `${cat.name} (${count} Modul)`,
           modulCount: count,
           shortName: cat.name,
+          icon: resolved.icon,
+          isImage: resolved.isImage,
         }
       })
-
-      // Re-verify selectedSystemId with newly registered categories
-      const reResolvedId = getSystemIdFromParam(route.params.systemId, selectedSystemId.value)
-      if (reResolvedId && reResolvedId !== selectedSystemId.value) {
-        selectedSystemId.value = reResolvedId
-      }
     }
+
+    // 2. Resolve selectedSystemId secara akurat setelah kategori database teregistrasi
+    const resolvedSysId = await resolveSystemId(route.params.systemId, selectedSystemId.value || 2)
+    selectedSystemId.value = resolvedSysId
+
+    // 3. BARU fetch detail kategori dan manual-books untuk sistem terpilih
+    const [detailRes, manualRes] = await Promise.all([
+      apiClient.get(`/categories/${selectedSystemId.value}`).catch(err => {
+        console.warn(`Failed to fetch category detail for ID ${selectedSystemId.value}:`, err)
+        return { data: { data: null } }
+      }),
+      apiClient.get('/manual-books', { params: { kategori_id: selectedSystemId.value } }).catch(err => {
+        console.warn(`Failed to fetch manual books for category ID ${selectedSystemId.value}:`, err)
+        return { data: { data: [] } }
+      })
+    ])
 
     // 2. Modul menus dari database untuk kategori yang sedang dipilih
     let menusFromDb = []
@@ -354,13 +375,15 @@ async function loadSystemData() {
           })
         }
 
+        const { text: cleanDesc } = parseModuleDescription(menu.description)
+
         return {
           id: menu.id,
           order: orderNum,
           code: code,
           name: menu.name,
           title: `${code}. ${menu.name}`,
-          desc: menu.description || 'Panduan operasional dan tata cara penggunaan fitur modul.',
+          desc: cleanDesc || 'Panduan operasional dan tata cara penggunaan fitur modul.',
           manualBooks: uniqueLinked,
           hasManualBook: uniqueLinked.length > 0,
         }
@@ -573,9 +596,9 @@ onMounted(() => {
 
 watch(
   () => route.params,
-  newParams => {
+  async newParams => {
     if (newParams.systemId) {
-      const resolvedSysId = getSystemIdFromParam(newParams.systemId, selectedSystemId.value)
+      const resolvedSysId = await resolveSystemId(newParams.systemId, selectedSystemId.value)
       if (resolvedSysId !== selectedSystemId.value) {
         selectedSystemId.value = resolvedSysId
         loadSystemData()
@@ -735,13 +758,16 @@ watch(
               <!-- System Icon -->
               <div
                 :class="[
-                  'w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors',
-                  selectedSystemId === sys.id
-                    ? 'bg-white/20 text-white'
-                    : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'
+                  'w-6 h-6 rounded-lg flex items-center justify-center shrink-0 overflow-hidden transition-colors',
+                  sys.isImage
+                    ? 'p-0 bg-white border border-slate-200'
+                    : (selectedSystemId === sys.id
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600')
                 ]"
               >
-                <component :is="detectSystemIcon(sys.name)" class="w-3.5 h-3.5" />
+                <img v-if="sys.isImage" :src="sys.icon" :alt="sys.name" class="w-full h-full object-cover" />
+                <component v-else :is="sys.icon" class="w-3.5 h-3.5" />
               </div>
 
               <!-- System Name -->

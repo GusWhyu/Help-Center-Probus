@@ -25,7 +25,7 @@ import {
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { slugify, highlightKeyword } from '../utils/slug'
-import { detectSystemIcon } from '../utils/iconResolver'
+import { detectSystemIcon, resolveSystemIcon } from '../utils/iconResolver'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -131,9 +131,31 @@ async function loadArticles() {
   }
 }
 
-onMounted(() => {
-  loadCategories()
-  loadArticles()
+// System card metadata from system_cards.json
+const systemCards = ref({})
+
+async function loadSystemCards() {
+  try {
+    const res = await fetch('/uploads/system_cards.json?t=' + Date.now())
+    if (res.ok) {
+      systemCards.value = await res.json()
+      return
+    }
+  } catch (_) {}
+  try {
+    const res = await fetch('/system_cards.json?t=' + Date.now())
+    if (res.ok) {
+      systemCards.value = await res.json()
+    }
+  } catch (_) {}
+}
+
+onMounted(async () => {
+  await Promise.all([
+    loadSystemCards(),
+    loadCategories(),
+    loadArticles()
+  ])
 })
 
 // Exact database categories from `kategori` table
@@ -149,7 +171,7 @@ const default9Categories = [
   { value: 9, label: 'BARONG POS' },
 ]
 
-// All 9 system categories directly from database `kategori` table + Semua Sistem di paling depan (Index 0)
+// All system categories directly from database `kategori` table + Semua Sistem di paling depan (Index 0)
 const systemOptions = computed(() => {
   const result = []
 
@@ -159,9 +181,11 @@ const systemOptions = computed(() => {
     code: 'ALL',
     label: 'Semua Sistem',
     articleCount: articles.value.length,
+    icon: Layers,
+    isImage: false,
   })
 
-  // 2. 9 Kategori Sistem Resmi Probus
+  // 2. Kategori Sistem dari database `kategori` table
   if (categories.value && categories.value.length > 0) {
     const sorted = [...categories.value].sort((a, b) => a.id - b.id)
     sorted.forEach(c => {
@@ -171,11 +195,16 @@ const systemOptions = computed(() => {
         return matchId || matchSys
       }).length
 
+      const card = (systemCards.value && (systemCards.value[String(c.id)] || systemCards.value[c.name])) || {}
+      const resolved = resolveSystemIcon(card.icon, c.name)
+
       result.push({
         value: c.id,
         code: c.name,
         label: c.name, // PHIS, PRESTO, PPOS, SELF ORDER, etc.
         articleCount: count,
+        icon: resolved.icon,
+        isImage: resolved.isImage,
       })
     })
   } else {
@@ -186,11 +215,16 @@ const systemOptions = computed(() => {
         return matchId || matchSys
       }).length
 
+      const card = (systemCards.value && (systemCards.value[String(c.value)] || systemCards.value[c.label])) || {}
+      const resolved = resolveSystemIcon(card.icon, c.label)
+
       result.push({
         value: c.value,
         code: c.label,
         label: c.label,
         articleCount: count,
+        icon: resolved.icon,
+        isImage: resolved.isImage,
       })
     })
   }
@@ -478,7 +512,7 @@ function goBackHome() {
               </span>
             </div>
             <span class="text-[11px] text-slate-400">
-              10 Pilihan Sistem
+              {{ systemOptions.length > 1 ? (systemOptions.length - 1) + ' Kategori Sistem' : 'Semua Sistem' }}
             </span>
           </div>
 
@@ -487,6 +521,7 @@ function goBackHome() {
             <button
               v-for="opt in systemOptions"
               :key="opt.value"
+              :title="opt.label"
               @click="selectSystem(opt.value)"
               :class="[
                 'group w-full flex items-center justify-between gap-2 text-xs px-3 py-2.5 rounded-xl font-bold transition-all duration-200 cursor-pointer select-none text-left',
@@ -499,14 +534,23 @@ function goBackHome() {
                 <!-- System Icon -->
                 <div
                   :class="[
-                    'w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors',
-                    selectedSystemFilter === opt.value
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-100 text-slate-500 group-hover:bg-emerald-100 group-hover:text-emerald-600'
+                    'w-6 h-6 rounded-lg flex items-center justify-center shrink-0 overflow-hidden transition-colors',
+                    opt.isImage
+                      ? 'p-0 bg-white border border-slate-200'
+                      : (selectedSystemFilter === opt.value
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-100 text-slate-500 group-hover:bg-emerald-100 group-hover:text-emerald-600')
                   ]"
                 >
+                  <img
+                    v-if="opt.isImage"
+                    :src="opt.icon"
+                    :alt="opt.label"
+                    class="w-full h-full object-cover"
+                  />
                   <component
-                    :is="opt.value === 'all' ? Layers : detectSystemIcon(opt.code)"
+                    v-else
+                    :is="opt.icon"
                     class="w-3.5 h-3.5"
                   />
                 </div>

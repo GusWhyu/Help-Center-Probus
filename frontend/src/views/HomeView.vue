@@ -27,7 +27,7 @@ import {
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { getSystemSlug, slugify, highlightKeyword, registerCategories } from '../utils/slug'
-import { detectSystemIcon } from '../utils/iconResolver'
+import { detectSystemIcon, resolveSystemIcon } from '../utils/iconResolver'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -102,9 +102,23 @@ const systems = ref([
 onMounted(async () => {
   try {
     isLoading.value = true
-    const [res, manualRes] = await Promise.all([
+
+    const fetchCustomCards = async () => {
+      try {
+        const res = await fetch('/uploads/system_cards.json?t=' + Date.now())
+        if (res.ok) return await res.json()
+      } catch (_) {}
+      try {
+        const res = await fetch('/system_cards.json?t=' + Date.now())
+        if (res.ok) return await res.json()
+      } catch (_) {}
+      return {}
+    }
+
+    const [res, manualRes, customCards] = await Promise.all([
       apiClient.get('/categories'),
-      apiClient.get('/manual-books')
+      apiClient.get('/manual-books'),
+      fetchCustomCards()
     ])
 
     // Hitung jumlah modul yang benar-benar memiliki buku panduan terbit (published) per kategori
@@ -132,15 +146,21 @@ onMounted(async () => {
           badge: 'Sistem Probus',
           desc: cat.description || `Panduan operasional dan solusi kendala sistem ${cat.name}.`,
         }
+        const customCard = (customCards && (customCards[String(cat.id)] || customCards[cat.name])) || {}
+        const badge = customCard.badge || meta.badge
+        const desc = customCard.desc || cat.description || meta.desc
+        const resolved = resolveSystemIcon(customCard.icon, cat.name)
         const count = publishedModuleCounts[cat.id] ? publishedModuleCounts[cat.id].size : 0
+
         return {
           id: cat.id,
           name: cat.name,
           title: cat.name,
-          badge: meta.badge,
-          desc: cat.description || meta.desc,
+          badge: badge,
+          desc: desc,
           modulCount: count,
-          icon: detectSystemIcon(cat.name),
+          icon: resolved.icon,
+          isImage: resolved.isImage,
         }
       })
     }
@@ -540,9 +560,14 @@ function clearSearch() {
             <!-- Card Top: Icon & Badge -->
             <div class="flex items-center justify-between">
               <div
-                class="w-11 sm:w-12 h-11 sm:h-12 rounded-xl flex items-center justify-center bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600 transition-colors shadow-2xs"
+                class="w-11 sm:w-12 h-11 sm:h-12 rounded-xl flex items-center justify-center overflow-hidden transition-colors shadow-2xs"
+                :class="{
+                  'p-0 border border-slate-200/80 bg-white': sys.isImage,
+                  'bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600': !sys.isImage
+                }"
               >
-                <component :is="sys.icon" class="w-5 sm:w-6 h-5 sm:h-6 stroke-[1.8]" />
+                <img v-if="sys.isImage" :src="sys.icon" :alt="sys.title" class="w-full h-full object-cover" />
+                <component v-else :is="sys.icon" class="w-5 sm:w-6 h-5 sm:h-6 stroke-[1.8]" />
               </div>
               <span
                 class="text-xs font-semibold px-3 py-1.5 rounded-lg tracking-wide bg-slate-100 text-slate-600 group-hover:bg-sky-100/70 group-hover:text-sky-700 transition-colors"
