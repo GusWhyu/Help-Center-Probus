@@ -292,13 +292,6 @@ function resolveActiveSubMenuFromQuery(mod) {
       }
       return
     }
-    if (slugMatchIdx >= 0) {
-      activeManualIndex.value = slugMatchIdx
-      if (chapters[slugMatchIdx].parentId) {
-        expandedSubMenus.value[chapters[slugMatchIdx].parentId] = true
-      }
-      return
-    }
 
     // 5. Cocokkan dengan index urutan 1-based numerik biasa
     const num = parseInt(qStr, 10)
