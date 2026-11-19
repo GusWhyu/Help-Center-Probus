@@ -10,8 +10,8 @@
         "name": "PRESTO",
         "badge": "Restoran & POS",
         "desc": "Sistem point-of-sale restoran terpadu mulai dari order taker, kitchen display, hingga kasir & split bill.",
-        "icon_mode": "preset",
-        "icon": "laptop"
+        "icon_mode": "upload",
+        "icon": "/uploads/icons/sys_icon_1795071711_1IdPkI7j.png"
     },
     "3": {
         "name": "PPOS",
@@ -65,7 +65,7 @@
     "12": {
         "name": "Channel Manager (Ezze)",
         "badge": "Channel Manager",
-        "desc": "Sistem integrasi channel manager dan distribusi ketersediaan kamar ke berbagai OTA global.",
+        "desc": "Sistem integrasi channel manager dan distribusi ketersediaan kamar",
         "icon_mode": "preset",
         "icon": "globe"
     }
