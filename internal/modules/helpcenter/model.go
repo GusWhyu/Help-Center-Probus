@@ -64,6 +64,7 @@ func (Article) TableName() string {
 type ManualBook struct {
 	ID          uint         `gorm:"primaryKey;autoIncrement" json:"id"`
 	UserID      uint         `gorm:"not null" json:"user_id"`
+	ParentID    *uint        `gorm:"column:parent_id" json:"parent_id"`
 	Title       string       `gorm:"size:100;not null" json:"title"`
 	Order       int          `gorm:"default:1" json:"order"`
 	Description *string      `gorm:"type:text" json:"description,omitempty"`

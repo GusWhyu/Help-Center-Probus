@@ -16,7 +16,8 @@ import {
   HelpCircle,
   MessageSquare,
   Share2,
-  Check
+  Check,
+  CornerDownRight
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { detectSystemIcon, resolveSystemIcon, parseModuleDescription, resolveImageUrl, getStorageBaseUrl } from '../utils/iconResolver'
@@ -145,33 +146,164 @@ function isWordImportDesc(desc) {
   return lower.includes('diimpor dari file word') || lower.includes('.docx')
 }
 
+// State untuk accordion sub-menu bertingkat (parent -> sub-sub menu)
+const expandedSubMenus = ref({})
+
+function isSubMenuExpanded(id) {
+  // Selalu buka jika materi yang sedang aktif berada di dalam sub-menu ini
+  if (currentManualBook.value && currentManualBook.value.parentId === id) {
+    return true
+  }
+  // Default terbuka (true) agar hierarki sub-sub menu langsung terlihat rapi
+  return expandedSubMenus.value[id] !== false
+}
+
+function toggleSubMenuExpanded(id) {
+  expandedSubMenus.value[id] = !isSubMenuExpanded(id)
+}
+
+function isItemActive(item) {
+  if (!item || !currentManualBook.value) return false
+  return currentManualBook.value.id === item.id
+}
+
+// Membangun struktur pohon hierarkis: Root Sub Menu -> Sub-Sub Menu (parent_id)
+function buildModuleTree(manualBooks) {
+  if (!Array.isArray(manualBooks) || manualBooks.length === 0) {
+    return { tree: [], flatChapters: [] }
+  }
+
+  // 1. Pisahkan root sub menu (parent_id null atau 0) dan child sub-sub menu
+  const roots = []
+  const childrenByParent = new Map()
+
+  manualBooks.forEach(mb => {
+    if (mb.parent_id) {
+      const pId = Number(mb.parent_id)
+      if (!childrenByParent.has(pId)) {
+        childrenByParent.set(pId, [])
+      }
+      childrenByParent.get(pId).push(mb)
+    } else {
+      roots.push({ ...mb })
+    }
+  })
+
+  // Tangani kemungkinan jika child tidak memiliki parent di daftar (orphan fallback)
+  const existingRootIds = new Set(roots.map(r => r.id))
+  childrenByParent.forEach((kids, pId) => {
+    if (!existingRootIds.has(pId)) {
+      kids.forEach(k => roots.push({ ...k, parent_id: null }))
+    }
+  })
+
+  // Urutkan root berdasarkan order lalu id
+  roots.sort((a, b) => (a.order || 0) - (b.order || 0) || a.id - b.id)
+
+  const tree = []
+  const flatChapters = []
+
+  roots.forEach((root, rIdx) => {
+    const parentNum = rIdx + 1
+    const rawKids = childrenByParent.get(root.id) || []
+    // Urutkan anak sub menu berdasarkan order lalu id
+    rawKids.sort((a, b) => (a.order || 0) - (b.order || 0) || a.id - b.id)
+
+    const children = rawKids.map((kid, kIdx) => {
+      const childObj = {
+        ...kid,
+        displayNumber: `#${parentNum}.${kIdx + 1}`,
+        isChild: true,
+        parentTitle: cleanChapterTitle(root.title),
+        parentId: root.id,
+        parentIndex: rIdx,
+        childIndex: kIdx,
+      }
+      return childObj
+    })
+
+    const rootObj = {
+      ...root,
+      displayNumber: `#${parentNum}`,
+      isChild: false,
+      subCount: children.length,
+      children: children,
+    }
+
+    tree.push(rootObj)
+    flatChapters.push(rootObj)
+    children.forEach(c => flatChapters.push(c))
+  })
+
+  return { tree, flatChapters }
+}
+
 // Helper untuk mencocokkan sub menu aktif dari query URL (?sub=... atau ?chapter=...)
 function resolveActiveSubMenuFromQuery(mod) {
-  if (!mod || !mod.manualBooks || mod.manualBooks.length === 0) {
+  const chapters = mod?.flatChapters || mod?.manualBooks || []
+  if (chapters.length === 0) {
     activeManualIndex.value = 0
     return
   }
 
   const querySub = route.query.sub || route.query.chapter
   if (querySub !== undefined && querySub !== null && querySub !== '') {
-    // 1. Cocokkan dengan index urutan 1-based (e.g. ?sub=2 -> index 1)
-    const num = parseInt(querySub, 10)
-    if (!isNaN(num) && num >= 1 && num <= mod.manualBooks.length) {
-      activeManualIndex.value = num - 1
+    const qStr = String(querySub).trim()
+
+    // 1. Cocokkan dengan displayNumber (e.g. "1.1" atau "#1.1" atau "1" atau "#1")
+    const dispMatchIdx = chapters.findIndex(ch =>
+      ch.displayNumber === qStr ||
+      ch.displayNumber?.replace('#', '') === qStr
+    )
+    if (dispMatchIdx >= 0) {
+      activeManualIndex.value = dispMatchIdx
+      if (chapters[dispMatchIdx].parentId) {
+        expandedSubMenus.value[chapters[dispMatchIdx].parentId] = true
+      }
       return
     }
 
-    // 2. Cocokkan dengan id sub menu
-    const idMatchIdx = mod.manualBooks.findIndex(mb => String(mb.id) === String(querySub))
+    // 2. Cocokkan dengan nomor urut modul (order) jika ada
+    const orderMatchIdx = chapters.findIndex(mb => String(mb.order) === qStr)
+    if (orderMatchIdx >= 0) {
+      activeManualIndex.value = orderMatchIdx
+      if (chapters[orderMatchIdx].parentId) {
+        expandedSubMenus.value[chapters[orderMatchIdx].parentId] = true
+      }
+      return
+    }
+
+    // 3. Cocokkan dengan id sub menu
+    const idMatchIdx = chapters.findIndex(mb => String(mb.id) === qStr)
     if (idMatchIdx >= 0) {
       activeManualIndex.value = idMatchIdx
+      if (chapters[idMatchIdx].parentId) {
+        expandedSubMenus.value[chapters[idMatchIdx].parentId] = true
+      }
       return
     }
 
-    // 3. Cocokkan dengan slug judul
-    const slugMatchIdx = mod.manualBooks.findIndex(mb => slugify(cleanChapterTitle(mb.title)) === slugify(String(querySub)))
+    // 4. Cocokkan dengan slug judul
+    const slugMatchIdx = chapters.findIndex(mb => slugify(cleanChapterTitle(mb.title)) === slugify(qStr))
     if (slugMatchIdx >= 0) {
       activeManualIndex.value = slugMatchIdx
+      if (chapters[slugMatchIdx].parentId) {
+        expandedSubMenus.value[chapters[slugMatchIdx].parentId] = true
+      }
+      return
+    }
+    if (slugMatchIdx >= 0) {
+      activeManualIndex.value = slugMatchIdx
+      if (chapters[slugMatchIdx].parentId) {
+        expandedSubMenus.value[chapters[slugMatchIdx].parentId] = true
+      }
+      return
+    }
+
+    // 5. Cocokkan dengan index urutan 1-based numerik biasa
+    const num = parseInt(qStr, 10)
+    if (!isNaN(num) && num >= 1 && num <= chapters.length) {
+      activeManualIndex.value = num - 1
       return
     }
   }
@@ -184,9 +316,12 @@ function getShareUrl() {
   if (!currentModule.value) return window.location.href
   const sysSlug = getSystemSlug(selectedSystemId.value, currentSystem.value)
   const modSlug = slugify(currentModule.value.name)
+  const subParam = currentManualBook.value?.displayNumber
+    ? currentManualBook.value.displayNumber.replace('#', '')
+    : (activeManualIndex.value + 1)
   const resolved = router.resolve({
     path: `/system/${sysSlug}/guide/${modSlug}`,
-    query: { sub: activeManualIndex.value + 1 }
+    query: { sub: subParam }
   })
   return `${window.location.origin}${resolved.href}`
 }
@@ -383,6 +518,7 @@ async function loadSystemData(isResetSystem = false) {
 
         const parsed = parseModuleDescription(menu.description)
         const cleanDesc = (parsed.text || menu.description || '').trim()
+        const { tree, flatChapters } = buildModuleTree(uniqueLinked)
 
         return {
           id: menu.id,
@@ -392,6 +528,8 @@ async function loadSystemData(isResetSystem = false) {
           title: `${code}. ${menu.name}`,
           desc: cleanDesc || 'Panduan operasional dan tata cara penggunaan fitur modul.',
           manualBooks: uniqueLinked,
+          tree: tree,
+          flatChapters: flatChapters,
           hasManualBook: uniqueLinked.length > 0,
         }
       })
@@ -422,8 +560,10 @@ async function loadSystemData(isResetSystem = false) {
       const active = targetMod
       const sysSlug = getSystemSlug(selectedSystemId.value, currentSystem.value)
       const modSlug = slugify(active.name)
-      const expectedSub = (active.manualBooks && active.manualBooks.length > 0) ? (activeManualIndex.value + 1) : undefined
-      const currentQuerySub = route.query.sub ? parseInt(route.query.sub, 10) : undefined
+      const currentSub = active.flatChapters?.[activeManualIndex.value] || active.manualBooks?.[0]
+      const subParam = currentSub ? (currentSub.displayNumber ? currentSub.displayNumber.replace('#', '') : (activeManualIndex.value + 1)) : undefined
+      const expectedSub = subParam
+      const currentQuerySub = route.query.sub ? String(route.query.sub) : undefined
 
       if (
         route.params.systemId !== sysSlug ||
@@ -484,8 +624,12 @@ const currentModule = computed(() => {
 
 // Current active manual book (sub menu)
 const currentManualBook = computed(() => {
+  if (currentModule.value && currentModule.value.flatChapters && currentModule.value.flatChapters.length > 0) {
+    const idx = Math.min(Math.max(0, activeManualIndex.value), currentModule.value.flatChapters.length - 1)
+    return currentModule.value.flatChapters[idx]
+  }
   if (currentModule.value && currentModule.value.manualBooks && currentModule.value.manualBooks.length > 0) {
-    const idx = Math.min(activeManualIndex.value, currentModule.value.manualBooks.length - 1)
+    const idx = Math.min(Math.max(0, activeManualIndex.value), currentModule.value.manualBooks.length - 1)
     return currentModule.value.manualBooks[idx]
   }
   return null
@@ -493,17 +637,19 @@ const currentManualBook = computed(() => {
 
 // Sub-Menu Navigation inside current module
 const prevChapter = computed(() => {
-  if (!currentModule.value || !currentModule.value.manualBooks || currentModule.value.manualBooks.length === 0) return null
+  const chapters = currentModule.value?.flatChapters || currentModule.value?.manualBooks || []
+  if (chapters.length === 0) return null
   if (activeManualIndex.value > 0) {
-    return currentModule.value.manualBooks[activeManualIndex.value - 1]
+    return chapters[activeManualIndex.value - 1]
   }
   return null
 })
 
 const nextChapter = computed(() => {
-  if (!currentModule.value || !currentModule.value.manualBooks || currentModule.value.manualBooks.length === 0) return null
-  if (activeManualIndex.value < currentModule.value.manualBooks.length - 1) {
-    return currentModule.value.manualBooks[activeManualIndex.value + 1]
+  const chapters = currentModule.value?.flatChapters || currentModule.value?.manualBooks || []
+  if (chapters.length === 0) return null
+  if (activeManualIndex.value < chapters.length - 1) {
+    return chapters[activeManualIndex.value + 1]
   }
   return null
 })
@@ -528,8 +674,6 @@ const nextModule = computed(() => {
   return null
 })
 
-
-
 // User interactions
 function toggleModule(mod) {
   const id = mod.id
@@ -539,29 +683,53 @@ function toggleModule(mod) {
   }
 }
 
-function selectChapter(mod, chapterIdx) {
+function selectChapterItem(mod, item) {
   selectedModuleOrder.value = mod.id
-  activeManualIndex.value = chapterIdx
   expandedModules.value[mod.id] = true
+
+  if (item.parentId) {
+    expandedSubMenus.value[item.parentId] = true
+  }
+
+  const chapters = mod.flatChapters || mod.manualBooks || []
+  const flatIdx = chapters.findIndex(ch => ch.id === item.id)
+  activeManualIndex.value = flatIdx >= 0 ? flatIdx : 0
+
   const sysSlug = getSystemSlug(selectedSystemId.value, currentSystem.value)
   const modSlug = slugify(mod.name)
+  const subParam = item.displayNumber ? item.displayNumber.replace('#', '') : (activeManualIndex.value + 1)
+
   router.replace({
     path: `/system/${sysSlug}/guide/${modSlug}`,
-    query: { sub: chapterIdx + 1 }
+    query: { sub: subParam }
   })
   window.scrollTo({ top: 120, behavior: 'smooth' })
+}
+
+function selectChapter(mod, chapterIdx) {
+  if (!mod) return
+  const chapters = mod.flatChapters || mod.manualBooks || []
+  const target = chapters[chapterIdx]
+  if (target) {
+    selectChapterItem(mod, target)
+  }
 }
 
 function selectModule(mod) {
   selectedModuleOrder.value = mod.id
   activeManualIndex.value = 0
   expandedModules.value[mod.id] = true
+  const firstItem = mod.flatChapters?.[0] || mod.manualBooks?.[0]
+  if (firstItem && firstItem.parentId) {
+    expandedSubMenus.value[firstItem.parentId] = true
+  }
   const sysSlug = getSystemSlug(selectedSystemId.value, currentSystem.value)
   const modSlug = slugify(mod.name)
-  const hasSub = mod.manualBooks && mod.manualBooks.length > 0
+  const hasSub = (mod.flatChapters && mod.flatChapters.length > 0) || (mod.manualBooks && mod.manualBooks.length > 0)
+  const subParam = firstItem?.displayNumber ? firstItem.displayNumber.replace('#', '') : '1'
   router.replace({
     path: `/system/${sysSlug}/guide/${modSlug}`,
-    query: hasSub ? { sub: 1 } : {}
+    query: hasSub ? { sub: subParam } : {}
   })
   window.scrollTo({ top: 120, behavior: 'smooth' })
 }
@@ -591,13 +759,13 @@ function goBackToSystemDetail() {
 
 function goToPrevChapter() {
   if (prevChapter.value && currentModule.value) {
-    selectChapter(currentModule.value, activeManualIndex.value - 1)
+    selectChapterItem(currentModule.value, prevChapter.value)
   }
 }
 
 function goToNextChapter() {
   if (nextChapter.value && currentModule.value) {
-    selectChapter(currentModule.value, activeManualIndex.value + 1)
+    selectChapterItem(currentModule.value, nextChapter.value)
   }
 }
 
@@ -924,7 +1092,7 @@ watch(
                           Sedang Dibaca
                         </span>
                         <span v-else class="text-slate-400 font-medium">
-                          {{ (mod.manualBooks || []).length }} Sub Menu
+                          {{ (mod.tree || []).length }} Sub Menu
                         </span>
                       </p>
                     </div>
@@ -938,7 +1106,7 @@ watch(
                         ? 'bg-blue-100/70 text-blue-700 border-blue-200/80'
                         : 'bg-slate-100 text-slate-600 border-slate-200/70 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100'"
                     >
-                      {{ (mod.manualBooks || []).length }} Sub Menu
+                      {{ (mod.tree || []).length }} Sub Menu
                     </span>
                     <!-- Ikon chevron (panah atas/bawah) untuk accordion buka-tutup -->
                     <ChevronDown
@@ -948,52 +1116,140 @@ watch(
                   </div>
                 </div>
 
-                <!-- Tree Hierarchy for Sub Menus (Sesuai Referensi Gambar 1) -->
+                <!-- Tree Hierarchy for Sub Menus (Sesuai Referensi Gambar 1 & 2) -->
                 <div
                   v-show="expandedModules[mod.id] || (tocSearchQuery && tocSearchQuery.length > 0)"
-                  class="mt-1.5 ml-4 sm:ml-5 pl-3 sm:pl-3.5 border-l-2 space-y-1 py-1"
+                  class="mt-1.5 ml-4 sm:ml-5 pl-3 sm:pl-3.5 border-l-2 space-y-1.5 py-1"
                   :class="currentModule?.id === mod.id ? 'border-blue-300' : 'border-slate-200'"
                 >
                   <div
-                    v-for="(sub, sIdx) in mod.manualBooks"
-                    :key="sub.id"
-                    @click="selectChapter(mod, sIdx)"
-                    :class="[
-                      'p-2 rounded-xl transition-all duration-150 cursor-pointer flex items-center justify-between gap-2.5 select-none group/item active:scale-[0.99]',
-                      currentModule?.id === mod.id && activeManualIndex === sIdx
-                        ? 'bg-blue-600 text-white font-semibold shadow-xs'
-                        : 'hover:bg-blue-50/70 text-slate-700 hover:text-blue-900'
-                    ]"
+                    v-for="root in (mod.tree || [])"
+                    :key="root.id"
+                    class="space-y-1"
                   >
-                    <div class="flex items-center gap-2 min-w-0">
-                      <!-- Badge nomor urut berbentuk pill di kiri (#1, #2) -->
-                      <span
-                        class="px-2 py-0.5 rounded-full text-[10.5px] shrink-0 transition-colors"
-                        :class="currentModule?.id === mod.id && activeManualIndex === sIdx
-                          ? 'bg-white/20 text-white border border-white/25 font-black'
-                          : 'bg-slate-100 text-slate-500 border border-slate-200/70 group-hover/item:bg-blue-100 group-hover/item:text-blue-700 group-hover/item:border-blue-200 font-bold'"
-                      >
-                        #{{ sIdx + 1 }}
-                      </span>
-                      <!-- Judul sub menu -->
-                      <span
-                        class="text-xs truncate leading-normal"
-                        :class="currentModule?.id === mod.id && activeManualIndex === sIdx
-                          ? 'text-white font-semibold'
-                          : 'text-slate-700 group-hover/item:text-blue-900 font-medium'"
-                        v-html="highlightKeyword(cleanChapterTitle(sub.title), tocSearchQuery)"
-                      ></span>
+                    <!-- Parent Sub Menu Row -->
+                    <div
+                      @click="selectChapterItem(mod, root)"
+                      :class="[
+                        'p-2 rounded-xl transition-all duration-150 cursor-pointer flex items-center justify-between gap-2 select-none group/item active:scale-[0.99]',
+                        isItemActive(root)
+                          ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                          : 'hover:bg-blue-50/70 text-slate-700 hover:text-blue-900'
+                      ]"
+                    >
+                      <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                        <!-- Chevron toggle jika memiliki sub-sub menu -->
+                        <button
+                          v-if="root.children && root.children.length > 0"
+                          @click.stop="toggleSubMenuExpanded(root.id)"
+                          type="button"
+                          class="p-0.5 rounded hover:bg-black/10 transition-transform duration-200 cursor-pointer shrink-0"
+                          :class="isSubMenuExpanded(root.id) ? 'rotate-90' : ''"
+                          title="Buka / tutup sub-sub menu"
+                        >
+                          <ChevronRight
+                            class="w-3.5 h-3.5"
+                            :class="isItemActive(root) ? 'text-white' : 'text-slate-400 group-hover/item:text-blue-600'"
+                          />
+                        </button>
+
+                        <!-- Badge nomor urut (#1, #2) -->
+                        <span
+                          class="px-2 py-0.5 rounded-full text-[10.5px] shrink-0 transition-colors"
+                          :class="isItemActive(root)
+                            ? 'bg-white/20 text-white border border-white/25 font-black'
+                            : 'bg-slate-100 text-slate-500 border border-slate-200/70 group-hover/item:bg-blue-100 group-hover/item:text-blue-700 group-hover/item:border-blue-200 font-bold'"
+                        >
+                          {{ root.displayNumber }}
+                        </span>
+
+                        <!-- Judul sub menu -->
+                        <span
+                          class="text-xs truncate leading-normal"
+                          :class="isItemActive(root)
+                            ? 'text-white font-semibold'
+                            : 'text-slate-700 group-hover/item:text-blue-900 font-medium'"
+                          v-html="highlightKeyword(cleanChapterTitle(root.title), tocSearchQuery)"
+                        ></span>
+
+                        <!-- Badge "X sub" (Identik Gambar Kedua / Laravel) -->
+                        <span
+                          v-if="root.subCount > 0"
+                          class="text-[10px] font-bold px-1.5 py-0.5 rounded-md border shrink-0 transition-colors"
+                          :class="isItemActive(root)
+                            ? 'bg-white/20 text-white border-white/30'
+                            : 'bg-blue-50 text-blue-600 border-blue-200/80'"
+                        >
+                          {{ root.subCount }} sub
+                        </span>
+                      </div>
+
+                      <!-- Arrow indicator right -->
+                      <ChevronRight
+                        v-if="isItemActive(root)"
+                        class="w-3.5 h-3.5 text-white shrink-0 ml-auto"
+                      />
+                      <ChevronRight
+                        v-else
+                        class="w-3.5 h-3.5 text-slate-300 opacity-0 group-hover/item:opacity-100 group-hover/item:text-blue-500 transition-opacity shrink-0 ml-auto"
+                      />
                     </div>
 
-                    <!-- Ikon chevron kanan (">") di pojok kanan -->
-                    <ChevronRight
-                      v-if="currentModule?.id === mod.id && activeManualIndex === sIdx"
-                      class="w-3.5 h-3.5 text-white shrink-0 ml-auto"
-                    />
-                    <ChevronRight
-                      v-else
-                      class="w-3.5 h-3.5 text-slate-300 opacity-0 group-hover/item:opacity-100 group-hover/item:text-blue-500 transition-opacity shrink-0 ml-auto"
-                    />
+                    <!-- Nested Children (Sub-Sub Menu dengan Garis Cabang ↳ Sesuai Gambar 2) -->
+                    <div
+                      v-if="root.children && root.children.length > 0"
+                      v-show="isSubMenuExpanded(root.id)"
+                      class="ml-3 sm:ml-4 pl-2.5 sm:pl-3 border-l-2 border-slate-200/80 space-y-1 py-0.5 animate-in fade-in duration-150"
+                    >
+                      <div
+                        v-for="child in root.children"
+                        :key="child.id"
+                        @click="selectChapterItem(mod, child)"
+                        :class="[
+                          'p-1.5 sm:p-2 rounded-xl transition-all duration-150 cursor-pointer flex items-center justify-between gap-2 select-none group/subitem active:scale-[0.99]',
+                          isItemActive(child)
+                            ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                            : 'hover:bg-blue-50/70 text-slate-600 hover:text-blue-900'
+                        ]"
+                      >
+                        <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                          <!-- Ikon Panah Cabang ↳ -->
+                          <CornerDownRight
+                            class="w-3.5 h-3.5 shrink-0 transition-colors"
+                            :class="isItemActive(child) ? 'text-white' : 'text-slate-400 group-hover/subitem:text-blue-500'"
+                          />
+
+                          <!-- Badge nomor sub-sub (#1.1, #1.2) -->
+                          <span
+                            class="px-1.5 py-0.5 rounded-full text-[10px] shrink-0 transition-colors font-bold"
+                            :class="isItemActive(child)
+                              ? 'bg-white/20 text-white border border-white/25'
+                              : 'bg-slate-100 text-slate-500 border border-slate-200/70 group-hover/subitem:bg-blue-100 group-hover/subitem:text-blue-700'"
+                          >
+                            {{ child.displayNumber }}
+                          </span>
+
+                          <!-- Judul sub-sub menu -->
+                          <span
+                            class="text-xs truncate leading-normal"
+                            :class="isItemActive(child)
+                              ? 'text-white font-semibold'
+                              : 'text-slate-600 group-hover/subitem:text-blue-900 font-medium'"
+                            v-html="highlightKeyword(cleanChapterTitle(child.title), tocSearchQuery)"
+                          ></span>
+                        </div>
+
+                        <!-- Arrow indicator right for active child -->
+                        <ChevronRight
+                          v-if="isItemActive(child)"
+                          class="w-3.5 h-3.5 text-white shrink-0 ml-auto"
+                        />
+                        <ChevronRight
+                          v-else
+                          class="w-3.5 h-3.5 text-slate-300 opacity-0 group-hover/subitem:opacity-100 group-hover/subitem:text-blue-500 transition-opacity shrink-0 ml-auto"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <!-- Empty state jika belum ada sub menu panduan (seperti gambar 1) -->
@@ -1063,10 +1319,22 @@ watch(
                     <span class="text-slate-600 font-medium">
                       {{ currentModule.title }}
                     </span>
-                    <ChevronRight class="w-3 h-3 text-slate-300" />
-                    <span class="text-blue-600 font-bold">
-                      Sub Menu #{{ activeManualIndex + 1 }}
-                    </span>
+                    <template v-if="currentManualBook?.isChild">
+                      <ChevronRight class="w-3 h-3 text-slate-300" />
+                      <span class="text-slate-600 font-medium truncate max-w-[140px] sm:max-w-none">
+                        {{ currentManualBook.parentTitle }}
+                      </span>
+                      <ChevronRight class="w-3 h-3 text-slate-300" />
+                      <span class="text-blue-600 font-bold">
+                        Sub Menu {{ currentManualBook.displayNumber }}
+                      </span>
+                    </template>
+                    <template v-else>
+                      <ChevronRight class="w-3 h-3 text-slate-300" />
+                      <span class="text-blue-600 font-bold">
+                        Sub Menu {{ currentManualBook?.displayNumber || ('#' + (activeManualIndex + 1)) }}
+                      </span>
+                    </template>
                   </div>
 
                   <!-- Tombol Bagikan / Share Button -->
@@ -1163,10 +1431,10 @@ watch(
                 </div>
                 <div class="truncate">
                   <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 group-hover:text-blue-600 transition-colors">
-                    ← Sub Menu Sebelumnya
+                    ← {{ prevChapter.isChild ? 'Sub-Sub Menu' : 'Sub Menu' }} Sebelumnya
                   </div>
                   <div class="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-blue-600 truncate mt-0.5">
-                    {{ cleanChapterTitle(prevChapter.title) }}
+                    {{ prevChapter.displayNumber ? (prevChapter.displayNumber + ' ') : '' }}{{ cleanChapterTitle(prevChapter.title) }}
                   </div>
                 </div>
               </button>
@@ -1202,10 +1470,10 @@ watch(
               >
                 <div class="truncate">
                   <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 group-hover:text-blue-600 transition-colors">
-                    Sub Menu Selanjutnya →
+                    {{ nextChapter.isChild ? 'Sub-Sub Menu' : 'Sub Menu' }} Selanjutnya →
                   </div>
                   <div class="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-blue-600 truncate mt-0.5">
-                    {{ cleanChapterTitle(nextChapter.title) }}
+                    {{ nextChapter.displayNumber ? (nextChapter.displayNumber + ' ') : '' }}{{ cleanChapterTitle(nextChapter.title) }}
                   </div>
                 </div>
                 <div class="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors shrink-0">
