@@ -25,7 +25,6 @@ import {
   BarChart3,
   TrendingUp,
   Printer,
-  Phone,
   Menu
 } from 'lucide-vue-next'
 
@@ -476,15 +475,6 @@ function goBackHome() {
         >
           Hubungi Kami
         </a>
-        <div class="pt-2 border-t border-slate-100 px-3">
-          <a
-            href="tel:+62361256500"
-            class="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-sky-600"
-          >
-            <Phone class="w-3.5 h-3.5 text-slate-500" />
-            <span>Phone: +62 361 256 500</span>
-          </a>
-        </div>
       </div>
     </nav>
 
