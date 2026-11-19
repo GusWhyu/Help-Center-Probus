@@ -24,7 +24,7 @@ import {
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { slugify, highlightKeyword } from '../utils/slug'
-import { detectSystemIcon, resolveSystemIcon } from '../utils/iconResolver'
+import { detectSystemIcon, resolveSystemIcon, getStorageBaseUrl } from '../utils/iconResolver'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -47,7 +47,16 @@ const systemNameMap = {
 
 function formatArticleContent(html) {
   if (!html) return ''
-  let formatted = html.replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, '/uploads/')
+  const storageBase = getStorageBaseUrl()
+  const uploadsPrefix = storageBase ? `${storageBase}/uploads/` : '/uploads/'
+
+  let formatted = html
+    .replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, uploadsPrefix)
+    .replace(/\.\.\/uploads\//g, uploadsPrefix)
+
+  if (storageBase) {
+    formatted = formatted.replace(/(src=["'])\/uploads\//g, `$1${uploadsPrefix}`)
+  }
 
   // Auto-convert standalone YouTube links (anchor tag) ke responsive iframe
   formatted = formatted.replace(

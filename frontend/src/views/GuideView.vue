@@ -19,7 +19,7 @@ import {
   Check
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import { detectSystemIcon, resolveSystemIcon, parseModuleDescription } from '../utils/iconResolver'
+import { detectSystemIcon, resolveSystemIcon, parseModuleDescription, resolveImageUrl, getStorageBaseUrl } from '../utils/iconResolver'
 import { slugify, getSystemSlug, getSystemIdFromParam, findModuleByParam, highlightKeyword, registerCategories, ensureCategoriesLoaded, resolveSystemId } from '../utils/slug'
 
 const route = useRoute()
@@ -75,12 +75,19 @@ function cleanChapterTitle(title) {
   return title.replace(/^\d+[\.\s\-_]+/, '').trim() || title
 }
 
-// Helper: normalisasi gambar TinyMCE & Word Importer ke /uploads/... serta auto-embed link YouTube
+// Helper: normalisasi gambar TinyMCE & Word Importer ke storage URL serta auto-embed link YouTube
 function formatArticleContent(html) {
   if (!html) return ''
+  const storageBase = getStorageBaseUrl()
+  const uploadsPrefix = storageBase ? `${storageBase}/uploads/` : '/uploads/'
+
   let formatted = html
-    .replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, '/uploads/')
-    .replace(/\.\.\/uploads\//g, '/uploads/')
+    .replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, uploadsPrefix)
+    .replace(/\.\.\/uploads\//g, uploadsPrefix)
+
+  if (storageBase) {
+    formatted = formatted.replace(/(src=["'])\/uploads\//g, `$1${uploadsPrefix}`)
+  }
 
   // Auto-convert standalone YouTube links (anchor tag) ke responsive iframe
   formatted = formatted.replace(

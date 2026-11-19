@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getSystemIdFromParam, getSystemSlug, slugify, highlightKeyword, registerCategories, ensureCategoriesLoaded, resolveSystemId } from '../utils/slug'
 import apiClient from '../api/client'
-import { detectModuleIcon, parseModuleDescription, resolveModuleIcon, isImageIcon } from '../utils/iconResolver'
+import { detectModuleIcon, parseModuleDescription, resolveModuleIcon, isImageIcon, resolveImageUrl, getStorageBaseUrl } from '../utils/iconResolver'
 import {
   ArrowLeft,
   ArrowRight,
@@ -145,7 +145,16 @@ const prestoFallbackModules = [
 
 function formatArticleContent(html) {
   if (!html) return ''
-  let formatted = html.replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, '/uploads/')
+  const storageBase = getStorageBaseUrl()
+  const uploadsPrefix = storageBase ? `${storageBase}/uploads/` : '/uploads/'
+
+  let formatted = html
+    .replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, uploadsPrefix)
+    .replace(/\.\.\/uploads\//g, uploadsPrefix)
+
+  if (storageBase) {
+    formatted = formatted.replace(/(src=["'])\/uploads\//g, `$1${uploadsPrefix}`)
+  }
 
   // Auto-convert standalone YouTube links (anchor tag) ke responsive iframe
   formatted = formatted.replace(
@@ -244,7 +253,7 @@ async function loadSystemModules() {
           const customIcon = menu.icon || parsed.icon
           const cleanDesc = (parsed.text || menu.description || '').trim()
           const isImage = isImageIcon(customIcon)
-          const moduleIcon = isImage ? customIcon : resolveModuleIcon(customIcon, menu.name, orderNum)
+          const moduleIcon = isImage ? resolveImageUrl(customIcon) : resolveModuleIcon(customIcon, menu.name, orderNum)
           activeOnly.push({
             id: menu.id,
             order: orderNum,

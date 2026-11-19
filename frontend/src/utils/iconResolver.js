@@ -297,6 +297,53 @@ export const namedModuleIcons = {
 }
 
 /**
+ * Menyelesaikan base URL untuk storage / asset gambar uploaded
+ * Prioritas:
+ * 1. import.meta.env.VITE_STORAGE_URL (jika diset eksplisit)
+ * 2. Origin dari import.meta.env.VITE_API_URL (jika diset dan berbeda origin)
+ * 3. Fallback string kosong (menggunakan path relatif, cocok untuk dev proxy Vite)
+ */
+export function getStorageBaseUrl() {
+  const storageEnv = import.meta.env?.VITE_STORAGE_URL
+  if (storageEnv && typeof storageEnv === 'string' && storageEnv.trim()) {
+    return storageEnv.trim().replace(/\/$/, '')
+  }
+
+  const apiEnv = import.meta.env?.VITE_API_URL
+  if (apiEnv && typeof apiEnv === 'string' && apiEnv.trim()) {
+    try {
+      const url = new URL(apiEnv.trim(), typeof window !== 'undefined' ? window.location.origin : 'http://localhost')
+      if (url.origin && typeof window !== 'undefined' && url.origin !== window.location.origin) {
+        return url.origin.replace(/\/$/, '')
+      }
+    } catch (_) {}
+  }
+
+  return ''
+}
+
+/**
+ * Mengubah path gambar relatif (/uploads/...) menjadi URL lengkap jika ada storage base URL
+ */
+export function resolveImageUrl(path) {
+  if (!path) return ''
+  const trimmed = String(path).trim()
+  if (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('blob:')
+  ) {
+    return trimmed
+  }
+  const base = getStorageBaseUrl()
+  if (!base) return trimmed
+
+  const normalized = trimmed.startsWith('/') ? trimmed : '/' + trimmed
+  return `${base}${normalized}`
+}
+
+/**
  * Cek apakah string icon adalah file gambar (/uploads/... atau berekstensi gambar)
  */
 export function isImageIcon(iconKey) {
@@ -317,6 +364,9 @@ export function parseModuleDescription(rawDesc) {
     icon = match[1].trim()
     text = text.replace(match[0], '').trim()
     isImage = isImageIcon(icon)
+    if (isImage) {
+      icon = resolveImageUrl(icon)
+    }
   }
   return { icon, text, isImage }
 }
@@ -325,10 +375,17 @@ export function parseModuleDescription(rawDesc) {
  * Menyelesaikan icon modul: utamakan icon kustom, jika kosong fallback otomatis ke detectModuleIcon
  */
 export function resolveModuleIcon(customIconKey, moduleName, orderNum = 0) {
-  if (customIconKey && !isImageIcon(customIconKey)) {
-    const key = customIconKey.toLowerCase()
+  if (customIconKey) {
+    if (isImageIcon(customIconKey)) {
+      return resolveImageUrl(customIconKey)
+    }
+    const key = customIconKey.toLowerCase().replace(/_/g, '-')
+    const keyNoDash = key.replace(/-/g, '')
     if (namedModuleIcons[key]) {
       return namedModuleIcons[key]
+    }
+    if (namedModuleIcons[keyNoDash]) {
+      return namedModuleIcons[keyNoDash]
     }
   }
   return detectModuleIcon(moduleName, orderNum)
@@ -340,7 +397,7 @@ export function resolveModuleIcon(customIconKey, moduleName, orderNum = 0) {
 export function resolveSystemIcon(customIconKey, systemName) {
   if (customIconKey) {
     if (isImageIcon(customIconKey)) {
-      return { isImage: true, icon: customIconKey }
+      return { isImage: true, icon: resolveImageUrl(customIconKey) }
     }
     const key = customIconKey.toLowerCase().replace(/_/g, '-')
     const keyNoDash = key.replace(/-/g, '')
@@ -355,6 +412,8 @@ export function resolveSystemIcon(customIconKey, systemName) {
 }
 
 export default {
+  getStorageBaseUrl,
+  resolveImageUrl,
   detectSystemIcon,
   detectModuleIcon,
   namedModuleIcons,

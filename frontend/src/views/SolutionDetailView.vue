@@ -20,6 +20,7 @@ import {
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { slugify, findArticleByParam, ensureCategoriesLoaded } from '../utils/slug'
+import { getStorageBaseUrl } from '../utils/iconResolver'
 
 const route = useRoute()
 const router = useRouter()
@@ -102,7 +103,16 @@ const systemFullTitleMap = {
 
 function formatArticleContent(html) {
   if (!html) return ''
-  let formatted = html.replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, '/uploads/')
+  const storageBase = getStorageBaseUrl()
+  const uploadsPrefix = storageBase ? `${storageBase}/uploads/` : '/uploads/'
+
+  let formatted = html
+    .replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, uploadsPrefix)
+    .replace(/\.\.\/uploads\//g, uploadsPrefix)
+
+  if (storageBase) {
+    formatted = formatted.replace(/(src=["'])\/uploads\//g, `$1${uploadsPrefix}`)
+  }
 
   // Auto-convert standalone YouTube links (anchor tag) ke responsive iframe
   formatted = formatted.replace(
