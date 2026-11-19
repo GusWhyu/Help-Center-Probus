@@ -58,6 +58,14 @@ function formatArticleContent(html) {
     formatted = formatted.replace(/(src=["'])\/uploads\//g, `$1${uploadsPrefix}`)
   }
 
+  // Bungkus setiap <table> dalam responsive wrapper agar tabel di mobile tidak merusak lebar halaman
+  if (!formatted.includes('table-responsive-wrapper')) {
+    formatted = formatted.replace(
+      /(<table[\s\S]*?<\/table>)/gi,
+      '<div class="table-responsive-wrapper w-full max-w-full overflow-x-auto my-4 custom-sky-scrollbar border border-slate-200/90 rounded-xl bg-white shadow-2xs">$1</div>'
+    )
+  }
+
   // Auto-convert standalone YouTube links (anchor tag) ke responsive iframe
   formatted = formatted.replace(
     /<p>\s*<a\s+[^>]*href=["'](?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^"']*["'][^>]*>.*?<\/a>\s*<\/p>/gi,

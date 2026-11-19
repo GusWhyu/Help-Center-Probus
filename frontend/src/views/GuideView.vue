@@ -89,6 +89,14 @@ function formatArticleContent(html) {
     formatted = formatted.replace(/(src=["'])\/uploads\//g, `$1${uploadsPrefix}`)
   }
 
+  // Bungkus setiap <table> dalam responsive wrapper agar tabel di mobile tidak merusak lebar halaman
+  if (!formatted.includes('table-responsive-wrapper')) {
+    formatted = formatted.replace(
+      /(<table[\s\S]*?<\/table>)/gi,
+      '<div class="table-responsive-wrapper w-full max-w-full overflow-x-auto my-4 custom-sky-scrollbar border border-slate-200/90 rounded-xl bg-white shadow-2xs">$1</div>'
+    )
+  }
+
   // Auto-convert standalone YouTube links (anchor tag) ke responsive iframe
   formatted = formatted.replace(
     /<p>\s*<a\s+[^>]*href=["'](?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^"']*["'][^>]*>.*?<\/a>\s*<\/p>/gi,
@@ -631,7 +639,7 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50/50 text-slate-800 font-sans flex flex-col antialiased">
+  <div class="min-h-screen bg-slate-50/50 text-slate-800 font-sans flex flex-col antialiased w-full max-w-full overflow-x-hidden">
     <!-- Main Navigation Bar with "Kembali ke Pilihan Modul" Button -->
     <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-12 xl:px-16 sticky top-0 z-40 shadow-2xs">
       <div class="w-full flex items-center justify-between">
@@ -723,8 +731,8 @@ watch(
     </nav>
 
     <!-- 3. Subheader: "Tata Cara Penggunaan Sistem" & System Pills Switcher -->
-    <section class="border-b border-slate-200/80 bg-white py-5 sm:py-6 px-4 sm:px-6 lg:px-12 xl:px-16">
-      <div class="w-full">
+    <section class="border-b border-slate-200/80 bg-white py-5 sm:py-6 px-4 sm:px-6 lg:px-12 xl:px-16 w-full max-w-full overflow-hidden">
+      <div class="w-full max-w-full">
         <h1 class="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
           Tata Cara Penggunaan Sistem
         </h1>
@@ -799,14 +807,14 @@ watch(
     </section>
 
     <!-- 4. Two-Column Main Body: Left Sidebar + Right Reader Content Canvas -->
-    <main class="flex-1 w-full px-4 sm:px-6 lg:px-12 xl:px-16 py-6 sm:py-8 lg:py-10">
-      <div class="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+    <main class="flex-1 w-full max-w-full px-3 sm:px-6 lg:px-12 xl:px-16 py-4 sm:py-8 lg:py-10 overflow-hidden">
+      <div class="flex flex-col lg:flex-row gap-6 lg:gap-8 items-stretch lg:items-start w-full max-w-full min-w-0">
         
         <!-- ======================================================== -->
         <!-- LEFT COLUMN: SIDEBAR DAFTAR MODUL & SUB MENU ACCORDION   -->
         <!-- Sesuai Desain Probus Implementator manualbook.blade.php  -->
         <!-- ======================================================== -->
-        <aside class="w-full lg:w-80 xl:w-[340px] shrink-0 lg:sticky lg:top-20 self-start z-10">
+        <aside class="w-full max-w-full lg:w-80 xl:w-[340px] shrink-0 lg:sticky lg:top-20 self-start z-10 min-w-0">
           <div class="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col lg:max-h-[calc(100vh-6rem)]">
             
             <!-- Sidebar Header with Selected System Badge -->
@@ -1024,12 +1032,12 @@ watch(
         <!-- RIGHT COLUMN: DETAILED READER CONTENT CANVAS             -->
         <!-- Sesuai Desain manual_book/index.blade.php baris 893-1004 -->
         <!-- ======================================================== -->
-        <article class="flex-1 min-w-0 bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-10 shadow-xs flex flex-col justify-between">
+        <article class="w-full max-w-full flex-1 min-w-0 bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-4 sm:p-8 lg:p-10 shadow-xs flex flex-col justify-between overflow-hidden">
           
-          <div>
+          <div class="w-full max-w-full min-w-0">
             <!-- CASE 1: Real Published Manual Book Content from Database `manual_books` -->
             <template v-if="currentManualBook && currentManualBook.content">
-              <div class="space-y-4">
+              <div class="space-y-4 w-full max-w-full min-w-0">
                 
                 <!-- Breadcrumb Hierarki Sub Menu + Share Button -->
                 <div class="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap pb-1">
@@ -1085,7 +1093,7 @@ watch(
 
                 <!-- Isi Materi Artikel Panduan (TinyMCE Content) -->
                 <div
-                  class="article-content max-w-none text-slate-800 text-xs sm:text-sm leading-relaxed overflow-x-auto min-h-[220px]"
+                  class="article-content w-full max-w-full min-w-0 text-slate-800 text-xs sm:text-sm leading-relaxed overflow-x-auto min-h-[220px]"
                   v-html="formatArticleContent(currentManualBook.content)"
                 ></div>
               </div>
@@ -1284,13 +1292,49 @@ watch(
   color: #334155;
 }
 
+/* Proteksi overflow kata/teks panjang di layar mobile */
+:deep(.article-content) {
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+  max-width: 100% !important;
+}
+
+:deep(.article-content p),
+:deep(.article-content div),
+:deep(.article-content td),
+:deep(.article-content th),
+:deep(.article-content span),
+:deep(.article-content a),
+:deep(.article-content li) {
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+}
+
+/* Container pembungkus tabel responsif di mobile */
+:deep(.table-responsive-wrapper) {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
 /* Tabel TinyMCE & Word Importer (Border Penutup Keliling & Sel Penuh) */
 :deep(.article-content table) {
   width: 100% !important;
+  min-width: 440px;
   border-collapse: collapse !important;
-  margin: 1.5rem 0 !important;
+  margin: 0 !important;
   font-size: 0.825rem !important;
   border: 1px solid #cbd5e1 !important;
+}
+
+/* Fallback jika ada table tanpa wrapper agar tidak merusak lebar viewport */
+:deep(.article-content > table) {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 :deep(.article-content table th),

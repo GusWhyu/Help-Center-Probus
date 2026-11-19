@@ -9,6 +9,12 @@
 }
 
 html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+html,
 body,
 .font-sans,
 [class*="font-sans"] {

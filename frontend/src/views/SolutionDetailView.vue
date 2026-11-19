@@ -114,6 +114,14 @@ function formatArticleContent(html) {
     formatted = formatted.replace(/(src=["'])\/uploads\//g, `$1${uploadsPrefix}`)
   }
 
+  // Bungkus setiap <table> dalam responsive wrapper agar tabel di mobile tidak merusak lebar halaman
+  if (!formatted.includes('table-responsive-wrapper')) {
+    formatted = formatted.replace(
+      /(<table[\s\S]*?<\/table>)/gi,
+      '<div class="table-responsive-wrapper w-full max-w-full overflow-x-auto my-4 custom-sky-scrollbar border border-slate-200/90 rounded-xl bg-white shadow-2xs">$1</div>'
+    )
+  }
+
   // Auto-convert standalone YouTube links (anchor tag) ke responsive iframe
   formatted = formatted.replace(
     /<p>\s*<a\s+[^>]*href=["'](?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})[^"']*["'][^>]*>.*?<\/a>\s*<\/p>/gi,
@@ -732,13 +740,48 @@ watch(
   line-height: 1.6;
 }
 
+/* Proteksi overflow kata/teks panjang di layar mobile */
+:deep(.article-content) {
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+  max-width: 100% !important;
+}
+
+:deep(.article-content p),
+:deep(.article-content div),
+:deep(.article-content td),
+:deep(.article-content th),
+:deep(.article-content span),
+:deep(.article-content a),
+:deep(.article-content li) {
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+}
+
+/* Container pembungkus tabel responsif di mobile */
+:deep(.table-responsive-wrapper) {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
 /* Tabel Responsif & Indikator (Border Penutup Keliling & Sel Penuh) */
 :deep(.article-content table) {
   width: 100% !important;
+  min-width: 440px;
   border-collapse: collapse !important;
-  margin: 1.5em 0 !important;
+  margin: 0 !important;
   font-size: 0.825rem !important;
   border: 1px solid #cbd5e1 !important;
+}
+
+:deep(.article-content > table) {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 :deep(.article-content table th),
