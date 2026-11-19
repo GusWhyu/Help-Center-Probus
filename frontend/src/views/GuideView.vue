@@ -652,7 +652,7 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50/50 text-slate-800 font-sans flex flex-col antialiased w-full max-w-full overflow-x-hidden">
+  <div class="min-h-screen bg-slate-50/50 text-slate-800 font-sans flex flex-col antialiased w-full max-w-full overflow-x-clip">
     <!-- Main Navigation Bar with "Kembali ke Pilihan Modul" Button -->
     <nav class="border-b border-slate-200/90 bg-white py-3.5 px-4 sm:px-6 lg:px-12 xl:px-16 sticky top-0 z-40 shadow-2xs">
       <div class="w-full flex items-center justify-between">
@@ -744,7 +744,7 @@ watch(
     </nav>
 
     <!-- 3. Subheader: "Tata Cara Penggunaan Sistem" & System Pills Switcher -->
-    <section class="border-b border-slate-200/80 bg-white py-5 sm:py-6 px-4 sm:px-6 lg:px-12 xl:px-16 w-full max-w-full overflow-hidden">
+    <section class="border-b border-slate-200/80 bg-white py-5 sm:py-6 px-4 sm:px-6 lg:px-12 xl:px-16 w-full max-w-full overflow-x-clip">
       <div class="w-full max-w-full">
         <h1 class="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
           Tata Cara Penggunaan Sistem
@@ -820,15 +820,15 @@ watch(
     </section>
 
     <!-- 4. Two-Column Main Body: Left Sidebar + Right Reader Content Canvas -->
-    <main class="flex-1 w-full max-w-full px-3 sm:px-6 lg:px-12 xl:px-16 py-4 sm:py-8 lg:py-10 overflow-hidden">
-      <div class="flex flex-col lg:flex-row gap-6 lg:gap-8 items-stretch lg:items-start w-full max-w-full min-w-0">
+    <main class="flex-1 w-full max-w-full px-3 sm:px-6 lg:px-12 xl:px-16 py-4 sm:py-8 lg:py-10">
+      <div class="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start w-full max-w-full min-w-0">
         
         <!-- ======================================================== -->
         <!-- LEFT COLUMN: SIDEBAR DAFTAR MODUL & SUB MENU ACCORDION   -->
         <!-- Sesuai Desain Probus Implementator manualbook.blade.php  -->
         <!-- ======================================================== -->
-        <aside class="w-full max-w-full lg:w-80 xl:w-[340px] shrink-0 lg:sticky lg:top-20 self-start z-10 min-w-0">
-          <div class="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col lg:max-h-[calc(100vh-6rem)]">
+        <aside class="w-full max-w-full lg:w-80 xl:w-[340px] shrink-0 lg:sticky lg:top-20 z-10 min-w-0">
+          <div class="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col lg:max-h-[calc(100vh-6.5rem)]">
             
             <!-- Sidebar Header with Selected System Badge -->
             <div class="mb-3 px-0.5 shrink-0">
@@ -889,7 +889,7 @@ watch(
             </div>
 
             <!-- Accordion List of Modules and Sub-Menus (Single Unified Card Layout) -->
-            <div class="divide-y divide-slate-100 max-h-80 sm:max-h-96 lg:max-h-none flex-1 min-h-0 overflow-y-auto pr-1 -mr-1 custom-sky-scrollbar">
+            <div class="divide-y divide-slate-100 max-h-80 sm:max-h-96 lg:max-h-[calc(100vh-14.5rem)] flex-1 min-h-0 overflow-y-auto pr-1 -mr-1 custom-sky-scrollbar">
               <div
                 v-for="mod in filteredModulesList"
                 :key="mod.id"
