@@ -161,21 +161,14 @@ function resolveActiveSubMenuFromQuery(mod) {
       return
     }
 
-    // 2. Cocokkan dengan nomor urut modul (order) jika ada
-    const orderMatchIdx = mod.manualBooks.findIndex(mb => String(mb.order) === String(querySub))
-    if (orderMatchIdx >= 0) {
-      activeManualIndex.value = orderMatchIdx
-      return
-    }
-
-    // 3. Cocokkan dengan id sub menu
+    // 2. Cocokkan dengan id sub menu
     const idMatchIdx = mod.manualBooks.findIndex(mb => String(mb.id) === String(querySub))
     if (idMatchIdx >= 0) {
       activeManualIndex.value = idMatchIdx
       return
     }
 
-    // 4. Cocokkan dengan slug judul
+    // 3. Cocokkan dengan slug judul
     const slugMatchIdx = mod.manualBooks.findIndex(mb => slugify(cleanChapterTitle(mb.title)) === slugify(String(querySub)))
     if (slugMatchIdx >= 0) {
       activeManualIndex.value = slugMatchIdx
@@ -245,7 +238,7 @@ async function shareCurrentGuide() {
 }
 
 // Fetch categories, system menus, and published manual books
-async function loadSystemData() {
+async function loadSystemData(isResetSystem = false) {
   isLoading.value = true
   try {
     // 1. Fetch Categories dan all published Manual Books terlebih dahulu
@@ -312,8 +305,10 @@ async function loadSystemData() {
     }
 
     // 2. Resolve selectedSystemId secara akurat setelah kategori database teregistrasi
-    const resolvedSysId = await resolveSystemId(route.params.systemId, selectedSystemId.value || 2)
-    selectedSystemId.value = resolvedSysId
+    if (!isResetSystem) {
+      const resolvedSysId = await resolveSystemId(route.params.systemId, selectedSystemId.value || 2)
+      selectedSystemId.value = resolvedSysId
+    }
 
     // 3. BARU fetch detail kategori dan manual-books untuk sistem terpilih
     const [detailRes, manualRes] = await Promise.all([
@@ -409,28 +404,35 @@ async function loadSystemData() {
 
     // Ensure active module is valid via slug or ID
     if (modulesList.value.length > 0) {
-      const matched = findModuleByParam(modulesList.value, selectedModuleOrder.value || route.params.moduleId)
-      if (matched) {
-        selectedModuleOrder.value = matched.id
-        expandedModules.value[matched.id] = true
-        resolveActiveSubMenuFromQuery(matched)
+      const matched = isResetSystem
+        ? modulesList.value[0]
+        : findModuleByParam(modulesList.value, selectedModuleOrder.value || route.params.moduleId)
+      const targetMod = matched || modulesList.value[0]
+
+      selectedModuleOrder.value = targetMod.id
+      expandedModules.value[targetMod.id] = true
+
+      if (isResetSystem) {
+        activeManualIndex.value = 0
       } else {
-        selectedModuleOrder.value = modulesList.value[0].id
-        expandedModules.value[modulesList.value[0].id] = true
-        resolveActiveSubMenuFromQuery(modulesList.value[0])
+        resolveActiveSubMenuFromQuery(targetMod)
       }
 
       // Synchronize canonical URL with sub-menu query parameter
-      const active = modulesList.value.find(m => m.id === selectedModuleOrder.value) || modulesList.value[0]
+      const active = targetMod
       const sysSlug = getSystemSlug(selectedSystemId.value, currentSystem.value)
       const modSlug = slugify(active.name)
-      const currentSub = active.manualBooks?.[activeManualIndex.value]
-      const subParam = currentSub ? (currentSub.order || (activeManualIndex.value + 1)) : undefined
+      const expectedSub = (active.manualBooks && active.manualBooks.length > 0) ? (activeManualIndex.value + 1) : undefined
+      const currentQuerySub = route.query.sub ? parseInt(route.query.sub, 10) : undefined
 
-      if (route.params.systemId !== sysSlug || route.params.moduleId !== modSlug || (!route.query.sub && subParam)) {
-        router.replace({
+      if (
+        route.params.systemId !== sysSlug ||
+        route.params.moduleId !== modSlug ||
+        currentQuerySub !== expectedSub
+      ) {
+        await router.replace({
           path: `/system/${sysSlug}/guide/${modSlug}`,
-          query: subParam ? { sub: subParam } : {}
+          query: expectedSub ? { sub: expectedSub } : {}
         })
       }
     } else {
@@ -556,22 +558,31 @@ function selectModule(mod) {
   expandedModules.value[mod.id] = true
   const sysSlug = getSystemSlug(selectedSystemId.value, currentSystem.value)
   const modSlug = slugify(mod.name)
-  const firstSub = mod.manualBooks?.[0]
-  const subParam = firstSub ? (firstSub.order || 1) : undefined
+  const hasSub = mod.manualBooks && mod.manualBooks.length > 0
   router.replace({
     path: `/system/${sysSlug}/guide/${modSlug}`,
-    query: subParam ? { sub: subParam } : {}
+    query: hasSub ? { sub: 1 } : {}
   })
   window.scrollTo({ top: 120, behavior: 'smooth' })
 }
 
-function switchSystem(sys) {
+async function switchSystem(sys) {
+  if (!sys) return
+  if (sys.id === selectedSystemId.value) return
+
   selectedSystemId.value = sys.id
-  tocSearchQuery.value = ''
+  selectedModuleOrder.value = null
   activeManualIndex.value = 0
+  tocSearchQuery.value = ''
+  modulesList.value = []
+
   const sysSlug = getSystemSlug(sys.id, sys)
-  router.replace(`/system/${sysSlug}/guide/1`)
-  loadSystemData()
+  await router.replace({
+    path: `/system/${sysSlug}/guide/1`,
+    query: {}
+  })
+
+  await loadSystemData(true)
 }
 
 function goBackToSystemDetail() {
@@ -613,7 +624,9 @@ watch(
       const resolvedSysId = await resolveSystemId(newParams.systemId, selectedSystemId.value)
       if (resolvedSysId !== selectedSystemId.value) {
         selectedSystemId.value = resolvedSysId
-        loadSystemData()
+        selectedModuleOrder.value = null
+        activeManualIndex.value = 0
+        await loadSystemData(true)
         return
       }
     }
@@ -630,8 +643,8 @@ watch(
 
 watch(
   () => route.query.sub,
-  newSub => {
-    if (newSub !== undefined && currentModule.value) {
+  () => {
+    if (currentModule.value) {
       resolveActiveSubMenuFromQuery(currentModule.value)
     }
   }
