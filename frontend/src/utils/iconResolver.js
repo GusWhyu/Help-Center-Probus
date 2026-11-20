@@ -301,7 +301,10 @@ export const namedModuleIcons = {
  * Prioritas:
  * 1. import.meta.env.VITE_STORAGE_URL (jika diset eksplisit)
  * 2. Origin dari import.meta.env.VITE_API_URL (jika diset dan berbeda origin)
- * 3. Fallback string kosong (menggunakan path relatif, cocok untuk dev proxy Vite)
+ * 3. Deteksi otomatis lingkungan live production:
+ *    Help Center portal di https://help-center.probussystem.com sedangkan
+ *    Laravel CMS media storage tersimpan di https://probus.probussystem.com
+ * 4. Fallback string kosong (menggunakan path relatif, cocok untuk dev proxy Vite)
  */
 export function getStorageBaseUrl() {
   const storageEnv = import.meta.env?.VITE_STORAGE_URL
@@ -319,6 +322,22 @@ export function getStorageBaseUrl() {
     } catch (_) {}
   }
 
+  // Fallback otomatis untuk domain live / production Probus System:
+  // Seluruh file upload (icon, modul, editor gambar) tersimpan di Laravel probus.probussystem.com
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const host = window.location.hostname.toLowerCase()
+    const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local') || host.endsWith('.test')
+    if (!isLocal) {
+      if (
+        host === 'help-center.probussystem.com' ||
+        host.includes('probussystem.com') ||
+        host === '103.150.116.126'
+      ) {
+        return 'https://probus.probussystem.com'
+      }
+    }
+  }
+
   return ''
 }
 
@@ -327,7 +346,15 @@ export function getStorageBaseUrl() {
  */
 export function resolveImageUrl(path) {
   if (!path) return ''
-  const trimmed = String(path).trim()
+  let trimmed = String(path).trim()
+
+  // 1. Bersihkan prefix localhost / 127.0.0.1 (jika database hasil dump/sinkronisasi dari lokal)
+  trimmed = trimmed.replace(/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//, '/')
+
+  // 2. Normalisasikan jika path keliru diawali domain help-center (server Go) padahal file di Laravel
+  trimmed = trimmed.replace(/^https?:\/\/help-center\.probussystem\.com\//, '/')
+
+  // 3. Jika sudah merupakan URL absolut valid (misal https://probus.probussystem.com/..., data:, blob:)
   if (
     trimmed.startsWith('http://') ||
     trimmed.startsWith('https://') ||
@@ -336,11 +363,31 @@ export function resolveImageUrl(path) {
   ) {
     return trimmed
   }
+
   const base = getStorageBaseUrl()
   if (!base) return trimmed
 
   const normalized = trimmed.startsWith('/') ? trimmed : '/' + trimmed
   return `${base}${normalized}`
+}
+
+/**
+ * Error fallback untuk icon sistem gambar yang gagal dimuat (404/network error)
+ * Mengalihkan secara otomatis ke icon SVG bawaan agar tidak menampilkan icon rusak di browser.
+ */
+export function handleSystemIconError(sys) {
+  if (!sys) return
+  sys.isImage = false
+  sys.icon = detectSystemIcon(sys.name || sys.title || '')
+}
+
+/**
+ * Error fallback untuk icon modul gambar yang gagal dimuat
+ */
+export function handleModuleIconError(mod) {
+  if (!mod) return
+  mod.isImage = false
+  mod.icon = detectModuleIcon(mod.name || mod.title || '', mod.order || 0)
 }
 
 /**
@@ -421,4 +468,6 @@ export default {
   parseModuleDescription,
   resolveModuleIcon,
   resolveSystemIcon,
+  handleSystemIconError,
+  handleModuleIconError,
 }

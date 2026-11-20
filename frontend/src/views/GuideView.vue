@@ -20,7 +20,7 @@ import {
   CornerDownRight
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import { detectSystemIcon, resolveSystemIcon, parseModuleDescription, resolveImageUrl, getStorageBaseUrl } from '../utils/iconResolver'
+import { detectSystemIcon, resolveSystemIcon, handleSystemIconError, parseModuleDescription, resolveImageUrl, getStorageBaseUrl } from '../utils/iconResolver'
 import { slugify, getSystemSlug, getSystemIdFromParam, findModuleByParam, highlightKeyword, registerCategories, ensureCategoriesLoaded, resolveSystemId } from '../utils/slug'
 
 const route = useRoute()
@@ -84,6 +84,7 @@ function formatArticleContent(html) {
 
   let formatted = html
     .replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, uploadsPrefix)
+    .replace(/https?:\/\/help-center\.probussystem\.com\/uploads\//g, uploadsPrefix)
     .replace(/\.\.\/uploads\//g, uploadsPrefix)
 
   if (storageBase) {
@@ -402,6 +403,11 @@ async function loadSystemData(isResetSystem = false) {
       registerCategories(catRes.data.data)
 
       const fetchCustomCards = async () => {
+        try {
+          const customUrl = resolveImageUrl('/uploads/system_cards.json')
+          const res = await fetch(customUrl + (customUrl.includes('?') ? '&' : '?') + 't=' + Date.now())
+          if (res.ok) return await res.json()
+        } catch (_) {}
         try {
           const res = await fetch('/uploads/system_cards.json?t=' + Date.now())
           if (res.ok) return await res.json()
@@ -952,7 +958,7 @@ watch(
                         : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600')
                 ]"
               >
-                <img v-if="sys.isImage" :src="sys.icon" :alt="sys.name" class="w-full h-full object-cover" />
+                <img v-if="sys.isImage" :src="sys.icon" :alt="sys.name" class="w-full h-full object-cover" @error="handleSystemIconError(sys)" />
                 <component v-else :is="sys.icon" class="w-3.5 h-3.5" />
               </div>
 

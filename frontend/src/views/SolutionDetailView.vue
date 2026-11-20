@@ -107,6 +107,7 @@ function formatArticleContent(html) {
 
   let formatted = html
     .replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, uploadsPrefix)
+    .replace(/https?:\/\/help-center\.probussystem\.com\/uploads\//g, uploadsPrefix)
     .replace(/\.\.\/uploads\//g, uploadsPrefix)
 
   if (storageBase) {

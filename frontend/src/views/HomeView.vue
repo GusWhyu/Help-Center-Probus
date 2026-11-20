@@ -26,7 +26,7 @@ import {
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { getSystemSlug, slugify, highlightKeyword, registerCategories } from '../utils/slug'
-import { detectSystemIcon, resolveSystemIcon } from '../utils/iconResolver'
+import { detectSystemIcon, resolveSystemIcon, handleSystemIconError, resolveImageUrl } from '../utils/iconResolver'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -93,6 +93,11 @@ onMounted(async () => {
     isLoading.value = true
 
     const fetchCustomCards = async () => {
+      try {
+        const customUrl = resolveImageUrl('/uploads/system_cards.json')
+        const res = await fetch(customUrl + (customUrl.includes('?') ? '&' : '?') + 't=' + Date.now())
+        if (res.ok) return await res.json()
+      } catch (_) {}
       try {
         const res = await fetch('/uploads/system_cards.json?t=' + Date.now())
         if (res.ok) return await res.json()
@@ -572,7 +577,7 @@ function clearSearch() {
                   'bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600': !sys.isImage
                 }"
               >
-                <img v-if="sys.isImage" :src="sys.icon" :alt="sys.title" class="w-full h-full object-cover" />
+                <img v-if="sys.isImage" :src="sys.icon" :alt="sys.title" class="w-full h-full object-cover" @error="handleSystemIconError(sys)" />
                 <component v-else :is="sys.icon" class="w-5 sm:w-6 h-5 sm:h-6 stroke-[1.8]" />
               </div>
               <span

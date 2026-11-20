@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getSystemIdFromParam, getSystemSlug, slugify, highlightKeyword, registerCategories, ensureCategoriesLoaded, resolveSystemId } from '../utils/slug'
 import apiClient from '../api/client'
-import { detectModuleIcon, parseModuleDescription, resolveModuleIcon, isImageIcon, resolveImageUrl, getStorageBaseUrl } from '../utils/iconResolver'
+import { detectModuleIcon, parseModuleDescription, resolveModuleIcon, isImageIcon, resolveImageUrl, getStorageBaseUrl, handleModuleIconError } from '../utils/iconResolver'
 import {
   ArrowLeft,
   ArrowRight,
@@ -149,6 +149,7 @@ function formatArticleContent(html) {
 
   let formatted = html
     .replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, uploadsPrefix)
+    .replace(/https?:\/\/help-center\.probussystem\.com\/uploads\//g, uploadsPrefix)
     .replace(/\.\.\/uploads\//g, uploadsPrefix)
 
   if (storageBase) {
@@ -652,6 +653,7 @@ function goBackHome() {
                     :src="card.icon"
                     :alt="card.name"
                     class="w-full h-full object-cover rounded-xl transition-transform duration-200 group-hover:scale-105"
+                    @error="handleModuleIconError(card)"
                   />
                   <component v-else :is="card.icon" class="w-5 h-5 stroke-[1.8]" />
                 </div>

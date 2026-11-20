@@ -3,8 +3,12 @@ package bootstrap
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/rafialfauzan/layrd/pkg/core"
 )
 
@@ -24,16 +28,43 @@ func setupStorage(app *core.App) error {
 		"public/uploads",
 	}
 
-	for _, dir := range candidateUploads {
-		if info, err := os.Stat(dir); err == nil && info.IsDir() {
-			app.Router.Static("/uploads", dir)
-			log.Printf("[Storage] Serving CMS uploaded media from %s at /uploads\n", dir)
-			return nil
+	// CMS fallback base URL: jika file tidak ada di direktori lokal server Go,
+	// arahkan request ke server Laravel CMS tempat file media disimpan.
+	cmsBase := os.Getenv("LARAVEL_URL")
+	if cmsBase == "" {
+		cmsBase = os.Getenv("CMS_STORAGE_URL")
+	}
+	if cmsBase == "" {
+		cmsBase = os.Getenv("LARAVEL_STORAGE_URL")
+	}
+	if cmsBase == "" {
+		cmsBase = "https://probus.probussystem.com"
+	}
+	cmsBase = strings.TrimRight(cmsBase, "/")
+
+	uploadsHandler := func(c *gin.Context) {
+		reqPath := c.Param("filepath")
+		cleanRel := filepath.Clean("/" + reqPath)
+
+		// 1. Periksa direktori lokal (untuk local development)
+		for _, dir := range candidateUploads {
+			fullPath := filepath.Join(dir, cleanRel)
+			if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
+				c.File(fullPath)
+				return
+			}
 		}
+
+		// 2. Jika file tidak ada di lokal (misal di live server di mana file diunggah ke Laravel CMS),
+		// redirect (HTTP 302 Found) langsung ke domain Laravel CMS
+		urlPath := strings.ReplaceAll(cleanRel, "\\", "/")
+		targetURL := cmsBase + "/uploads" + urlPath
+		c.Redirect(http.StatusFound, targetURL)
 	}
 
-	_ = os.MkdirAll("public/uploads", os.ModePerm)
-	app.Router.Static("/uploads", "public/uploads")
+	app.Router.GET("/uploads/*filepath", uploadsHandler)
+	app.Router.HEAD("/uploads/*filepath", uploadsHandler)
 
+	log.Printf("[Storage] Uploads handler active with CMS fallback: %s\n", cmsBase)
 	return nil
 }

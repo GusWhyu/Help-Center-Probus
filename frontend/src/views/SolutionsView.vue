@@ -23,7 +23,7 @@ import {
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
 import { slugify, highlightKeyword } from '../utils/slug'
-import { detectSystemIcon, resolveSystemIcon, getStorageBaseUrl } from '../utils/iconResolver'
+import { detectSystemIcon, resolveSystemIcon, handleSystemIconError, getStorageBaseUrl, resolveImageUrl } from '../utils/iconResolver'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -51,6 +51,7 @@ function formatArticleContent(html) {
 
   let formatted = html
     .replace(/https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/uploads\//g, uploadsPrefix)
+    .replace(/https?:\/\/help-center\.probussystem\.com\/uploads\//g, uploadsPrefix)
     .replace(/\.\.\/uploads\//g, uploadsPrefix)
 
   if (storageBase) {
@@ -152,6 +153,14 @@ async function loadArticles() {
 const systemCards = ref({})
 
 async function loadSystemCards() {
+  try {
+    const customUrl = resolveImageUrl('/uploads/system_cards.json')
+    const res = await fetch(customUrl + (customUrl.includes('?') ? '&' : '?') + 't=' + Date.now())
+    if (res.ok) {
+      systemCards.value = await res.json()
+      return
+    }
+  } catch (_) {}
   try {
     const res = await fetch('/uploads/system_cards.json?t=' + Date.now())
     if (res.ok) {
@@ -535,6 +544,7 @@ function goBackHome() {
                     :src="opt.icon"
                     :alt="opt.label"
                     class="w-full h-full object-cover"
+                    @error="handleSystemIconError(opt)"
                   />
                   <component
                     v-else
