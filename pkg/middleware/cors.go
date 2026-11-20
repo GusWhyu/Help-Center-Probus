@@ -30,6 +30,10 @@ func CORS(allowedOrigins []string, isDebug bool) gin.HandlerFunc {
 			if isDebug && (strings.HasPrefix(origin, "http://localhost:") || strings.HasPrefix(origin, "http://127.0.0.1:")) {
 				return true
 			}
+			// Automatically allow probussystem.com origins (both http and https)
+			if strings.HasSuffix(origin, "probussystem.com") {
+				return true
+			}
 			return false
 		},
 	}
