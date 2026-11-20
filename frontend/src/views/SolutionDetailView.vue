@@ -134,6 +134,9 @@ function formatArticleContent(html) {
     '<div class="video-container my-4"><iframe src="https://www.youtube.com/embed/$1" title="YouTube video player" width="100%" height="380" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen="allowfullscreen"></iframe></div>'
   )
 
+  // Auto-inject loading="lazy" into images to avoid blocking network
+  formatted = formatted.replace(/<img\s+(?![^>]*\bloading=)/gi, '<img loading="lazy" ')
+
   return formatted
 }
 

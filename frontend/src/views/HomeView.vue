@@ -104,28 +104,10 @@ onMounted(async () => {
       return {}
     }
 
-    const [res, manualRes, customCards] = await Promise.all([
+    const [res, customCards] = await Promise.all([
       apiClient.get('/categories'),
-      apiClient.get('/manual-books'),
       fetchCustomCards()
     ])
-
-    // Hitung jumlah modul yang benar-benar memiliki buku panduan terbit (published) per kategori
-    const publishedModuleCounts = {}
-    const allManuals = (manualRes.data && manualRes.data.data) ? manualRes.data.data : []
-    allManuals.forEach(mb => {
-      if (mb.status === 'published' && Array.isArray(mb.menu_systems)) {
-        mb.menu_systems.forEach(ms => {
-          const kId = ms.kategori_id
-          if (kId) {
-            if (!publishedModuleCounts[kId]) {
-              publishedModuleCounts[kId] = new Set()
-            }
-            publishedModuleCounts[kId].add(ms.id)
-          }
-        })
-      }
-    })
 
     if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
       const dbCategories = res.data.data
@@ -140,7 +122,7 @@ onMounted(async () => {
         const desc = cat.description || customCard.desc || meta.desc
         const iconSrc = cat.icon || customCard.icon
         const resolved = resolveSystemIcon(iconSrc, cat.name)
-        const count = publishedModuleCounts[cat.id] ? publishedModuleCounts[cat.id].size : 0
+        const count = cat.published_modules_count ?? (cat.total_menus || 0)
 
         return {
           id: cat.id,
@@ -572,7 +554,7 @@ function clearSearch() {
                   'bg-slate-100 text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-600': !sys.isImage
                 }"
               >
-                <img v-if="sys.isImage" :src="sys.icon" :alt="sys.title" class="w-full h-full object-cover" @error="handleSystemIconError(sys)" />
+                <img v-if="sys.isImage" :src="sys.icon" :alt="sys.title" loading="lazy" class="w-full h-full object-cover" @error="handleSystemIconError(sys)" />
                 <component v-else :is="sys.icon" class="w-5 sm:w-6 h-5 sm:h-6 stroke-[1.8]" />
               </div>
               <span

@@ -44,8 +44,28 @@ func (r *repository) FindCategories(ctx context.Context) ([]Kategori, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	type countRow struct {
+		KategoriID uint `gorm:"column:kategori_id"`
+		Count      int  `gorm:"column:count"`
+	}
+	var counts []countRow
+	_ = r.db.WithContext(ctx).Table("menu_systems").
+		Select("menu_systems.kategori_id, COUNT(DISTINCT menu_systems.id) as count").
+		Joins("JOIN menu_has_manual_books ON menu_has_manual_books.menu_system_id = menu_systems.id").
+		Joins("JOIN manual_books ON manual_books.id = menu_has_manual_books.manual_book_id").
+		Where("manual_books.status = ?", "published").
+		Group("menu_systems.kategori_id").
+		Scan(&counts).Error
+
+	countMap := make(map[uint]int)
+	for _, c := range counts {
+		countMap[c.KategoriID] = c.Count
+	}
+
 	for i := range categories {
 		categories[i].TotalMenus = len(categories[i].Menus)
+		categories[i].PublishedModulesCount = countMap[categories[i].ID]
 	}
 	return categories, nil
 }
@@ -123,6 +143,17 @@ func (r *repository) FindCategoryByID(ctx context.Context, id uint) (*Kategori, 
 		}
 	}
 
+	var publishedCount int64
+	_ = r.db.WithContext(ctx).Table("menu_systems").
+		Joins("JOIN menu_has_manual_books ON menu_has_manual_books.menu_system_id = menu_systems.id").
+		Joins("JOIN manual_books ON manual_books.id = menu_has_manual_books.manual_book_id").
+		Where("menu_systems.kategori_id = ? AND manual_books.status = ?", cat.ID, "published").
+		Distinct("menu_systems.id").
+		Count(&publishedCount).Error
+
+	cat.TotalMenus = len(cat.Menus)
+	cat.PublishedModulesCount = int(publishedCount)
+
 	return &cat, nil
 }
 
@@ -159,7 +190,7 @@ func (r *repository) FindArticles(ctx context.Context, page, limit int, kategori
 
 	offset := (page - 1) * limit
 	var articles []Article
-	err := query.Distinct("articles.*").
+	err := query.Distinct("articles.id, articles.user_id, articles.title, articles.visibility, articles.status, articles.summary, articles.created_at, articles.updated_at").
 		Preload("MenuSystems").
 		Order("articles.id ASC").
 		Offset(offset).

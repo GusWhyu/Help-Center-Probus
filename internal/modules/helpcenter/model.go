@@ -14,8 +14,9 @@ type Kategori struct {
 	Icon        *string      `gorm:"size:255" json:"icon,omitempty"`
 	CreatedAt   *time.Time   `json:"created_at,omitempty"`
 	UpdatedAt   *time.Time   `json:"updated_at,omitempty"`
-	Menus       []MenuSystem `gorm:"foreignKey:KategoriID" json:"menus,omitempty"`
-	TotalMenus  int          `gorm:"-" json:"total_menus"`
+	Menus                 []MenuSystem `gorm:"foreignKey:KategoriID" json:"menus,omitempty"`
+	TotalMenus            int          `gorm:"-" json:"total_menus"`
+	PublishedModulesCount int          `gorm:"-" json:"published_modules_count"`
 }
 
 func (Kategori) TableName() string {

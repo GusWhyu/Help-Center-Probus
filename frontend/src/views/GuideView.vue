@@ -121,6 +121,9 @@ function formatArticleContent(html) {
     '<div class="video-container my-4"><iframe src="https://www.youtube.com/embed/$1" title="YouTube video player" width="100%" height="380" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen="allowfullscreen"></iframe></div>'
   )
 
+  // Auto-inject loading="lazy" into images to avoid blocking network
+  formatted = formatted.replace(/<img\s+(?![^>]*\bloading=)/gi, '<img loading="lazy" ')
+
   return formatted
 }
 
@@ -380,54 +383,32 @@ async function shareCurrentGuide() {
 async function loadSystemData(isResetSystem = false) {
   isLoading.value = true
   try {
-    // 1. Fetch Categories dan all published Manual Books terlebih dahulu
-    const [catRes, allManualRes] = await Promise.all([
+    // 1. Fetch Categories dan custom cards
+    const fetchCustomCards = async () => {
+      try {
+        const res = await fetch('/uploads/system_cards.json?t=' + Date.now())
+        if (res.ok) return await res.json()
+      } catch (_) {}
+      try {
+        const res = await fetch('/system_cards.json?t=' + Date.now())
+        if (res.ok) return await res.json()
+      } catch (_) {}
+      return {}
+    }
+
+    const [catRes, customCards] = await Promise.all([
       apiClient.get('/categories').catch(err => {
         console.warn('Failed to fetch categories:', err)
         return { data: { data: [] } }
       }),
-      apiClient.get('/manual-books').catch(err => {
-        console.warn('Failed to fetch all manual books:', err)
-        return { data: { data: [] } }
-      })
+      fetchCustomCards()
     ])
-
-    // Hitung jumlah modul yang benar-benar memiliki buku panduan terbit (published) per kategori
-    const publishedModuleCounts = {}
-    const allManuals = (allManualRes.data && allManualRes.data.data) ? allManualRes.data.data : []
-    allManuals.forEach(mb => {
-      if (mb.status === 'published' && Array.isArray(mb.menu_systems)) {
-        mb.menu_systems.forEach(ms => {
-          const kId = ms.kategori_id
-          if (kId) {
-            if (!publishedModuleCounts[kId]) {
-              publishedModuleCounts[kId] = new Set()
-            }
-            publishedModuleCounts[kId].add(ms.id)
-          }
-        })
-      }
-    })
 
     if (catRes.data && catRes.data.data && Array.isArray(catRes.data.data)) {
       registerCategories(catRes.data.data)
 
-      const fetchCustomCards = async () => {
-        try {
-          const res = await fetch('/uploads/system_cards.json?t=' + Date.now())
-          if (res.ok) return await res.json()
-        } catch (_) {}
-        try {
-          const res = await fetch('/system_cards.json?t=' + Date.now())
-          if (res.ok) return await res.json()
-        } catch (_) {}
-        return {}
-      }
-
-      const customCards = await fetchCustomCards()
-
       availableSystems.value = catRes.data.data.map(cat => {
-        const count = publishedModuleCounts[cat.id] ? publishedModuleCounts[cat.id].size : 0
+        const count = cat.published_modules_count ?? (cat.total_menus || 0)
         const card = (customCards && (customCards[String(cat.id)] || customCards[cat.name])) || {}
         const iconSrc = cat.icon || card.icon
         const resolved = resolveSystemIcon(iconSrc, cat.name)

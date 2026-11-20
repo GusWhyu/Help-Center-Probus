@@ -122,7 +122,7 @@ async function loadArticles() {
           const menuId = primaryMenu ? primaryMenu.id : null
 
           // Estimate read time
-          const words = (item.content || '').split(/\s+/).length
+          const words = (item.content || item.summary || item.title || '').split(/\s+/).length
           const minutes = Math.max(2, Math.min(10, Math.ceil(words / 150)))
 
           return {
@@ -137,7 +137,7 @@ async function loadArticles() {
             visibility: item.visibility,
             readTime: `${minutes} menit baca`,
             summary: cleanSummary(item.summary) || 'Panduan pemecahan kendala teknis dan operasional sistem Probus.',
-            content: formatArticleContent(item.content),
+            content: item.content || '',
             raw: item,
           }
         })
