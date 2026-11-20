@@ -138,6 +138,22 @@ onMounted(async () => {
     }
   } catch (err) {
     console.warn('API /categories unavailable, falling back to local dataset:', err)
+    if (systems.value.length === 0) {
+      systems.value = Object.keys(categoryMetaMap).map((name, index) => {
+        const meta = categoryMetaMap[name] || {}
+        const resolved = resolveSystemIcon(null, name)
+        return {
+          id: index + 1,
+          name: name,
+          title: name,
+          badge: meta.badge || 'Sistem Probus',
+          desc: meta.desc || `Panduan operasional sistem ${name}.`,
+          modulCount: 1,
+          icon: resolved.icon,
+          isImage: resolved.isImage,
+        }
+      })
+    }
   } finally {
     isLoading.value = false
   }
