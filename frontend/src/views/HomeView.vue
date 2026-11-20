@@ -94,11 +94,6 @@ onMounted(async () => {
 
     const fetchCustomCards = async () => {
       try {
-        const customUrl = resolveImageUrl('/uploads/system_cards.json')
-        const res = await fetch(customUrl + (customUrl.includes('?') ? '&' : '?') + 't=' + Date.now())
-        if (res.ok) return await res.json()
-      } catch (_) {}
-      try {
         const res = await fetch('/uploads/system_cards.json?t=' + Date.now())
         if (res.ok) return await res.json()
       } catch (_) {}

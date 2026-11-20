@@ -154,14 +154,6 @@ const systemCards = ref({})
 
 async function loadSystemCards() {
   try {
-    const customUrl = resolveImageUrl('/uploads/system_cards.json')
-    const res = await fetch(customUrl + (customUrl.includes('?') ? '&' : '?') + 't=' + Date.now())
-    if (res.ok) {
-      systemCards.value = await res.json()
-      return
-    }
-  } catch (_) {}
-  try {
     const res = await fetch('/uploads/system_cards.json?t=' + Date.now())
     if (res.ok) {
       systemCards.value = await res.json()
