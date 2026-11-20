@@ -18,7 +18,6 @@ import (
 	"github.com/rafialfauzan/layrd/pkg/utils"
 	"github.com/rafialfauzan/layrd/pkg/websocket"
 
-	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 )
 
@@ -43,7 +42,6 @@ func NewApp(cfg *config.Config) *App {
 
 	// Global Middlewares
 	router.Use(gin.Logger())
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(middleware.Recovery(isDebug))
 	router.Use(middleware.RequestID())
 	router.Use(middleware.CORS(cfg.CORSAllowedOrigins, isDebug))

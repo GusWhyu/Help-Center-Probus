@@ -190,7 +190,7 @@ func (r *repository) FindArticles(ctx context.Context, page, limit int, kategori
 
 	offset := (page - 1) * limit
 	var articles []Article
-	err := query.Distinct("articles.id, articles.user_id, articles.title, articles.visibility, articles.status, articles.summary, articles.created_at, articles.updated_at").
+	err := query.Distinct("articles.*").
 		Preload("MenuSystems").
 		Order("articles.id ASC").
 		Offset(offset).

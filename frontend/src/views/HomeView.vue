@@ -104,10 +104,34 @@ onMounted(async () => {
       return {}
     }
 
-    const [res, customCards] = await Promise.all([
-      apiClient.get('/categories'),
+    const [res, manualRes, customCards] = await Promise.all([
+      apiClient.get('/categories').catch(err => {
+        console.warn('API /categories error:', err)
+        return { data: { data: [] } }
+      }),
+      apiClient.get('/manual-books').catch(err => {
+        console.warn('API /manual-books error:', err)
+        return { data: { data: [] } }
+      }),
       fetchCustomCards()
     ])
+
+    // Hitung jumlah modul yang benar-benar memiliki buku panduan terbit (published) per kategori
+    const publishedModuleCounts = {}
+    const allManuals = (manualRes?.data?.data && Array.isArray(manualRes.data.data)) ? manualRes.data.data : []
+    allManuals.forEach(mb => {
+      if (mb.status === 'published' && Array.isArray(mb.menu_systems)) {
+        mb.menu_systems.forEach(ms => {
+          const kId = ms.kategori_id
+          if (kId) {
+            if (!publishedModuleCounts[kId]) {
+              publishedModuleCounts[kId] = new Set()
+            }
+            publishedModuleCounts[kId].add(ms.id)
+          }
+        })
+      }
+    })
 
     if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
       const dbCategories = res.data.data
@@ -122,7 +146,10 @@ onMounted(async () => {
         const desc = cat.description || customCard.desc || meta.desc
         const iconSrc = cat.icon || customCard.icon
         const resolved = resolveSystemIcon(iconSrc, cat.name)
-        const count = cat.published_modules_count ?? (cat.total_menus || 0)
+        const countFromManuals = publishedModuleCounts[cat.id] ? publishedModuleCounts[cat.id].size : 0
+        const countFromBackend = cat.published_modules_count || 0
+        const countFromMenus = cat.total_menus || (Array.isArray(cat.menus) ? cat.menus.length : 0)
+        const count = countFromManuals || countFromBackend || countFromMenus
 
         return {
           id: cat.id,
@@ -138,6 +165,8 @@ onMounted(async () => {
     }
   } catch (err) {
     console.warn('API /categories unavailable, falling back to local dataset:', err)
+  } finally {
+    // Fallback dataset jika systems masih kosong
     if (systems.value.length === 0) {
       systems.value = Object.keys(categoryMetaMap).map((name, index) => {
         const meta = categoryMetaMap[name] || {}
@@ -154,14 +183,14 @@ onMounted(async () => {
         }
       })
     }
-  } finally {
     isLoading.value = false
   }
 })
 
-// Hanya tampilkan sistem yang memang sudah memiliki modul terbit (modulCount > 0)
+// Tampilkan sistem yang memiliki modul terbit, atau semua sistem jika modul belum terhitung
 const activeSystems = computed(() => {
-  return systems.value.filter(sys => sys.modulCount > 0)
+  const withModules = systems.value.filter(sys => (sys.modulCount || 0) > 0)
+  return withModules.length > 0 ? withModules : systems.value
 })
 
 // Quick search index

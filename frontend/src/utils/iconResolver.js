@@ -307,45 +307,27 @@ export const namedModuleIcons = {
  * 4. Fallback string kosong (menggunakan path relatif, cocok untuk dev proxy Vite)
  */
 export function getStorageBaseUrl() {
-  const storageEnv = import.meta.env?.VITE_STORAGE_URL
-  if (storageEnv && typeof storageEnv === 'string' && storageEnv.trim()) {
-    return storageEnv.trim().replace(/\/$/, '')
-  }
+  const isBrowser = typeof window !== 'undefined' && window.location?.hostname
+  const host = isBrowser ? window.location.hostname.toLowerCase() : ''
+  const isLocal = !isBrowser || host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local') || host.endsWith('.test')
 
-  const apiEnv = import.meta.env?.VITE_API_URL
-  if (apiEnv && typeof apiEnv === 'string' && apiEnv.trim()) {
-    try {
-      const url = new URL(apiEnv.trim(), typeof window !== 'undefined' ? window.location.origin : 'http://localhost')
-      if (url.origin && typeof window !== 'undefined' && url.origin !== window.location.origin) {
-        return url.origin.replace(/\/$/, '')
-      }
-    } catch (_) {}
-  }
+  const storageEnv = (import.meta.env?.VITE_STORAGE_URL || '').trim()
 
-  // Fallback otomatis sesuai lingkungan:
-  // Seluruh file upload (icon sistem, modul, editor gambar) tersimpan di project Implementator Laravel.
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const host = window.location.hostname.toLowerCase()
-    const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local') || host.endsWith('.test')
-
-    // Pada lingkungan LOKAL:
-    // Arahkan langsung ke project Implementator Laravel yang berjalan di http://127.0.0.1:8000
-    if (isLocal) {
-      return 'http://127.0.0.1:8000'
+  // 1. Pada lingkungan LIVE / PRODUCTION (HTTPS help-center.probussystem.com):
+  // Jangan pernah return localhost / 127.0.0.1 karena browser akan memblokir Mixed Content & Loopback
+  if (!isLocal) {
+    if (storageEnv && !storageEnv.includes('localhost') && !storageEnv.includes('127.0.0.1')) {
+      return storageEnv.replace(/\/$/, '')
     }
-
-    // Pada lingkungan LIVE / PRODUCTION:
-    // Arahkan ke domain Implementator Laravel di https://probus.probussystem.com
-    if (
-      host === 'help-center.probussystem.com' ||
-      host.includes('probussystem.com') ||
-      host === '103.150.116.126'
-    ) {
-      return 'https://probus.probussystem.com'
-    }
+    // Default server live: file media tersimpan di Laravel Implementator
+    return 'https://probus.probussystem.com'
   }
 
-  return 'https://probus.probussystem.com'
+  // 2. Pada lingkungan LOKAL (localhost / 127.0.0.1):
+  if (storageEnv) {
+    return storageEnv.replace(/\/$/, '')
+  }
+  return 'http://127.0.0.1:8000'
 }
 
 /**

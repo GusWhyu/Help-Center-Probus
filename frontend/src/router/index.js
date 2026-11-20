@@ -1,10 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
-const HomeView = () => import('../views/HomeView.vue')
-const SystemDetailView = () => import('../views/SystemDetailView.vue')
-const SolutionsView = () => import('../views/SolutionsView.vue')
-const SolutionDetailView = () => import('../views/SolutionDetailView.vue')
-const GuideView = () => import('../views/GuideView.vue')
+import HomeView from '../views/HomeView.vue'
+import SystemDetailView from '../views/SystemDetailView.vue'
+import SolutionsView from '../views/SolutionsView.vue'
+import SolutionDetailView from '../views/SolutionDetailView.vue'
+import GuideView from '../views/GuideView.vue'
 
 const routes = [
   {

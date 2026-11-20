@@ -396,26 +396,48 @@ async function loadSystemData(isResetSystem = false) {
       return {}
     }
 
-    const [catRes, customCards] = await Promise.all([
+    const [catRes, allManualRes, customCards] = await Promise.all([
       apiClient.get('/categories').catch(err => {
         console.warn('Failed to fetch categories:', err)
+        return { data: { data: [] } }
+      }),
+      apiClient.get('/manual-books').catch(err => {
+        console.warn('Failed to fetch all manual books:', err)
         return { data: { data: [] } }
       }),
       fetchCustomCards()
     ])
 
+    // Hitung jumlah modul yang benar-benar memiliki buku panduan terbit (published) per kategori
+    const publishedModuleCounts = {}
+    const allManuals = (allManualRes?.data?.data && Array.isArray(allManualRes.data.data)) ? allManualRes.data.data : []
+    allManuals.forEach(mb => {
+      if (mb.status === 'published' && Array.isArray(mb.menu_systems)) {
+        mb.menu_systems.forEach(ms => {
+          const kId = ms.kategori_id
+          if (kId) {
+            if (!publishedModuleCounts[kId]) {
+              publishedModuleCounts[kId] = new Set()
+            }
+            publishedModuleCounts[kId].add(ms.id)
+          }
+        })
+      }
+    })
+
     if (catRes.data && catRes.data.data && Array.isArray(catRes.data.data)) {
       registerCategories(catRes.data.data)
 
       availableSystems.value = catRes.data.data.map(cat => {
-        const count = cat.published_modules_count ?? (cat.total_menus || 0)
+        const countFromManuals = publishedModuleCounts[cat.id] ? publishedModuleCounts[cat.id].size : 0
+        const count = countFromManuals || cat.published_modules_count || (cat.total_menus || 0)
         const card = (customCards && (customCards[String(cat.id)] || customCards[cat.name])) || {}
         const iconSrc = cat.icon || card.icon
         const resolved = resolveSystemIcon(iconSrc, cat.name)
         return {
           id: cat.id,
           name: cat.name,
-          title: `${cat.name} (${count} Modul)`,
+          title: count > 0 ? `${cat.name} (${count} Modul)` : cat.name,
           modulCount: count,
           shortName: cat.name,
           icon: resolved.icon,
