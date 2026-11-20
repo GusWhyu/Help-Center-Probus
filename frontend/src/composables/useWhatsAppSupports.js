@@ -13,6 +13,7 @@ import {
   ShieldCheck,
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
+import { getStorageBaseUrl } from '../utils/iconResolver'
 
 // Fallback initial contacts jika backend offline
 const defaultContacts = [
@@ -143,30 +144,35 @@ export async function fetchWhatsAppSupports(force = false) {
     // Go backend mungkin sedang offline atau belum di-restart
   }
 
-  // 2. Resilient Fallback: Jika Go Backend belum dapat dijangkau, ambil dari Laravel Backend (port 8000)
+  // 2. Resilient Fallback: Jika Go Backend belum dapat dijangkau, ambil dari Laravel Backend
   if (!rawList) {
-    try {
-      const laravelRes = await axios.get('http://localhost:8000/api/whatsapp-supports', { timeout: 3000 })
-      if (laravelRes && laravelRes.data) {
-        if (Array.isArray(laravelRes.data.data)) {
-          rawList = laravelRes.data.data
-        } else if (Array.isArray(laravelRes.data)) {
-          rawList = laravelRes.data
-        }
+    const storageBase = getStorageBaseUrl() || ''
+    const fallbackUrls = []
+    if (storageBase) {
+      fallbackUrls.push(`${storageBase}/api/whatsapp-supports`)
+    }
+    if (typeof window !== 'undefined' && window.location?.hostname) {
+      const host = window.location.hostname.toLowerCase()
+      const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local') || host.endsWith('.test')
+      if (isLocal) {
+        fallbackUrls.push('http://127.0.0.1:8000/api/whatsapp-supports')
+        fallbackUrls.push('http://localhost:8000/api/whatsapp-supports')
       }
-    } catch (e1) {
+    }
+
+    for (const url of fallbackUrls) {
       try {
-        const laravelIpRes = await axios.get('http://127.0.0.1:8000/api/whatsapp-supports', { timeout: 3000 })
-        if (laravelIpRes && laravelIpRes.data) {
-          if (Array.isArray(laravelIpRes.data.data)) {
-            rawList = laravelIpRes.data.data
-          } else if (Array.isArray(laravelIpRes.data)) {
-            rawList = laravelIpRes.data
+        const laravelRes = await axios.get(url, { timeout: 3000 })
+        if (laravelRes && laravelRes.data) {
+          if (Array.isArray(laravelRes.data.data)) {
+            rawList = laravelRes.data.data
+            break
+          } else if (Array.isArray(laravelRes.data)) {
+            rawList = laravelRes.data
+            break
           }
         }
-      } catch (e2) {
-        // Kedua backend tidak dapat dijangkau
-      }
+      } catch (_) {}
     }
   }
 
