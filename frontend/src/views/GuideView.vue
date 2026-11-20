@@ -20,7 +20,17 @@ import {
   CornerDownRight
 } from 'lucide-vue-next'
 import apiClient from '../api/client'
-import { detectSystemIcon, resolveSystemIcon, handleSystemIconError, parseModuleDescription, resolveImageUrl, getStorageBaseUrl } from '../utils/iconResolver'
+import {
+  detectSystemIcon,
+  resolveSystemIcon,
+  handleSystemIconError,
+  parseModuleDescription,
+  resolveModuleIcon,
+  isImageIcon,
+  handleModuleIconError,
+  resolveImageUrl,
+  getStorageBaseUrl
+} from '../utils/iconResolver'
 import { slugify, getSystemSlug, getSystemIdFromParam, findModuleByParam, highlightKeyword, registerCategories, ensureCategoriesLoaded, resolveSystemId } from '../utils/slug'
 
 const route = useRoute()
@@ -516,7 +526,10 @@ async function loadSystemData(isResetSystem = false) {
         }
 
         const parsed = parseModuleDescription(menu.description)
+        const customIcon = menu.icon || parsed.icon
         const cleanDesc = (parsed.text || menu.description || '').trim()
+        const isImage = isImageIcon(customIcon)
+        const moduleIcon = isImage ? resolveImageUrl(customIcon) : resolveModuleIcon(customIcon, menu.name, orderNum)
         const { tree, flatChapters } = buildModuleTree(uniqueLinked)
 
         return {
@@ -526,6 +539,8 @@ async function loadSystemData(isResetSystem = false) {
           name: menu.name,
           title: `${code}. ${menu.name}`,
           desc: cleanDesc || 'Panduan operasional dan tata cara penggunaan fitur modul.',
+          icon: moduleIcon,
+          isImage: isImage,
           manualBooks: uniqueLinked,
           tree: tree,
           flatChapters: flatChapters,
@@ -1069,14 +1084,18 @@ watch(
                   @click="toggleModule(mod)"
                 >
                   <div class="flex items-center gap-2.5 min-w-0">
-                    <!-- Ikon folder rounded berwarna biru di sebelah kiri -->
+                    <!-- Ikon modul di sebelah kiri -->
                     <div
-                      :class="currentModule?.id === mod.id
-                        ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/20'
-                        : 'bg-blue-50 text-blue-600 border border-blue-100/90 group-hover:bg-blue-100/80'"
+                      :class="mod.isImage
+                        ? 'p-0 bg-white border border-slate-200 overflow-hidden'
+                        : (currentModule?.id === mod.id
+                            ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/20'
+                            : 'bg-blue-50 text-blue-600 border border-blue-100/90 group-hover:bg-blue-100/80')"
                       class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
                     >
-                      <Folder class="w-4 h-4" />
+                      <img v-if="mod.isImage" :src="mod.icon" :alt="mod.name" class="w-full h-full object-cover" @error="handleModuleIconError(mod)" />
+                      <component v-else-if="mod.icon" :is="mod.icon" class="w-4 h-4" />
+                      <Folder v-else class="w-4 h-4" />
                     </div>
                     <div class="min-w-0">
                       <!-- Judul modul (misal: "01. Setup Master") dengan teks tebal font-bold -->

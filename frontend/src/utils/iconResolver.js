@@ -322,23 +322,30 @@ export function getStorageBaseUrl() {
     } catch (_) {}
   }
 
-  // Fallback otomatis untuk domain live / production Probus System:
-  // Seluruh file upload (icon, modul, editor gambar) tersimpan di Laravel probus.probussystem.com
+  // Fallback otomatis sesuai lingkungan:
+  // Seluruh file upload (icon sistem, modul, editor gambar) tersimpan di project Implementator Laravel.
   if (typeof window !== 'undefined' && window.location?.hostname) {
     const host = window.location.hostname.toLowerCase()
     const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local') || host.endsWith('.test')
-    if (!isLocal) {
-      if (
-        host === 'help-center.probussystem.com' ||
-        host.includes('probussystem.com') ||
-        host === '103.150.116.126'
-      ) {
-        return 'https://probus.probussystem.com'
-      }
+
+    // Pada lingkungan LOKAL:
+    // Arahkan langsung ke project Implementator Laravel yang berjalan di http://127.0.0.1:8000
+    if (isLocal) {
+      return 'http://127.0.0.1:8000'
+    }
+
+    // Pada lingkungan LIVE / PRODUCTION:
+    // Arahkan ke domain Implementator Laravel di https://probus.probussystem.com
+    if (
+      host === 'help-center.probussystem.com' ||
+      host.includes('probussystem.com') ||
+      host === '103.150.116.126'
+    ) {
+      return 'https://probus.probussystem.com'
     }
   }
 
-  return ''
+  return 'https://probus.probussystem.com'
 }
 
 /**

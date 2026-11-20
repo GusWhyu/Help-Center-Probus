@@ -38,7 +38,11 @@ func setupStorage(app *core.App) error {
 		cmsBase = os.Getenv("LARAVEL_STORAGE_URL")
 	}
 	if cmsBase == "" {
-		cmsBase = "https://probus.probussystem.com"
+		if os.Getenv("APP_ENV") == "production" {
+			cmsBase = "https://probus.probussystem.com"
+		} else {
+			cmsBase = "http://127.0.0.1:8000"
+		}
 	}
 	cmsBase = strings.TrimRight(cmsBase, "/")
 
